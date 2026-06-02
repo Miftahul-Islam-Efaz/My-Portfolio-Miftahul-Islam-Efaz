@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Michroma&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Peace Sans';
+  src: url('../Fonts/Peace Sans.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Agoma';
+  src: url('../Fonts/AGOMA-Regular-BF69048b822ad02.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Backstreet';
+  src: url('../Fonts/Backstreet.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-peace: "Peace Sans", sans-serif;
+  --font-agoma: "Agoma", sans-serif;
+  --font-michroma: "Michroma", sans-serif;
+  --font-backstreet: "Backstreet", sans-serif;
+}
+
+:root {
+  --color-pearl: #F2F0F1;
+  --color-mist: #D9D8D9;
+  --color-taupe: #BDB6B3;
+  --color-charcoal: #323232;
+  --color-eerie: #0F0B0A;
+}
+
+html.mode-inverted {
+  --color-pearl: #0F0B0A;
+  --color-eerie: #F2F0F1;
+  --color-charcoal: #D9D8D9;
+  --color-mist: #323232;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  * {
+    cursor: none !important;
+  }
+}
+
+body {
+  background-color: var(--color-eerie);
+  color: var(--color-pearl);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.5s ease, color 0.5s ease;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Chrome, Safari, Edge, Opera */
+::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Hide scrollbar for Lenis */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Typography utilities */
+.font-display {
+  font-family: var(--font-serif);
+}
+
+.font-body {
+  font-family: var(--font-sans);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* StackedLogos - CSS Variables & Animations */
+.stacked-logos {
+  --duration: 30;
+  --items: 4;
+  --lists: 4;
+  --stagger: 0;
+  --logo-width: 200px;
+  --mouse-x: 0px;
+  --mouse-y: 0px;
+}
+
+.stacked-logos:hover .stacked-logos__glow {
+  opacity: 1;
+}
+
+.stacked-logos:hover .stacked-logos__border-glow {
+  opacity: 1;
+}
+
+.stacked-logos__cell {
+  --base-delay: calc(sin((var(--index) / var(--lists)) * 45deg) * var(--stagger));
+}
+
+.stacked-logos__logo {
+  animation-name: stacked-logos-appear;
+  animation-duration: calc(var(--duration) * 1s);
+  animation-fill-mode: both;
+  animation-iteration-count: infinite;
+  animation-delay: calc(
+    (var(--duration) / var(--items)) * (var(--items) - var(--i)) * -1s +
+    (var(--base-delay, 0) * 1s)
+  );
+}
+
+@keyframes stacked-logos-appear {
+  0%, 100% { opacity: 0; filter: blur(4px); }
+  5%, 20% { opacity: 1; filter: blur(0); }
+  25%, 100% { opacity: 0; filter: blur(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stacked-logos__logo {
+    animation: none;
+    opacity: 1;
+    filter: none;
+  }
+  .stacked-logos__item:not(:first-child) {
+    display: none;
+  }
+}
