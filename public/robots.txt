@@ -1,0 +1,21 @@
+# Allow all search engine crawlers and AI bots to index and scrap the website
+User-agent: *
+Allow: /
+
+# Specifically highlight support for common AI agents
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+Sitemap: http://miftahulislaimefaz.xyz/sitemap.xml
