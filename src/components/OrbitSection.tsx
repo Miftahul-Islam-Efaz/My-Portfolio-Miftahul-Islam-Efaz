@@ -15,7 +15,43 @@ const orbitImagesData = [
 
 export default function OrbitSection({ children, isStarted = false }: { children?: React.ReactNode; isStarted?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const mobileVideoRef = useRef<HTMLVideoElement | null>(null);
   const [render3D, setRender3D] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const video = mobileVideoRef.current;
+    if (!video) return;
+
+    let isPlaying = false;
+    const tryPlay = () => {
+      if (!isPlaying && video) {
+        video.play()
+          .then(() => { isPlaying = true; })
+          .catch(e => console.log("Mobile video autoplay pending user gesture:", e));
+      }
+    };
+
+    tryPlay();
+
+    window.addEventListener('click', tryPlay);
+    window.addEventListener('touchstart', tryPlay);
+    window.addEventListener('audio_preference_changed', tryPlay);
+
+    return () => {
+      window.removeEventListener('click', tryPlay);
+      window.removeEventListener('touchstart', tryPlay);
+      window.removeEventListener('audio_preference_changed', tryPlay);
+    };
+  }, [isMobile]);
   
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -187,17 +223,31 @@ export default function OrbitSection({ children, isStarted = false }: { children
           )}
         </motion.div>
 
-        {/* Layer 2 (z-10): WebGL Burnout Overlay */}
-        <motion.div 
-          className="absolute inset-0 z-10 w-full h-full pointer-events-none"
-          style={{ y: bgY }}
-        >
-          <HeroBurnShader 
-            progress={burnProgress} 
-            isStarted={isStarted}
-            videoUrl="https://res.cloudinary.com/dhuc35uhc/video/upload/q_auto/f_auto/v1778255226/Hero_section_video_clpku3.mp4" 
-          />
-        </motion.div>
+        {/* Layer 2 (z-10): WebGL Burnout Overlay or Native Mobile Video */}
+        {isMobile ? (
+          <div className="absolute inset-0 z-10 w-full h-full pointer-events-none overflow-hidden">
+            <video
+              ref={mobileVideoRef}
+              src="https://res.cloudinary.com/dhuc35uhc/video/upload/q_auto/f_auto/v1778255226/Hero_section_video_clpku3.mp4"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              loop
+              muted
+              playsInline
+              autoPlay
+            />
+          </div>
+        ) : (
+          <motion.div 
+            className="absolute inset-0 z-10 w-full h-full pointer-events-none"
+            style={{ y: bgY }}
+          >
+            <HeroBurnShader 
+              progress={burnProgress} 
+              isStarted={isStarted}
+              videoUrl="https://res.cloudinary.com/dhuc35uhc/video/upload/q_auto/f_auto/v1778255226/Hero_section_video_clpku3.mp4" 
+            />
+          </motion.div>
+        )}
 
         {/* Layer 3 (z-20): Hero DOM Elements (Smoothly fades out so the canvas takes over) */}
         <motion.div 
