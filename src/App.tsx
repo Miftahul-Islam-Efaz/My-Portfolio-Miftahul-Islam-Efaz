@@ -16,11 +16,13 @@ import Footer from './components/Footer';
 import TornTransition from './components/ui/torn-transition';
 import WebsiteProjectsShowcase from './components/WebsiteProjectsShowcase';
 import GlitchSectionTransition from './components/ui/GlitchSectionTransition';
+import SoundGate from './components/ui/SoundGate';
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function App() {
   const [loaderComplete, setLoaderComplete] = useState(false);
+  const [audioGateComplete, setAudioGateComplete] = useState(false);
   const lenisRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
@@ -103,59 +105,18 @@ export default function App() {
     }
   }, [loaderComplete]);
 
-  // Request native audio experience permission before the website displays using Chrome's default browser permission system
-  useEffect(() => {
-    const askForPermission = async () => {
-      // Avoid asking repeatedly if already decided
-      if (localStorage.getItem('audio_atmosphere_asked') === 'true') {
-        return;
-      }
-      try {
-        // Request the standard browser default permission system (microphone/audio)
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        // Mark as allowed/enabled
-        localStorage.setItem('audio_atmosphere', 'enabled');
-        localStorage.setItem('audio_atmosphere_asked', 'true');
-        
-        // Instantly release/stop all tracks so the browser is not actively recording and privacy is fully protected
-        stream.getTracks().forEach((track) => track.stop());
-        
-        // Notify all components that sound preferences have changed
-        window.dispatchEvent(new Event('audio_preference_changed'));
-        
-        // Unlock browser audio context securely under browser autoplay specifications
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContextClass) {
-          const ctx = new AudioContextClass();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          gain.gain.setValueAtTime(0, ctx.currentTime);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.1);
-        }
-      } catch (err) {
-        console.warn('Native browser audio permission denied or unavailable inside parent context:', err);
-        localStorage.setItem('audio_atmosphere', 'disabled');
-        localStorage.setItem('audio_atmosphere_asked', 'true');
-        window.dispatchEvent(new Event('audio_preference_changed'));
-      }
-    };
-
-    // Prompt after loader gets underway to sync naturally before full load
-    const timer = setTimeout(() => {
-      askForPermission();
-    }, 1800);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <>
+      {!audioGateComplete && (
+        <SoundGate 
+          onAccept={() => setAudioGateComplete(true)} 
+          onDecline={() => setAudioGateComplete(true)} 
+        />
+      )}
+
       <RevealLoader 
         onComplete={() => setLoaderComplete(true)} 
+        isStarted={audioGateComplete}
       />
       
       <div 

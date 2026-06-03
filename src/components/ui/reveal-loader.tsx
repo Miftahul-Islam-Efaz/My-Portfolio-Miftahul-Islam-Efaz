@@ -8,10 +8,12 @@ gsap.registerPlugin(useGSAP);
 
 interface RevealLoaderProps {
   onComplete?: () => void;
+  isStarted?: boolean;
 }
 
 const RevealLoader = ({
   onComplete,
+  isStarted = true,
 }: RevealLoaderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -24,6 +26,7 @@ const RevealLoader = ({
 
   // High performance, 60fps loader sequence
   useGSAP(() => {
+    if (!isStarted) return;
     if (!nameRef.current || !barRef.current || !contentRef.current) return;
 
     const charsDom = nameRef.current.querySelectorAll(".char-span");
@@ -97,7 +100,7 @@ const RevealLoader = ({
       }
     }, "+=0.3");
 
-  }, { scope: containerRef, dependencies: [] });
+  }, { scope: containerRef, dependencies: [isStarted] });
 
   const nameChars = "Miftahul Islam Efaz".split("");
 

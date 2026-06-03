@@ -116,6 +116,26 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
     updateActiveState();
   });
 
+  // Unlock video autoplay once user clicks, touches, or triggers the sound selection.
+  // This guarantees browser strict autoplay bypasses on production/hosted domains.
+  useEffect(() => {
+    const handleUnlock = () => {
+      const video = videoRef.current;
+      if (video && video.paused && activeRef.current) {
+        video.play().catch((err) => console.log("Video play unlock failed:", err));
+      }
+    };
+    window.addEventListener('click', handleUnlock, { once: true });
+    window.addEventListener('touchstart', handleUnlock, { once: true });
+    window.addEventListener('audio_preference_changed', handleUnlock);
+    
+    return () => {
+      window.removeEventListener('click', handleUnlock);
+      window.removeEventListener('touchstart', handleUnlock);
+      window.removeEventListener('audio_preference_changed', handleUnlock);
+    };
+  }, []);
+
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
