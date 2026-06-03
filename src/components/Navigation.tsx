@@ -8,6 +8,7 @@ import GooeyNav from './GooeyNav';
 export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const blocksRef = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -15,6 +16,7 @@ export default function Navigation() {
       setScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
+    setIsMobile(window.innerWidth <= 768);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -102,29 +104,31 @@ export default function Navigation() {
 
   return (
     <>
-      <div 
-        className={cn(
-          "fixed inset-0 z-[9998] flex flex-wrap",
-          isTransitioning ? "pointer-events-auto" : "pointer-events-none"
-        )}
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
-          gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`
-        }}
-      >
-        {Array.from({ length: totalBlocks }).map((_, i) => (
-          <div 
-            key={i} 
-            ref={el => { blocksRef.current[i] = el; }}
-            className="w-full h-full bg-[var(--color-eerie)] opacity-0"
-            style={{ 
-              transform: 'scale(0)',
-              transformOrigin: 'center center'
-            }}
-          />
-        ))}
-      </div>
+      {!isMobile && (
+        <div 
+          className={cn(
+            "fixed inset-0 z-[9998] flex flex-wrap",
+            isTransitioning ? "pointer-events-auto" : "pointer-events-none"
+          )}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
+            gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`
+          }}
+        >
+          {Array.from({ length: totalBlocks }).map((_, i) => (
+            <div 
+              key={i} 
+              ref={el => { blocksRef.current[i] = el; }}
+              className="w-full h-full bg-[var(--color-eerie)] opacity-0"
+              style={{ 
+                transform: 'scale(0)',
+                transformOrigin: 'center center'
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       <nav 
         className={cn(

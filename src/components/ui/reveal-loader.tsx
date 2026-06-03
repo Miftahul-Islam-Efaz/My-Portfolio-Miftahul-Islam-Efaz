@@ -155,7 +155,7 @@ const RevealLoader = ({
               return (
                 <span
                   key={index}
-                  className="char-span inline-block select-none text-gray-200"
+                  className="char-span inline-block select-none text-gray-200 will-change-[transform,opacity,filter] transform-gpu"
                 >
                   {char}
                 </span>

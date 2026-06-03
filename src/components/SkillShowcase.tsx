@@ -507,7 +507,7 @@ export default function SkillShowcase({
               powerPreference: 'high-performance',
               toneMapping: THREE.ACESFilmicToneMapping
             }}
-            dpr={[1, 1.5]}
+            dpr={isMobile ? 1 : [1, 1.5]}
           >
             <color attach="background" args={['#000000']} />
             <ambientLight intensity={0.08} />
@@ -534,7 +534,7 @@ export default function SkillShowcase({
               powerPreference: 'high-performance',
               toneMapping: THREE.ACESFilmicToneMapping
             }}
-            dpr={[1, 1.5]}
+            dpr={isMobile ? 1 : [1, 1.5]}
           >
             <color attach="background" args={['#000000']} />
             <ambientLight intensity={0.08} />
@@ -550,4 +550,6 @@ export default function SkillShowcase({
   );
 }
 
-useGLTF.preload('/assets/portfolio_2nd_section.glb');
+if (typeof window !== 'undefined' && window.innerWidth > 768) {
+  useGLTF.preload('/assets/portfolio_2nd_section.glb');
+}

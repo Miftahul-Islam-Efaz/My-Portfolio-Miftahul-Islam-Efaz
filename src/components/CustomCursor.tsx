@@ -7,6 +7,9 @@ export default function CustomCursor() {
   const textRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) return;
+
     const cursor = cursorRef.current;
     const text = textRef.current;
     if (!cursor || !text) return;

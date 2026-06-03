@@ -12,8 +12,9 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isIframeLoaded, setIsIframeLoaded] = useState(false);
 
-  // Lazy loading: starts loading when activeIndex is adjacent, and unmounts when far away to free memory/GPU resources
-  const shouldLoad = Math.abs(activeIndex - index) <= 1;
+  // Lazy loading: on mobile, only load the active item to prevent memory and network saturation. On desktop, load adjacent slides for instant loading feel.
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const shouldLoad = isMobile ? activeIndex === index : Math.abs(activeIndex - index) <= 1;
 
   useEffect(() => {
     setIsIframeLoaded(false);

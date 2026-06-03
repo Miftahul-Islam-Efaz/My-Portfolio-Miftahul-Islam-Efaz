@@ -129,7 +129,8 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
       depth: false,
       stencil: false
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    const isMobile = window.innerWidth <= 768;
+    renderer.setPixelRatio(isMobile ? 1.0 : Math.min(window.devicePixelRatio, 1.5));
 
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
