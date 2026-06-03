@@ -146,6 +146,24 @@ function Scene({
     maxScroll: 1
   });
 
+  const scrollYRef = useRef(typeof window !== 'undefined' ? window.scrollY : 0);
+
+  // High-performance caching refs to avoid scene.getObjectByName and deep materials lookup during 60fps frame ticks
+  const materialsCacheRef = useRef<Record<string, THREE.MeshStandardMaterial>>({});
+  const lightsCacheRef = useRef<Record<string, THREE.PointLight>>({});
+  const textMatsCacheRef = useRef<Record<string, THREE.MeshStandardMaterial>>({});
+  const sceneObjectsCacheRef = useRef<Record<string, THREE.Object3D>>({});
+
+  useEffect(() => {
+    const handleScroll = () => {
+      scrollYRef.current = window.scrollY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   useEffect(() => {
     const handleLayout = () => {
       const target = customContainerRef?.current || containerRef.current;
@@ -193,6 +211,7 @@ function Scene({
         pathMesh.userData.shaderMaterial = pathShaderMaterial;
       }
       pathMatRef.current = pathShaderMaterial;
+      sceneObjectsCacheRef.current['SkillPath'] = pathMesh;
     }
 
     // 2. Initialize and structure dynamic lights and materials
@@ -200,6 +219,7 @@ function Scene({
       // Setup dynamic point lights in Three.js attached to the placeholders
       const placeholder = scene.getObjectByName(skill.placeholderName);
       if (placeholder) {
+        sceneObjectsCacheRef.current[skill.placeholderName] = placeholder;
         let light = placeholder.userData.pointLight as THREE.PointLight;
         if (!light) {
           // Remove any existing point lights to avoid double-allocation on hot reload
@@ -211,6 +231,7 @@ function Scene({
           placeholder.add(light);
           placeholder.userData.pointLight = light;
         }
+        lightsCacheRef.current[skill.placeholderName] = light;
       }
 
       // Initialize glow materials (WebDev, API, Supabase, n8n, MCP, AIDev, Android logos)
@@ -227,6 +248,8 @@ function Scene({
           mat.color = new THREE.Color(skill.lightColor);
           mat.emissive = new THREE.Color(skill.lightColor);
           mat.emissiveIntensity = 0.0;
+
+          materialsCacheRef.current[matName] = mat;
         }
       });
 
@@ -266,6 +289,8 @@ function Scene({
             }
           }
           mat.emissiveIntensity = 0.0;
+
+          materialsCacheRef.current[matName] = mat;
         }
       });
 
@@ -283,6 +308,8 @@ function Scene({
           textMesh.material = clonedMat;
           textMesh.userData.clonedMaterial = clonedMat;
         }
+        textMatsCacheRef.current[skill.name] = clonedMat;
+        sceneObjectsCacheRef.current[textMeshName] = textMesh;
       }
     });
 
@@ -293,6 +320,7 @@ function Scene({
       floorMat.roughness = 0.05;
       floorMat.metalness = 0.95;
       floorMat.color = new THREE.Color(0.005, 0.005, 0.008);
+      sceneObjectsCacheRef.current['Floor'] = floor;
     }
   }, [scene, materials]);
 
@@ -310,28 +338,22 @@ function Scene({
     }
 
     let targetT = 0;
-    const refToUse = customContainerRef || containerRef;
-    if (refToUse && refToUse.current) {
-      const rect = refToUse.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const totalHeight = rect.height;
-      const scrolled = -rect.top;
-      const maxScroll = totalHeight - viewportHeight;
-      if (maxScroll > 0) {
-        const rawPercent = Math.max(0, Math.min(1, scrolled / maxScroll));
-        
-        // Map OrbitSection scroll percentage to camera path progression
-        if (customContainerRef) {
-          if (rawPercent < 0.15) {
-            targetT = 0;
-          } else if (rawPercent > 0.95) {
-            targetT = 1;
-          } else {
-            targetT = (rawPercent - 0.15) / 0.80; // Map range [0.15, 0.95] to [0.0, 1.0]
-          }
+    const { top: layoutTop, maxScroll } = layoutRef.current;
+    if (maxScroll > 0) {
+      const scrolled = scrollYRef.current - layoutTop;
+      const rawPercent = Math.max(0, Math.min(1, scrolled / maxScroll));
+      
+      // Map OrbitSection scroll percentage to camera path progression
+      if (customContainerRef) {
+        if (rawPercent < 0.15) {
+          targetT = 0;
+        } else if (rawPercent > 0.95) {
+          targetT = 1;
         } else {
-          targetT = rawPercent;
+          targetT = (rawPercent - 0.15) / 0.80; // Map range [0.15, 0.95] to [0.0, 1.0]
         }
+      } else {
+        targetT = rawPercent;
       }
     }
 
@@ -398,7 +420,7 @@ function Scene({
 
       // Glow Material Transition (set solid opaque once fully reached to avoid transparency glitches)
       skill.glowMaterialNames.forEach((matName) => {
-        const mat = materials[matName] as THREE.MeshStandardMaterial;
+        const mat = materialsCacheRef.current[matName];
         if (mat) {
           mat.transparent = factor < 0.99;
           mat.opacity = factor;
@@ -408,7 +430,7 @@ function Scene({
 
       // Fade Material Transition (solid phone casing, screen textures)
       skill.fadeMaterialNames.forEach((matName) => {
-        const mat = materials[matName] as THREE.MeshStandardMaterial;
+        const mat = materialsCacheRef.current[matName];
         if (mat) {
           mat.transparent = factor < 0.99;
           mat.opacity = factor;
@@ -419,19 +441,16 @@ function Scene({
       });
 
       // Cloned Text Material Transition
-      const textMeshName = `Text_${skill.name}`;
-      const textMesh = scene.getObjectByName(textMeshName) as THREE.Mesh;
-      if (textMesh && textMesh.userData.clonedMaterial) {
-        const clonedMat = textMesh.userData.clonedMaterial as THREE.MeshStandardMaterial;
+      const clonedMat = textMatsCacheRef.current[skill.name];
+      if (clonedMat) {
         clonedMat.transparent = factor < 0.99;
         clonedMat.opacity = factor;
         clonedMat.emissiveIntensity = factor * 1.5;
       }
 
       // Point Light Transition
-      const placeholder = scene.getObjectByName(skill.placeholderName);
-      if (placeholder && placeholder.userData.pointLight) {
-        const light = placeholder.userData.pointLight as THREE.PointLight;
+      const light = lightsCacheRef.current[skill.placeholderName];
+      if (light) {
         light.intensity = factor * skill.maxLightIntensity;
       }
     });
@@ -451,6 +470,16 @@ export default function SkillShowcase({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const target = customContainerRef?.current || containerRef.current;
@@ -473,7 +502,12 @@ export default function SkillShowcase({
         {isVisible ? (
           <Canvas
             camera={{ position: [0, 2.5, 18], fov: 45 }}
-            gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
+            gl={{ 
+              antialias: !isMobile, 
+              powerPreference: 'high-performance',
+              toneMapping: THREE.ACESFilmicToneMapping
+            }}
+            dpr={[1, 1.5]}
           >
             <color attach="background" args={['#000000']} />
             <ambientLight intensity={0.08} />
@@ -495,7 +529,12 @@ export default function SkillShowcase({
         {isVisible ? (
           <Canvas
             camera={{ position: [0, 2.5, 18], fov: 45 }}
-            gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
+            gl={{ 
+              antialias: !isMobile, 
+              powerPreference: 'high-performance',
+              toneMapping: THREE.ACESFilmicToneMapping
+            }}
+            dpr={[1, 1.5]}
           >
             <color attach="background" args={['#000000']} />
             <ambientLight intensity={0.08} />

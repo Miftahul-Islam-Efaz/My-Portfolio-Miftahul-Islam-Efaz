@@ -12,8 +12,8 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isIframeLoaded, setIsIframeLoaded] = useState(false);
 
-  // Lazy loading: starts loading when activeIndex is adjacent, and stays loaded
-  const shouldLoad = hasLoadedOnce || Math.abs(activeIndex - index) <= 1;
+  // Lazy loading: starts loading when activeIndex is adjacent, and unmounts when far away to free memory/GPU resources
+  const shouldLoad = Math.abs(activeIndex - index) <= 1;
 
   useEffect(() => {
     setIsIframeLoaded(false);
