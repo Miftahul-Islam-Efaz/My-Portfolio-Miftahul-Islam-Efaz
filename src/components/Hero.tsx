@@ -17,6 +17,34 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
     "Bangladesh's go-to automation specialist & creative developer"
   ];
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const tryPlay = () => {
+      video.play().catch((err) => {
+        console.log("Mobile Hero background video play delayed for gesture interaction:", err);
+      });
+    };
+
+    tryPlay();
+
+    // Attach unlock events that standard mobile layout uses
+    window.addEventListener('click', tryPlay, { once: true });
+    window.addEventListener('touchstart', tryPlay, { once: true });
+    window.addEventListener('scroll', tryPlay, { once: true });
+    window.addEventListener('audio_preference_changed', tryPlay);
+
+    return () => {
+      window.removeEventListener('click', tryPlay);
+      window.removeEventListener('touchstart', tryPlay);
+      window.removeEventListener('scroll', tryPlay);
+      window.removeEventListener('audio_preference_changed', tryPlay);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isStarted) {
       // Keep everything purely hidden with GSAP before intro finishes to prevent FOUC/flashes
@@ -140,6 +168,17 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
       className="relative min-h-screen w-full flex flex-col justify-center md:flex-row md:justify-start items-center px-[clamp(1rem,5vw,4rem)] pt-24 pb-24 md:pt-20 md:pb-0 overflow-hidden"
       style={{ perspective: '1200px', willChange: 'transform, opacity' }}
     >
+      {/* Mobile-only native background video */}
+      <video
+        ref={videoRef}
+        src="https://res.cloudinary.com/dhuc35uhc/video/upload/q_auto/f_auto/v1778255226/Hero_section_video_clpku3.mp4"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none md:hidden z-0"
+        loop
+        muted
+        playsInline
+        autoPlay
+      />
+
       {/* Mobile-only subtle dark backdrop wash to keep text ultra-legible over video while preserving the portrait */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent md:hidden pointer-events-none z-0" />
 
