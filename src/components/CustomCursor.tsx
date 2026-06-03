@@ -12,7 +12,7 @@ export default function CustomCursor() {
     if (!cursor || !text) return;
 
     // Initially hide cursor until first interaction to prevent it being stuck top-left
-    gsap.set(cursor, { opacity: 0, xPercent: -50, yPercent: -50 });
+    gsap.set(cursor, { opacity: 0, scale: 1, xPercent: -50, yPercent: -50 });
 
     const xTo = gsap.quickTo(cursor, "x", { duration: 0.15, ease: "power3.out" });
     const yTo = gsap.quickTo(cursor, "y", { duration: 0.15, ease: "power3.out" });
@@ -20,8 +20,46 @@ export default function CustomCursor() {
     let isVisible = false;
     let currentCursorState = 'default';
     let currentHoverText = '';
+    let isInHeroSection = true;
+
+    const checkHeroSection = () => {
+      const scrollY = window.scrollY;
+      const threshold = window.innerHeight * 0.95;
+      const currentlyInHero = scrollY < threshold;
+
+      if (currentlyInHero !== isInHeroSection) {
+        isInHeroSection = currentlyInHero;
+        if (currentlyInHero) {
+          document.documentElement.classList.add('in-hero-section');
+          gsap.to(cursor, { opacity: 0, duration: 0.2, ease: 'power2.out' });
+          isVisible = false;
+        } else {
+          document.documentElement.classList.remove('in-hero-section');
+          // Will fade back in on next mousemove outside hero
+        }
+      }
+    };
+
+    // Set initial class on mount
+    document.documentElement.classList.add('in-hero-section');
+    checkHeroSection();
+
+    const onScroll = () => {
+      checkHeroSection();
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
 
     const onMouseMove = (e: MouseEvent) => {
+      if (isInHeroSection) {
+        if (isVisible) {
+          gsap.to(cursor, { opacity: 0, duration: 0.1 });
+          isVisible = false;
+        }
+        return;
+      }
+
       if (!isVisible) {
         gsap.to(cursor, { opacity: 1, duration: 0.3 });
         isVisible = true;
@@ -33,8 +71,13 @@ export default function CustomCursor() {
     window.addEventListener('mousemove', onMouseMove, { passive: true });
 
     const handleMouseOver = (e: MouseEvent) => {
+      if (isInHeroSection) {
+        return;
+      }
+
       const target = e.target as HTMLElement;
-      
+      if (!target) return;
+
       let state = 'default';
       let hoverText = '';
 
@@ -82,9 +125,15 @@ export default function CustomCursor() {
         borderRadius = '3px';
       }
 
-      cursor.style.width = width;
-      cursor.style.height = height;
-      cursor.style.borderRadius = borderRadius;
+      // Smooth custom cursor size/shape transition using high performance GSAP matching the user's timing request
+      gsap.to(cursor, {
+        width: width,
+        height: height,
+        borderRadius: borderRadius,
+        duration: 0.25,
+        ease: 'power2.out',
+        overwrite: 'auto'
+      });
       
       if (hoverText) {
         text.innerText = hoverText;
@@ -94,17 +143,29 @@ export default function CustomCursor() {
 
     window.addEventListener('mouseover', handleMouseOver, { passive: true });
 
-    const handleMouseLeave = () => gsap.to(cursor, { scale: 0, duration: 0.3, ease: 'power2.inOut' });
-    const handleMouseEnter = () => gsap.to(cursor, { scale: 1, duration: 0.3, ease: 'power2.inOut' });
+    const handleMouseLeave = () => {
+      if (!isInHeroSection) {
+        gsap.to(cursor, { scale: 0, duration: 0.3, ease: 'power2.inOut' });
+      }
+    };
+    
+    const handleMouseEnter = () => {
+      if (!isInHeroSection) {
+        gsap.to(cursor, { scale: 1, duration: 0.3, ease: 'power2.inOut' });
+      }
+    };
 
     document.documentElement.addEventListener('mouseleave', handleMouseLeave);
     document.documentElement.addEventListener('mouseenter', handleMouseEnter);
 
     return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseover', handleMouseOver);
       document.documentElement.removeEventListener('mouseleave', handleMouseLeave);
       document.documentElement.removeEventListener('mouseenter', handleMouseEnter);
+      document.documentElement.classList.remove('in-hero-section');
     };
   }, []);
 
@@ -112,8 +173,7 @@ export default function CustomCursor() {
     <div 
       ref={cursorRef}
       className={cn(
-        "hidden md:flex pointer-events-none fixed top-0 left-0 z-[9999] bg-white items-center justify-center will-change-transform",
-        "transition-[width,height,border-radius] duration-200 ease-[cubic-bezier(0.76,0,0.24,1)] mix-blend-difference"
+        "hidden md:flex pointer-events-none fixed top-0 left-0 z-[100000] bg-white items-center justify-center will-change-transform mix-blend-difference"
       )}
       style={{ width: '14px', height: '14px', borderRadius: '9999px' }}
     >

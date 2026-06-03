@@ -154,15 +154,14 @@ export default function App() {
 
   return (
     <>
-      <CustomCursor />
       <RevealLoader 
         onComplete={() => setLoaderComplete(true)} 
       />
       
       <div 
-        className="relative w-full transition-opacity duration-[1200ms] ease-out"
+        className="relative w-full"
         style={{ 
-          opacity: loaderComplete ? 1 : 0,
+          opacity: 1,
           pointerEvents: loaderComplete ? 'auto' : 'none',
         }}
       >
@@ -182,6 +181,7 @@ export default function App() {
         />
         <GlitchSectionTransition />
       </div>
+      <CustomCursor />
     </>
   );
 }

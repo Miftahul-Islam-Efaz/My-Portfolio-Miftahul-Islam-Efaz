@@ -29,11 +29,35 @@ export interface DockItemData {
  
 export const AnimatedDock = ({ className, items }: AnimatedDockProps) => {
   const mouseX = useMotionValue(Infinity);
+  const targetX = useRef<number>(Infinity);
+  const isMoving = useRef(false);
+
+  React.useEffect(() => {
+    let rafId: number;
+    const tick = () => {
+      if (isMoving.current) {
+        const current = mouseX.get();
+        if (current !== targetX.current) {
+          mouseX.set(targetX.current);
+        }
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [mouseX]);
  
   return (
     <motion.div
-      onMouseMove={(e) => mouseX.set(e.pageX)}
-      onMouseLeave={() => mouseX.set(Infinity)}
+      onMouseMove={(e) => {
+        isMoving.current = true;
+        targetX.current = e.pageX;
+      }}
+      onMouseLeave={() => {
+        targetX.current = Infinity;
+        mouseX.set(Infinity);
+        isMoving.current = false;
+      }}
       className={cn(
         "flex h-16 items-center gap-6",
         className,
@@ -69,20 +93,36 @@ export const DockItem = ({ mouseX, children }: DockItemProps) => {
   const boundsRef = useRef<{ x: number; width: number } | null>(null);
 
   React.useEffect(() => {
-    const handleResize = () => {
-      boundsRef.current = null;
+    const updateBounds = () => {
+      if (ref.current) {
+        const rect = ref.current.getBoundingClientRect();
+        boundsRef.current = { x: rect.x + window.scrollX, width: rect.width };
+      }
     };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    
+    // Defer a bit to let any page entry slide animations finish and stabilize layout positions
+    updateBounds();
+    const timer = setTimeout(updateBounds, 1000);
+    const timer2 = setTimeout(updateBounds, 3000); // safety fallback
+
+    window.addEventListener("resize", updateBounds);
+    window.addEventListener("scroll", updateBounds, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(timer2);
+      window.removeEventListener("resize", updateBounds);
+      window.removeEventListener("scroll", updateBounds);
+    };
   }, []);
 
   const distance = useTransform(mouseX, (val) => {
     if (val === Infinity) return Infinity;
-    if (!boundsRef.current && ref.current) {
+    const bounds = boundsRef.current || (ref.current ? (() => {
       const rect = ref.current.getBoundingClientRect();
-      boundsRef.current = { x: rect.x + window.scrollX, width: rect.width };
-    }
-    const bounds = boundsRef.current ?? { x: 0, width: 0 };
+      const b = { x: rect.x + window.scrollX, width: rect.width };
+      boundsRef.current = b;
+      return b;
+    })() : { x: 0, width: 0 });
     return val - bounds.x - bounds.width / 2;
   });
 

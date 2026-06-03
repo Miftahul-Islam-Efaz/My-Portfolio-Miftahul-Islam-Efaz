@@ -14,16 +14,17 @@ const RevealLoader = ({
   onComplete,
 }: RevealLoaderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const percentSpanRef = useRef<HTMLSpanElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
   
-  const [progress, setProgress] = useState(0);
   const [isDone, setIsDone] = useState(false);
-  const [exitPhase, setExitPhase] = useState<"loading" | "animating-out">("loading");
 
-  // Premium GSAP-powered loading sequence
+  // High performance, 60fps loader sequence
   useGSAP(() => {
-    if (!nameRef.current || !barRef.current) return;
+    if (!nameRef.current || !barRef.current || !contentRef.current) return;
 
     const charsDom = nameRef.current.querySelectorAll(".char-span");
 
@@ -38,35 +39,32 @@ const RevealLoader = ({
     });
 
     const obj = { val: 0 };
-    const tl = gsap.timeline({
-      onUpdate: () => {
-        setProgress(Math.round(obj.val));
-      },
-      onComplete: () => {
-        setProgress(100);
-        // Clean readability delay before transition starts
-        setTimeout(() => {
-          setExitPhase("animating-out");
-          // Callback after the curtain slide finishes
-          setTimeout(() => {
-            setIsDone(true);
-            if (onComplete) onComplete();
-          }, 1200); // Match curtain-pull transition duration perfectly
-        }, 500);
-      }
-    });
+    const tl = gsap.timeline();
 
     // 1. Smoothly animate progress percentage from 0 to 100 with an elegant deceleration
     tl.to(obj, {
       val: 100,
-      duration: 3.2,
+      duration: 3.0,
       ease: "power2.out",
+      onUpdate: () => {
+        const currentProgress = Math.round(obj.val);
+        if (percentSpanRef.current) {
+          percentSpanRef.current.innerText = String(currentProgress);
+        }
+        if (glowRef.current) {
+          glowRef.current.style.transform = `scale(${1 + currentProgress / 350})`;
+        }
+        // Change colors slightly towards the very end
+        if (currentProgress >= 95) {
+          gsap.to(charsDom, { color: "#FFFFFF", duration: 0.2, overwrite: "auto" });
+        }
+      }
     }, 0);
 
     // 2. Animate the progress bar line cleanly in perfect sync
     tl.to(barRef.current, {
       width: "100%",
-      duration: 3.2,
+      duration: 3.0,
       ease: "power2.out",
     }, 0);
 
@@ -78,7 +76,7 @@ const RevealLoader = ({
       x: 0,
       y: 0,
       rotation: 0,
-      duration: 2.2,
+      duration: 2.0,
       ease: "power3.out",
       stagger: {
         each: 0.05,
@@ -86,7 +84,20 @@ const RevealLoader = ({
       }
     }, 0.2);
 
-  }, { scope: containerRef });
+    // 4. Curtain Pull up exit transition (with a luxurious 0.3s pause)
+    tl.to(containerRef.current, {
+      yPercent: -100,
+      duration: 1.5,
+      ease: "power4.inOut",
+      onStart: () => {
+        if (onComplete) onComplete();
+      },
+      onComplete: () => {
+        setIsDone(true);
+      }
+    }, "+=0.3");
+
+  }, { scope: containerRef, dependencies: [] });
 
   const nameChars = "Miftahul Islam Efaz".split("");
 
@@ -102,65 +113,74 @@ const RevealLoader = ({
 
       <div 
         ref={containerRef}
-        className={cn(
-          "fixed inset-0 z-[99998] flex flex-col items-center justify-center bg-black select-none overflow-hidden transition-transform duration-[1200ms]",
-          exitPhase === "animating-out" ? "-translate-y-full" : "translate-y-0"
-        )}
-        style={{
-          // Hardware-accelerated sliding transition timing function
-          transitionTimingFunction: "cubic-bezier(0.85, 0, 0.15, 1)",
-        }}
+        className="fixed top-0 left-0 w-full h-[120vh] z-[99998] select-none overflow-visible will-change-transform"
+        style={{ pointerEvents: "auto" }}
       >
-        {/* Soft, Luxurious Ambient Glow behind the cursive layout */}
-        <div 
-          className="absolute w-[60vw] h-[60vw] rounded-full blur-[140px] pointer-events-none transition-transform duration-300 ease-out z-0" 
-          style={{
-            background: "radial-gradient(circle, rgba(235,235,245,0.04) 0%, rgba(255,255,255,0) 70%)",
-            top: "20%",
-            left: "20%",
-            transform: `scale(${1 + progress / 350})`,
-          }}
-        />
-
-        {/* Centered Name Signature */}
-        <div 
-          ref={nameRef} 
-          className="flex flex-row justify-center items-center flex-wrap px-8 text-center select-none max-w-full relative z-20 font-backstreet text-[clamp(2.4rem,7vw,5.2rem)] font-normal text-white text-glow-silver leading-[1.1]"
+        {/* Curved SVG curtain background */}
+        <svg 
+          className="absolute inset-0 w-full h-full pointer-events-none fill-[#0a0a0a]"
+          viewBox="0 0 100 120" 
+          preserveAspectRatio="none"
         >
-          {nameChars.map((char, index) => {
-            if (char === " ") {
-              return <span key={index} className="w-[0.24em]" />;
-            }
-            return (
-              <span
-                key={index}
-                className="char-span inline-block select-none"
-                style={{
-                  color: progress >= 95 ? "#FFFFFF" : "#E5E7EB",
-                }}
-              >
-                {char}
-              </span>
-            );
-          })}
-        </div>
+          <path d="M 0 0 L 100 0 L 100 100 Q 50 115 0 100 Z" />
+        </svg>
 
-        {/* Progress Tracker Slider Section */}
-        <div className="absolute bottom-[16%] flex flex-col items-center z-30 w-[180px] md:w-[240px]">
+        {/* Content Layer (perfectly centered on screen in the first 100vh) */}
+        <div 
+          ref={contentRef} 
+          className="absolute top-0 left-0 w-full h-[100vh] flex flex-col items-center justify-center z-10"
+        >
           
-          {/* Tracking line container */}
-          <div className="w-full h-[2.5px] bg-white/10 rounded-full relative overflow-hidden">
-            <div 
-              ref={barRef}
-              className="absolute left-0 top-0 h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.65)]"
-              style={{ width: "0%" }}
-            />
+          {/* Soft, Luxurious Ambient Glow behind the cursive layout */}
+          <div 
+            ref={glowRef}
+            className="absolute w-[60vw] h-[60vw] rounded-full blur-[140px] pointer-events-none z-0" 
+            style={{
+              background: "radial-gradient(circle, rgba(235,235,245,0.04) 0%, rgba(255,255,255,0) 70%)",
+              top: "20%",
+              left: "20%",
+              transform: "scale(1)",
+            }}
+          />
+
+          {/* Centered Name Signature */}
+          <div 
+            ref={nameRef} 
+            className="flex flex-row justify-center items-center flex-wrap px-8 text-center select-none max-w-full relative z-20 font-backstreet text-[clamp(2.4rem,7vw,5.2rem)] font-normal text-white text-glow-silver leading-[1.1]"
+          >
+            {nameChars.map((char, index) => {
+              if (char === " ") {
+                return <span key={index} className="w-[0.24em]" />;
+              }
+              return (
+                <span
+                  key={index}
+                  className="char-span inline-block select-none text-gray-200"
+                >
+                  {char}
+                </span>
+              );
+            })}
           </div>
 
-          {/* Centered Percentage count beneath the line */}
-          <div className="font-sans text-[18px] font-semibold text-white/90 tracking-widest flex items-baseline gap-0.5 select-none mt-3.5 pl-2">
-            <span className="text-[22px] font-bold leading-none select-none">{progress}</span>
-            <span className="text-[11px] text-white/50 select-none">%</span>
+          {/* Progress Tracker Slider Section */}
+          <div className="absolute bottom-[16%] flex flex-col items-center z-30 w-[180px] md:w-[240px]">
+            
+            {/* Tracking line container */}
+            <div className="w-full h-[2.5px] bg-white/10 rounded-full relative overflow-hidden">
+              <div 
+                ref={barRef}
+                className="absolute left-0 top-0 h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.65)]"
+                style={{ width: "0%" }}
+              />
+            </div>
+
+            {/* Centered Percentage count beneath the line */}
+            <div className="font-sans text-[18px] font-semibold text-white/90 tracking-widest flex items-baseline gap-0.5 select-none mt-3.5 pl-2">
+              <span ref={percentSpanRef} className="text-[22px] font-bold leading-none select-none">0</span>
+              <span className="text-[11px] text-white/50 select-none">%</span>
+            </div>
+
           </div>
 
         </div>

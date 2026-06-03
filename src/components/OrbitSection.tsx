@@ -46,16 +46,25 @@ export default function OrbitSection({ children, isStarted = false }: { children
   }, [smoothProgress]);
 
   // We'll use the first 15% of scroll for the reveal transition
-  const burnProgress = useTransform(smoothProgress, [0, 0.15], [0, 1]);
+  const burnProgress = useTransform(smoothProgress, [0, 0.15], [0, 1], { clamp: true });
+
+  // Create a synchronized curtain-wipe mask image for the DOM elements to match the background WebGL shader's curtain wipe
+  const maskImage = useTransform(burnProgress, (p) => {
+    const feather = 0.15;
+    const t = -feather + p * (1.0 + feather);
+    const opaquePercent = Math.max(0, Math.min(100, (1.0 - (t + feather)) * 100));
+    const transPercent = Math.max(0, Math.min(100, (1.0 - t) * 100));
+    return `linear-gradient(to bottom, black ${opaquePercent}%, transparent ${transPercent}%)`;
+  });
 
   // STRICT FUNCTIONAL TRANSFORMS to avoid interpolation bugs
   const heroOpacity = useTransform(smoothProgress, (v) => {
     if (v <= 0) return 1;
-    if (v >= 0.12) return 0; // Fade out DOM text slightly before burn finishes
-    return 1 - (v / 0.12);
+    if (v >= 0.15) return 0; // Fade out DOM text exactly when the curtain finishes
+    return 1 - (v / 0.15);
   });
   
-  const heroPointerEvents = useTransform(smoothProgress, (v) => v < 0.12 ? 'auto' : 'none');
+  const heroPointerEvents = useTransform(smoothProgress, (v) => v < 0.15 ? 'auto' : 'none');
 
   // Buttery-smooth scroll parallax mappings for the hero section
   const bgY = 0;
@@ -196,7 +205,9 @@ export default function OrbitSection({ children, isStarted = false }: { children
           style={{ 
             opacity: heroOpacity,
             pointerEvents: heroPointerEvents,
-            y: textY
+            y: textY,
+            maskImage: maskImage,
+            WebkitMaskImage: maskImage
           }}
         >
           {nonSkillChildren}

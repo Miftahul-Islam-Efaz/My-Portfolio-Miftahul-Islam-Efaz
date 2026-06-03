@@ -27,58 +27,6 @@ const fragmentShader = `
 
   varying vec2 vUv;
 
-  // --- ASHIMA 3D SIMPLEX NOISE ---
-  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
-  vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-  
-  float snoise(vec3 v) {
-      const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
-      const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
-      vec3 i  = floor(v + dot(v, C.yyy) );
-      vec3 x0 = v - i + dot(i, C.xxx) ;
-      vec3 g = step(x0.yzx, x0.xyz);
-      vec3 l = 1.0 - g;
-      vec3 i1 = min( g.xyz, l.zxy );
-      vec3 i2 = max( g.xyz, l.zxy );
-      vec3 x1 = x0 - i1 + C.xxx;
-      vec3 x2 = x0 - i2 + C.yyy; 
-      vec3 x3 = x0 - D.yyy;      
-      i = mod289(i);
-      vec4 p = permute( permute( permute(
-                  i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
-                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
-      float n_ = 0.142857142857; 
-      vec3  ns = n_ * D.wyz - D.xzx;
-      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  
-      vec4 x_ = floor(j * ns.z);
-      vec4 y_ = floor(j - 7.0 * x_ );    
-      vec4 x = x_ *ns.x + ns.yyyy;
-      vec4 y = y_ *ns.x + ns.yyyy;
-      vec4 h = 1.0 - abs(x) - abs(y);
-      vec4 b0 = vec4( x.xy, y.xy );
-      vec4 b1 = vec4( x.zw, y.zw );
-      vec4 s0 = floor(b0)*2.0 + 1.0;
-      vec4 s1 = floor(b1)*2.0 + 1.0;
-      vec4 sh = -step(h, vec4(0.0));
-      vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-      vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-      vec3 p0 = vec3(a0.xy,h.x);
-      vec3 p1 = vec3(a0.zw,h.y);
-      vec3 p2 = vec3(a1.xy,h.z);
-      vec3 p3 = vec3(a1.zw,h.w);
-      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-      p0 *= norm.x;
-      p1 *= norm.y;
-      p2 *= norm.z;
-      p3 *= norm.w;
-      vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-      m = m * m;
-      return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
-  }
-
   void main() {
       vec2 s = uResolution;
       vec2 i = uImageRes;
@@ -96,34 +44,7 @@ const fragmentShader = `
 
       vec2 coverUv = baseUv * s / new + offset;
 
-      vec2 screenUv = baseUv;
-      screenUv.x *= uResolution.x / uResolution.y;
-
-      float n1 = snoise(vec3(screenUv * 2.5, uTime * 0.1));
-      float n2 = snoise(vec3(screenUv * 6.0, uTime * 0.15));
-      float noise = (n1 * 0.7 + n2 * 0.3) * 0.5 + 0.5;
-
-      // Adjust threshold so that it burns completely when uProgress reaches 1.0.
-      float threshold = uProgress * 2.5 - 0.75; 
-      float diff = noise - threshold;
-
-      float edgeWidth = 0.25; 
-      float edgeMask = 1.0 - smoothstep(0.0, edgeWidth, abs(diff));
-
-      vec2 center = vec2(0.5);
-      vec2 dirToCenter = normalize(vUv - center);
-      
-      float distortionStrength = 0.15;
-      vec2 distortedUv = coverUv + dirToCenter * edgeMask * distortionStrength 
-                       + vec2(n1, n2) * edgeMask * distortionStrength * 0.4;
-
-      float ca = 0.02 * edgeMask;
-      vec4 colorR = texture2D(uTexture, distortedUv + vec2(ca, -ca*0.5));
-      vec4 colorG = texture2D(uTexture, distortedUv);
-      vec4 colorB = texture2D(uTexture, distortedUv - vec2(ca, -ca*0.5));
-      
-      vec4 finalColor = vec4(colorR.r, colorG.g, colorB.b, 1.0);
-      finalColor.rgb += vec3(0.15, 0.2, 0.25) * edgeMask * 0.6; // Glitch color injection
+      vec4 finalColor = texture2D(uTexture, coverUv);
 
       // Subtly enhance color intensity / contrast as pixelation shrinks, matching video aesthetics
       if (uPixelation > 1.01) {
@@ -131,7 +52,10 @@ const fragmentShader = `
           finalColor.rgb = mix(finalColor.rgb, finalColor.rgb * 1.15, strengthFactor);
       }
 
-      float alpha = smoothstep(-0.02, 0.04, diff);
+      // Smooth curtain wipe from bottom to top as scroll progress increases
+      float feather = 0.15;
+      float t = -feather + uProgress * (1.0 + feather);
+      float alpha = smoothstep(t, t + feather, vUv.y);
 
       gl_FragColor = finalColor * alpha;
   }
@@ -142,8 +66,33 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 
   const activeRef = useRef(true);
+  const isIntersectingRef = useRef(true);
+  const isTabVisibleRef = useRef(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeRenderRef = useRef<(() => void) | null>(null);
+
+  const updateActiveState = () => {
+    const video = videoRef.current;
+    const currentProgress = progress.get();
+
+    const shouldBeActive = currentProgress < 1.0 && isIntersectingRef.current && isTabVisibleRef.current;
+
+    if (shouldBeActive !== activeRef.current) {
+      activeRef.current = shouldBeActive;
+      if (shouldBeActive) {
+        if (video && video.paused) {
+          video.play().catch(() => {});
+        }
+        if (resumeRenderRef.current) {
+          resumeRenderRef.current();
+        }
+      } else {
+        if (video && !video.paused) {
+          video.pause();
+        }
+      }
+    }
+  };
 
   // Trigger the premium pixel-dissolve/depixelation effect on start
   useEffect(() => {
@@ -164,29 +113,7 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
     if (materialRef.current) {
       materialRef.current.uniforms.uProgress.value = latest;
     }
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    
-    if (latest >= 1.0) {
-      if (activeRef.current) {
-        activeRef.current = false;
-        if (canvas) canvas.style.display = 'none';
-        if (video) {
-          video.pause();
-        }
-      }
-    } else {
-      if (!activeRef.current) {
-        activeRef.current = true;
-        if (canvas) canvas.style.display = 'block';
-        if (video) {
-          video.play().catch(() => {});
-        }
-        if (resumeRenderRef.current) {
-          resumeRenderRef.current();
-        }
-      }
-    }
+    updateActiveState();
   });
 
   useEffect(() => {
@@ -227,7 +154,7 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
     scene.add(mesh);
 
-    // Load Video
+    // Load Video with highly-optimized hardware-acceleration parameters
     const video = document.createElement('video');
     videoRef.current = video;
     video.src = videoUrl;
@@ -235,13 +162,17 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
     video.loop = true;
     video.muted = true;
     video.playsInline = true;
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+    video.setAttribute('disablepictureinpicture', 'true');
+    video.setAttribute('disableremoteplayback', 'true');
+    video.preload = "auto";
     
     // Only play if active initially
     if (progress.get() < 1.0) {
       video.play().catch(()=>console.log('Video autoplay prevented'));
     } else {
       activeRef.current = false;
-      canvas.style.display = 'none';
     }
 
     video.addEventListener('loadedmetadata', () => {
@@ -262,6 +193,22 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
 
     window.addEventListener('resize', resize);
     resize();
+
+    // IntersectionObserver to pause when the canvas leaves view
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]) {
+        isIntersectingRef.current = entries[0].isIntersecting;
+        updateActiveState();
+      }
+    }, { threshold: 0 });
+    observer.observe(canvas);
+
+    // Visibility Listener for tab switches
+    const handleVisibility = () => {
+      isTabVisibleRef.current = document.visibilityState === 'visible';
+      updateActiveState();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     const clock = new THREE.Clock();
     let frameId: number;
@@ -291,6 +238,8 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
 
     return () => {
       window.removeEventListener('resize', resize);
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibility);
       cancelAnimationFrame(frameId);
       renderer.dispose();
       material.dispose();

@@ -4,7 +4,7 @@ import { Github, Linkedin, Twitter, Instagram } from 'lucide-react';
 import { AnimatedDock } from './ui/animated-dock';
 import SplitType from 'split-type';
 
-export default function Hero({ isStarted = false }: { isStarted?: boolean }) {
+const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boolean }) {
   const nameRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -135,9 +135,10 @@ export default function Hero({ isStarted = false }: { isStarted?: boolean }) {
 
   return (
     <section 
+      id="hero-section"
       ref={containerRef}
       className="relative min-h-screen w-full flex flex-col justify-center md:flex-row md:justify-start items-center px-[clamp(1rem,5vw,4rem)] pt-24 pb-24 md:pt-20 md:pb-0 overflow-hidden"
-      style={{ perspective: '1200px' }}
+      style={{ perspective: '1200px', willChange: 'transform, opacity' }}
     >
       {/* Mobile-only subtle dark backdrop wash to keep text ultra-legible over video while preserving the portrait */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent md:hidden pointer-events-none z-0" />
@@ -147,24 +148,25 @@ export default function Hero({ isStarted = false }: { isStarted?: boolean }) {
         
         <h2 
           ref={nameRef}
-          className="font-michroma text-[clamp(1.75rem,7vw,3.5rem)] md:text-[clamp(2.5rem,5vw,5rem)] font-normal leading-[1.2] md:leading-[1.1] mb-6 cursor-default opacity-0"
+          className="font-michroma text-[clamp(1.75rem,7vw,3.5rem)] md:text-[clamp(2.5rem,5vw,5rem)] font-normal leading-[1.2] md:leading-[1.1] mb-6 cursor-default opacity-0 will-change-transform"
+          style={{ willChange: "transform, opacity" }}
         >
           Miftahul Islam<br />Efaz
         </h2>
         
         <div 
           ref={taglineRef}
-          className="hero-element font-body text-[clamp(0.9rem,2.2vw,1.3rem)] md:text-[clamp(1.1rem,2.5vw,1.5rem)] font-normal mb-8 md:mb-10 h-auto min-h-[3.5rem] md:h-8 text-neutral-100 drop-shadow-[0_4px_12px_rgba(0,0,0,1)]"
-          style={{ textShadow: "0 2px 14px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.6)" }}
+          className="hero-element font-body text-[clamp(0.9rem,2.2vw,1.3rem)] md:text-[clamp(1.1rem,2.5vw,1.5rem)] font-normal mb-8 md:mb-10 h-auto min-h-[3.5rem] md:h-8 text-neutral-100 drop-shadow-[0_4px_12px_rgba(0,0,0,1)] will-change-transform"
+          style={{ textShadow: "0 2px 14px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.6)", willChange: "transform, opacity" }}
         >
           {taglines[0]}
         </div>
         
         <div className="hero-element flex flex-row sm:flex-row gap-4 mb-10 md:mb-12 w-full sm:w-auto items-center">
-          <a href="#work" className="px-5 py-3.5 md:px-[34px] md:py-[15px] text-center bg-white text-black font-body font-bold text-sm md:text-base rounded transition-all duration-300 hover:bg-neutral-100 hover:scale-[1.05] active:scale-[0.98] shadow-[0_4px_25px_rgba(255,255,255,0.25)] flex-1 sm:flex-none whitespace-nowrap">
+          <a href="#work" className="px-5 py-3.5 md:px-[34px] md:py-[15px] text-center bg-white text-black font-body font-bold text-sm md:text-base rounded transition-[transform,background-color,color,box-shadow] duration-300 hover:bg-neutral-100 hover:scale-[1.05] active:scale-[0.98] shadow-[0_4px_25px_rgba(255,255,255,0.25)] flex-1 sm:flex-none whitespace-nowrap will-change-transform">
             View My Work
           </a>
-          <a href="#contact" className="px-4 py-3 md:px-7 md:py-3.5 text-center border border-white/25 text-white/80 font-body text-xs md:text-sm rounded transition-all duration-300 hover:border-white/70 hover:text-white flex-1 sm:flex-none whitespace-nowrap">
+          <a href="#contact" className="px-4 py-3 md:px-7 md:py-3.5 text-center border border-white/25 text-white/80 font-body text-xs md:text-sm rounded transition-[transform,border-color,color] duration-300 hover:border-white/70 hover:text-white flex-1 sm:flex-none whitespace-nowrap will-change-transform">
             Get In Touch →
           </a>
         </div>
@@ -209,4 +211,6 @@ export default function Hero({ isStarted = false }: { isStarted?: boolean }) {
 
     </section>
   );
-}
+});
+
+export default Hero;

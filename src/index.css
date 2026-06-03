@@ -56,7 +56,7 @@ html.mode-inverted {
 }
 
 @media (min-width: 768px) {
-  * {
+  html:not(.in-hero-section) * {
     cursor: none !important;
   }
 }
