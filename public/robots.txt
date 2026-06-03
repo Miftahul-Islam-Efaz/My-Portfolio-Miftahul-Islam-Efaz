@@ -18,4 +18,4 @@ Allow: /
 User-agent: PerplexityBot
 Allow: /
 
-Sitemap: https://miftahulislaimefaz.xyz/sitemap.xml
+Sitemap: https://miftahulislamefaz.xyz/sitemap.xml
