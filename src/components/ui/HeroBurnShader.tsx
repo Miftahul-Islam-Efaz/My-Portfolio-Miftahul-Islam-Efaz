@@ -121,8 +121,16 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
   useEffect(() => {
     const handleUnlock = () => {
       const video = videoRef.current;
-      if (video && video.paused && activeRef.current) {
-        video.play().catch((err) => console.log("Video play unlock failed:", err));
+      if (video) {
+        // Safe play call to ensure it's unpaused
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.log("Video play unlock failed, attempting reload play sequence:", err);
+            video.load();
+            video.play().catch(e => console.log("Subsequent play failed:", e));
+          });
+        }
       }
     };
     window.addEventListener('click', handleUnlock, { once: true });
@@ -175,9 +183,10 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
     scene.add(mesh);
 
-    // Load Video with highly-optimized hardware-acceleration parameters
-    const video = document.createElement('video');
-    videoRef.current = video;
+    // Grab Video element loaded inside React DOM
+    const video = videoRef.current;
+    if (!video) return;
+
     video.src = videoUrl;
     video.crossOrigin = "anonymous";
     video.loop = true;
@@ -188,6 +197,7 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
     video.setAttribute('disablepictureinpicture', 'true');
     video.setAttribute('disableremoteplayback', 'true');
     video.preload = "auto";
+    video.load(); // Force browser stream initialization
     
     // Only play if active initially
     if (progress.get() < 1.0) {
@@ -267,9 +277,22 @@ export default function HeroBurnShader({ progress, isStarted = false, videoUrl }
       mesh.geometry.dispose();
       videoTexture.dispose();
       video.pause();
-      video.src = "";
     };
   }, [videoUrl]);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />;
+  return (
+    <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+      <video
+        ref={videoRef}
+        loop
+        muted
+        playsInline
+        preload="auto"
+        className="absolute bottom-0 right-0 w-[1px] h-[1px]"
+        style={{ opacity: 0.001, pointerEvents: 'none' }}
+        crossOrigin="anonymous"
+      />
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
+    </div>
+  );
 }
