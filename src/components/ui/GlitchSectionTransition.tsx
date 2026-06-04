@@ -216,6 +216,15 @@ export default function GlitchSectionTransition({
     };
 
     const handleScroll = () => {
+      if (window.innerWidth <= 768) {
+        // Completely bypass glitch canvas rendering on mobile for buttery smooth scrolls
+        const container = containerRef.current;
+        if (container) {
+          container.style.display = 'none';
+        }
+        return;
+      }
+
       // Lazy-resolve if top offset is not yet set
       if (outcomesTopRef.current === 0) {
         updatePosition();

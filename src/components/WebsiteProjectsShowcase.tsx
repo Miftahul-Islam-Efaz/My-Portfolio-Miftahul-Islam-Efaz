@@ -10,6 +10,14 @@ export default function WebsiteProjectsShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [projects, setProjects] = useState<ProjectItem[]>(PROJECTS_DATA);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [isMuted, setIsMuted] = useState(() => {
     try {
       return localStorage.getItem('audio_atmosphere') !== 'enabled';
@@ -152,6 +160,7 @@ export default function WebsiteProjectsShowcase() {
 
   // Dynamic active index parser according to scroll progression and projects list count
   useEffect(() => {
+    if (isMobile) return;
     return smoothProgress.on("change", (latest) => {
       if (projects.length === 0) return;
       const count = projects.length;
@@ -167,22 +176,31 @@ export default function WebsiteProjectsShowcase() {
       idx = Math.min(Math.max(0, idx), count - 1);
       setActiveIndex(idx);
     });
-  }, [smoothProgress, projects]);
+  }, [smoothProgress, projects, isMobile]);
+
+  // Helper for mobile horizontal swipes
+  const touchStartXRef = useRef<number>(0);
+  const touchStartYRef = useRef<number>(0);
 
   // Action function to manually trigger smooth scrolling to specific state height
   const scrollToStage = (direction: 'next' | 'prev') => {
+    const count = projects.length;
+    const targetIndex = direction === 'next' 
+      ? Math.min(activeIndex + 1, count - 1) 
+      : Math.max(activeIndex - 1, 0);
+
+    if (isMobile) {
+      setActiveIndex(targetIndex);
+      return;
+    }
+
     if (!containerRef.current) return;
     const element = containerRef.current;
     const rect = element.getBoundingClientRect();
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     
-    const count = projects.length;
     const thresholdEnd = 0.85;
     const step = thresholdEnd / Math.max(1, count - 1);
-    
-    const targetIndex = direction === 'next' 
-      ? Math.min(activeIndex + 1, count - 1) 
-      : Math.max(activeIndex - 1, 0);
 
     // Centered targeted scroll progression value inside the active zone
     const targetProgress = targetIndex === count - 1
@@ -199,16 +217,39 @@ export default function WebsiteProjectsShowcase() {
     });
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+
+    // Detect horizontal swipe if deltaX is significant and primarily horizontal
+    if (Math.abs(deltaX) > 40 && Math.abs(deltaY) < 60) {
+      if (deltaX > 0) {
+        scrollToStage('prev');
+      } else {
+        scrollToStage('next');
+      }
+    }
+  };
+
   const activeProj = projects[activeIndex] || PROJECTS_DATA[0];
 
   return (
     <div 
       id="outcomes"
       ref={containerRef} 
-      className="relative w-full h-[750vh] bg-[#030202] z-30 overflow-visible"
+      className="relative w-full h-[100dvh] md:h-[750vh] bg-[#030202] z-30 overflow-visible"
     >
       {/* Sticky viewing container that locks the viewport while scrolling through the effect */}
-      <div className="sticky top-0 w-full h-screen overflow-hidden flex items-center justify-center">
+      <div 
+        onTouchStart={isMobile ? handleTouchStart : undefined}
+        onTouchEnd={isMobile ? handleTouchEnd : undefined}
+        className="sticky top-0 w-full h-[100dvh] md:h-screen overflow-hidden flex items-center justify-center"
+      >
         
         {/* Section Heading "OUTCOMES" */}
         <div className="absolute top-[12vh] left-[clamp(1.5rem,5vw,50px)] pointer-events-none z-30 flex items-center gap-3.5 select-none font-sans">
@@ -223,13 +264,13 @@ export default function WebsiteProjectsShowcase() {
 
         {/* ================= LAYER 1: TEXTURED COSMIC BACKGROUND ================= */}
         <motion.div 
-          style={{ y: bgY, scale: bgScale }}
+          style={isMobile ? { y: '0%', scale: 1 } : { y: bgY, scale: bgScale }}
           className="absolute inset-0 w-full h-[120%] -top-[10%] select-none z-0"
         >
           <img 
             src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231556/Background_wpwatv.jpg" 
             alt="Textured Background"
-            className="w-full h-full object-cover opacity-50 filter contrast-[1.12] brightness-[0.7] saturate-[0.8]"
+            className="w-full h-full object-cover opacity-50 md:filter md:contrast-[1.12] md:brightness-[0.7] md:saturate-[0.8]"
             referrerPolicy="no-referrer"
           />
         </motion.div>
@@ -245,24 +286,28 @@ export default function WebsiteProjectsShowcase() {
 
         {/* ================= LAYER 2: MYSELF ================= */}
         <motion.div 
-          style={{ y: personY, scale: personScale }}
+          style={isMobile ? { y: '0%', scale: 1 } : { y: personY, scale: personScale }}
           className="absolute inset-0 w-full h-full flex items-center justify-center select-none z-10"
         >
           <img 
             src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231578/my_image_hthdxq.png" 
             alt="Miftahul Islam"
-            className="w-full h-full max-w-[1240px] max-h-[85vh] object-contain filter drop-shadow-[0_28px_55px_rgba(0,0,0,0.92)] contrast-[1.04]"
+            className="w-full h-full max-w-[1240px] max-h-[85vh] object-contain md:filter md:drop-shadow-[0_28px_55px_rgba(0,0,0,0.92)] md:contrast-[1.04]"
             referrerPolicy="no-referrer"
           />
         </motion.div>
 
         {/* ================= LAYER 3: TABLET CHASSIS & SCREEN ================= */}
         <motion.div 
-          style={{ 
-            y: tabletY, 
-            scale: tabletScale, 
-            rotate: tabletRotate,
-          }}
+          style={
+            isMobile 
+              ? { y: '0%', scale: 1, rotate: 0 } 
+              : { 
+                  y: tabletY, 
+                  scale: tabletScale, 
+                  rotate: tabletRotate,
+                }
+          }
           className="absolute inset-0 w-full h-full flex items-center justify-center select-none z-20 overflow-visible"
         >
           <div 
@@ -329,7 +374,7 @@ export default function WebsiteProjectsShowcase() {
               <img 
                 src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780235422/ChatGPT_Image_May_31_2026_07_37_49_PM_fsjkar.png" 
                 alt="Floating Predator Tablet chassis border"
-                className="w-full h-full object-fill filter drop-shadow-[0_25px_50px_rgba(0,0,0,0.85)]"
+                className="w-full h-full object-fill md:filter md:drop-shadow-[0_25px_50px_rgba(0,0,0,0.85)]"
               />
             </div>
 
