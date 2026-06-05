@@ -15,6 +15,7 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import TornTransition from './components/ui/torn-transition';
 import WebsiteProjectsShowcase from './components/WebsiteProjectsShowcase';
+import AchievementsSection from './components/AchievementsSection';
 import GlitchSectionTransition from './components/ui/GlitchSectionTransition';
 import SoundGate from './components/ui/SoundGate';
 
@@ -133,6 +134,7 @@ export default function App() {
             <SkillShowcase gltfPath="/assets/portfolio_2nd_section.glb" />
           </OrbitSection>
           <WebsiteProjectsShowcase />
+          <AchievementsSection />
           <Services />
           <Testimonials />
         </main>
