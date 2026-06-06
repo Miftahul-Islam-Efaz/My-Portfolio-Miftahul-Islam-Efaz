@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useRef, useLayoutEffect, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
 // --- 1. THE SHADER MATERIAL ---
@@ -68,9 +68,20 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const progressRef = useRef(0);
   const inViewRef = useRef(true);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  // Keep track of viewport width changes
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // --- 2. SCROLL SYNC LOGIC ---
   useLayoutEffect(() => {
+    if (isMobile) return;
     let inView = true;
 
     const observer = new IntersectionObserver((entries) => {
@@ -192,10 +203,11 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
       if (rafId !== null) cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, []);
+  }, [isMobile]);
 
   // --- 3. PURE THREE.JS INITIALIZATION ---
   useEffect(() => {
+    if (isMobile) return;
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -276,7 +288,22 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
       material.dispose();
       plane.geometry.dispose();
     };
-  }, []);
+  }, [isMobile]);
+
+  if (isMobile) {
+    return (
+      <div className="relative w-full flex flex-col bg-[#0F0B0A]">
+        {/* Contact Container with explicit dark background */}
+        <div className="relative w-full">
+          {topContent}
+        </div>
+        {/* Footer Container with explicit light background */}
+        <div className="relative w-full bg-[#f2f0f1]">
+          {bottomContent}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className="relative w-full" style={{ height: '500vh' }}>
