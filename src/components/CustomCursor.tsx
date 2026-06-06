@@ -24,6 +24,9 @@ export default function CustomCursor() {
     let currentCursorState = 'default';
     let currentHoverText = '';
     let isInHeroSection = true;
+    let clientX = 0;
+    let clientY = 0;
+    let rafActive = false;
 
     const checkHeroSection = () => {
       const scrollY = window.scrollY;
@@ -54,6 +57,12 @@ export default function CustomCursor() {
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
 
+    const updateCursorPosition = () => {
+      xTo(clientX);
+      yTo(clientY);
+      rafActive = false;
+    };
+
     const onMouseMove = (e: MouseEvent) => {
       if (isInHeroSection) {
         if (isVisible) {
@@ -67,8 +76,12 @@ export default function CustomCursor() {
         gsap.to(cursor, { opacity: 1, duration: 0.3 });
         isVisible = true;
       }
-      xTo(e.clientX);
-      yTo(e.clientY);
+      clientX = e.clientX;
+      clientY = e.clientY;
+      if (!rafActive) {
+        requestAnimationFrame(updateCursorPosition);
+        rafActive = true;
+      }
     };
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
@@ -176,13 +189,13 @@ export default function CustomCursor() {
     <div 
       ref={cursorRef}
       className={cn(
-        "hidden md:flex pointer-events-none fixed top-0 left-0 z-[100000] bg-white items-center justify-center will-change-transform mix-blend-difference"
+        "hidden md:flex pointer-events-none fixed top-0 left-0 z-[100000] bg-white items-center justify-center will-change-transform mix-blend-difference shadow-[0_0_8px_rgba(255,255,255,0.4)]"
       )}
       style={{ width: '14px', height: '14px', borderRadius: '9999px' }}
     >
       <span 
         ref={textRef}
-        className="text-black font-mono text-[9px] tracking-[0.15em] font-medium uppercase transition-opacity duration-200"
+        className="text-black font-mono text-[9px] tracking-[0.18em] font-extrabold uppercase transition-opacity duration-200"
         style={{ opacity: 0, whiteSpace: 'nowrap' }}
       />
     </div>

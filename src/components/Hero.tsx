@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { Github, Linkedin, Twitter, Instagram } from 'lucide-react';
 import { AnimatedDock } from './ui/animated-dock';
 import SplitType from 'split-type';
+import { motion, useScroll, useTransform } from 'motion/react';
 
 const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boolean }) {
   const nameRef = useRef<HTMLHeadingElement>(null);
@@ -24,26 +25,72 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
     if (!video) return;
 
     const tryPlay = () => {
+      // Only try play if the video is actually intersecting
+      if (videoRef.current && !videoRef.current.paused) return; // already playing
       video.play().catch((err) => {
         console.log("Mobile Hero background video play delayed for gesture interaction:", err);
       });
     };
 
-    tryPlay();
-
-    // Attach unlock events that standard mobile layout uses
+    // Standard unlock events
     window.addEventListener('click', tryPlay, { once: true });
     window.addEventListener('touchstart', tryPlay, { once: true });
     window.addEventListener('scroll', tryPlay, { once: true });
     window.addEventListener('audio_preference_changed', tryPlay);
+
+    // Performance optimization: pause video when out of viewport or deeply faded out
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            tryPlay();
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    // Also observe the wrapper for opacity changes manually via a MutationObserver if possible,
+    // but intersection is mostly what we need (opacity might not trigger intersection, but usually when people scroll past the 800vh orbit section, Hero is out of bounds anyway).
+    // Actually, OrbitSection is sticky, so Hero STAYS in viewport. It just has opacity: 0!
+    // So IntersectionObserver won't pause it if it's sticky.
+    // We should pause it when scroll crosses the threshold.
 
     return () => {
       window.removeEventListener('click', tryPlay);
       window.removeEventListener('touchstart', tryPlay);
       window.removeEventListener('scroll', tryPlay);
       window.removeEventListener('audio_preference_changed', tryPlay);
+      observer.disconnect();
     };
   }, []);
+
+  // Performance optimization for sticky sections: 
+  // Custom scroll listener to pause the video when we've scrolled past 15% of OrbitSection 
+  // (which corresponds to window.innerHeight * 1.5 approx)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleScrollPause = () => {
+      if (window.scrollY > window.innerHeight * 1.2) {
+        if (!video.paused) video.pause();
+      } else {
+        if (video.paused && isStarted) {
+          video.play().catch(() => {});
+        }
+      }
+    };
+    
+    window.addEventListener('scroll', handleScrollPause, { passive: true });
+    return () => window.removeEventListener('scroll', handleScrollPause);
+  }, [isStarted]);
 
   useEffect(() => {
     if (!isStarted) {
@@ -166,51 +213,46 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
       id="hero-section"
       ref={containerRef}
       className="relative min-h-screen w-full flex flex-col justify-center md:flex-row md:justify-start items-center px-[clamp(1rem,5vw,4rem)] pt-24 pb-24 md:pt-20 md:pb-0 overflow-hidden"
-      style={{ perspective: '1200px', willChange: 'transform, opacity' }}
+      style={{ perspective: '1200px' }}
     >
-      {/* Mobile-only native background video */}
+      {/* Native background video */}
       <video
         ref={videoRef}
-        src="https://res.cloudinary.com/dhuc35uhc/video/upload/q_auto/f_auto/v1778255226/Hero_section_video_clpku3.mp4"
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none md:hidden z-0"
+        src="https://res.cloudinary.com/dr2tc3dyk/video/upload/v1780723250/hero_section_video_q01df4.mp4"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0"
         loop
         muted
         playsInline
         autoPlay
       />
 
-      {/* Mobile-only subtle dark backdrop wash to keep text ultra-legible over video while preserving the portrait */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent md:hidden pointer-events-none z-0" />
-
       {/* LEFT COLUMN */}
-      <div className="w-full md:w-1/2 flex flex-col z-10 text-white max-w-[480px] md:max-w-none">
+      <div className="w-full md:w-1/2 flex flex-col text-white max-w-[480px] md:max-w-none">
         
         <h2 
           ref={nameRef}
-          className="font-michroma text-[clamp(1.75rem,7vw,3.5rem)] md:text-[clamp(2.5rem,5vw,5rem)] font-normal leading-[1.2] md:leading-[1.1] mb-6 cursor-default opacity-0 will-change-transform"
-          style={{ willChange: "transform, opacity" }}
+          className="font-michroma text-[clamp(1.75rem,7vw,3.5rem)] md:text-[clamp(2.5rem,5vw,5rem)] font-normal leading-[1.2] md:leading-[1.1] mb-6 cursor-default opacity-0 mix-blend-difference text-white relative z-10"
         >
           Miftahul Islam<br />Efaz
         </h2>
         
         <div 
           ref={taglineRef}
-          className="hero-element font-body text-[clamp(0.9rem,2.2vw,1.3rem)] md:text-[clamp(1.1rem,2.5vw,1.5rem)] font-normal mb-8 md:mb-10 h-auto min-h-[3.5rem] md:h-8 text-neutral-100 drop-shadow-[0_4px_12px_rgba(0,0,0,1)] will-change-transform"
-          style={{ textShadow: "0 2px 14px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.6)", willChange: "transform, opacity" }}
+          className="hero-element font-body text-[clamp(0.9rem,2.2vw,1.3rem)] md:text-[clamp(1.1rem,2.5vw,1.5rem)] font-normal mb-8 md:mb-10 h-auto min-h-[3.5rem] md:h-8 text-white mix-blend-difference relative z-10"
         >
           {taglines[0]}
         </div>
         
-        <div className="hero-element flex flex-row sm:flex-row gap-4 mb-10 md:mb-12 w-full sm:w-auto items-center">
-          <a href="#work" className="px-5 py-3.5 md:px-[34px] md:py-[15px] text-center bg-white text-black font-body font-bold text-sm md:text-base rounded transition-[transform,background-color,color,box-shadow] duration-300 hover:bg-neutral-100 hover:scale-[1.05] active:scale-[0.98] shadow-[0_4px_25px_rgba(255,255,255,0.25)] flex-1 sm:flex-none whitespace-nowrap will-change-transform">
+        <div className="hero-element flex flex-row sm:flex-row gap-4 mb-10 md:mb-12 w-full sm:w-auto items-center relative z-10">
+          <a href="#work" className="px-5 py-3.5 md:px-[34px] md:py-[15px] text-center bg-white text-black font-body font-bold text-sm md:text-base rounded transition-[transform,background-color,color,box-shadow] duration-300 hover:bg-neutral-100 hover:scale-[1.05] active:scale-[0.98] shadow-[0_4px_25px_rgba(255,255,255,0.25)] flex-1 sm:flex-none whitespace-nowrap">
             View My Work
           </a>
-          <a href="#contact" className="px-4 py-3 md:px-7 md:py-3.5 text-center border border-white/25 text-white/80 font-body text-xs md:text-sm rounded transition-[transform,border-color,color] duration-300 hover:border-white/70 hover:text-white flex-1 sm:flex-none whitespace-nowrap will-change-transform">
+          <a href="#contact" className="px-4 py-3 md:px-7 md:py-3.5 text-center border border-white/25 text-white/80 font-body text-xs md:text-sm rounded transition-[transform,border-color,color] duration-300 hover:border-white/70 hover:text-white flex-1 sm:flex-none whitespace-nowrap">
             Get In Touch →
           </a>
         </div>
 
-        <div className="hero-element flex">
+        <div className="hero-element flex relative z-10">
           <AnimatedDock
             items={[
               {

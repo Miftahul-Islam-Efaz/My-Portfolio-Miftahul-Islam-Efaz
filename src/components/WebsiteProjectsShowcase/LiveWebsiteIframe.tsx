@@ -50,15 +50,18 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
       ref={containerRef} 
       className="absolute inset-0 w-full h-full overflow-hidden bg-[#0a0a0a] rounded-[1px] md:rounded-[3px] select-none"
     >
-      {shouldLoad && (
+      {hasLoadedOnce && (
         <div 
           style={{
             width: `${virtualWidth}px`,
             height: `${virtualHeight}px`,
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
+            visibility: shouldLoad ? 'visible' : 'hidden',
+            opacity: shouldLoad ? 1 : 0.01, // Keep slightly loaded but visually invisible & non-blocking
+            pointerEvents: shouldLoad ? 'auto' : 'none',
           }}
-          className="relative overflow-hidden pointer-events-auto"
+          className="relative overflow-hidden transition-opacity duration-200"
         >
           <iframe
             src={url}
@@ -72,7 +75,7 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
       )}
       
       {/* Loading state visual backdrop block */}
-      {!isIframeLoaded && (
+      {!isIframeLoaded && shouldLoad && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-20 pointer-events-none">
           <div className="relative flex items-center justify-center mb-3">
             <div className="w-8 h-8 rounded-full border-2 border-dashed border-neutral-700 animate-spin" />

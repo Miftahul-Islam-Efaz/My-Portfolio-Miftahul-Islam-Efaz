@@ -46,8 +46,8 @@ export default function Navigation() {
       ease: "power2.inOut",
       onComplete: () => {
         if (item.toLowerCase() === 'skills') {
-          // Scroll past the Hero burnout portion directly to the interactive 3D Skills showcase
-          const scrollTarget = target.getBoundingClientRect().top + window.scrollY + window.innerHeight * 1.5;
+          // Scroll directly to the top of the interactive 3D Skills showcase 2nd section
+          const scrollTarget = target.getBoundingClientRect().top + window.scrollY;
           if ((window as any).lenis) {
             (window as any).lenis.scrollTo(scrollTarget, { immediate: true });
           } else {
@@ -137,8 +137,12 @@ export default function Navigation() {
         )}
       >
         {/* Logo */}
-        <div className="flex-1 relative z-10 text-white select-none">
-          <span className="font-display text-2xl md:text-3xl font-bold tracking-[0.15em] uppercase pointer-events-none">
+        <div 
+          onClick={() => document.getElementById('trigger-favicon-animator')?.click()}
+          className="flex-1 relative z-10 text-white select-none cursor-pointer group"
+          title="Click to play logo favicon animation"
+        >
+          <span className="font-display text-2xl md:text-3xl font-bold tracking-[0.15em] uppercase transition-colors duration-300 group-hover:text-[#b54a4a]">
             EFAZ
           </span>
         </div>

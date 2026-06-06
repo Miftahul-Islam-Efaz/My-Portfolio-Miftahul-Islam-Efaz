@@ -7,7 +7,6 @@ import CustomCursor from './components/CustomCursor';
 import RevealLoader from './components/ui/reveal-loader';
 import Navigation from './components/Navigation';
 import Hero from './components/Hero';
-import OrbitSection from './components/OrbitSection';
 import SkillShowcase from './components/SkillShowcase';
 import Services from './components/Services';
 import Testimonials from './components/Testimonials';
@@ -18,6 +17,7 @@ import WebsiteProjectsShowcase from './components/WebsiteProjectsShowcase';
 import AchievementsSection from './components/AchievementsSection';
 import GlitchSectionTransition from './components/ui/GlitchSectionTransition';
 import SoundGate from './components/ui/SoundGate';
+import FaviconAnimator from './components/FaviconAnimator';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -119,6 +119,8 @@ export default function App() {
         onComplete={() => setLoaderComplete(true)} 
         isStarted={audioGateComplete}
       />
+
+      <FaviconAnimator loaderComplete={loaderComplete} />
       
       <div 
         className="relative w-full"
@@ -129,10 +131,8 @@ export default function App() {
       >
         <Navigation />
         <main>
-          <OrbitSection isStarted={loaderComplete}>
-            <Hero isStarted={loaderComplete} />
-            <SkillShowcase gltfPath="/assets/portfolio_2nd_section.glb" />
-          </OrbitSection>
+          <Hero isStarted={loaderComplete} />
+          <SkillShowcase gltfPath="/assets/portfolio_2nd_section_updated.glb" />
           <WebsiteProjectsShowcase />
           <AchievementsSection />
           <Services />

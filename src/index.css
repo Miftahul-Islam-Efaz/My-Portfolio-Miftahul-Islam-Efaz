@@ -172,3 +172,9 @@ html.lenis, html.lenis body {
     display: none;
   }
 }
+
+/* Premium Cinematic Radial Vignette */
+.bg-radial-vignette {
+  background: radial-gradient(circle, transparent 15%, rgba(3, 2, 2, 0.35) 55%, rgba(3, 2, 2, 0.98) 100%);
+}
+

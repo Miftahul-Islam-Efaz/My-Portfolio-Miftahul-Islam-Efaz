@@ -9,15 +9,23 @@ export default function Services() {
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const [constraints, setConstraints] = useState({ left: 0, right: 0 });
+  const [hasDragged, setHasDragged] = useState(false);
 
   const x = useMotionValue(0);
   const xVelocity = useVelocity(x);
   
-  // Increased mass and stiffness to heighten inertia and yield realistic air drag on faster intro speeds
-  const xVelocitySpring = useSpring(xVelocity, { damping: 14, stiffness: 100, mass: 2.5 });
+  // Optimized spring parameters for high-performance fluid rendering, reducing calculation drag/ticks on frame loop
+  const xVelocitySpring = useSpring(xVelocity, { damping: 25, stiffness: 140, mass: 0.5 });
   
   // Map velocity to rotation (tilt). Higher boundaries to allow for faster intro speed air-dragging.
   const skew = useTransform(xVelocitySpring, [-4000, 4000], [-30, 30]);
+
+  // Elegant progress-bar transformation based on cards-container scroll value
+  const progressBarX = useTransform(
+    x,
+    [constraints.left === 0 ? -1200 : constraints.left, 0],
+    [128, 0]
+  );
 
   useEffect(() => {
     const updateConstraints = () => {
@@ -86,6 +94,13 @@ export default function Services() {
             padding: 0 clamp(1.5rem, 5vw, 4rem);
             position: relative;
             z-index: 10;
+        }
+        @media (min-width: 768px) {
+            .hanging-services-section .section-header {
+                flex-direction: row;
+                align-items: flex-end;
+                justify-content: space-between;
+            }
         }
         .hanging-services-section .section-title {
             font-size: clamp(40px, 8vw, 90px);
@@ -173,6 +188,9 @@ export default function Services() {
             height: 100%;
             width: max-content;
             z-index: 10;
+            will-change: transform;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
         
         .hanging-services-section .card-wrapper {
@@ -184,6 +202,8 @@ export default function Services() {
             transform-origin: 50% 80px;
             will-change: transform;
             z-index: 10;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
         
         .hanging-services-section .card-container {
@@ -198,6 +218,9 @@ export default function Services() {
             /* Punch hole at 50% X and 80px Y for the rod */
             -webkit-mask-image: radial-gradient(circle at 50% 80px, transparent 15px, black 16px);
             mask-image: radial-gradient(circle at 50% 80px, transparent 15px, black 16px);
+            will-change: transform;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
         
         .hanging-services-section .service-card {
@@ -211,6 +234,9 @@ export default function Services() {
             display: flex;
             flex-direction: column;
             position: relative;
+            will-change: transform;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
         
         /* The Flat Attachment Pad (Squircle) */
@@ -257,7 +283,7 @@ export default function Services() {
         }
         .hanging-services-section .card-wrapper[data-service="dev"] {
             --card-bg: var(--color-taupe);
-            --card-bg-img: url('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780340029/card2_mb9wtt.png');
+            --card-bg-img: url('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780763649/card2_vqgco6.png');
             --card-text: var(--color-eerie);
             --card-title-color: rgba(15, 11, 10, 0.2);
             --card-footer-bg: rgba(15, 11, 10, 0.05);
@@ -277,7 +303,7 @@ export default function Services() {
         }
         .hanging-services-section .card-wrapper[data-service="backend"] {
             --card-bg: var(--color-eerie);
-            --card-bg-img: url('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780340037/card4_in2g1x.png');
+            --card-bg-img: url('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780764050/card4_daktqg.png');
             --card-text: var(--color-pearl);
             --card-title-color: rgba(242, 240, 241, 0.1);
             --card-footer-bg: rgba(242, 240, 241, 0.03);
@@ -287,7 +313,7 @@ export default function Services() {
         }
         .hanging-services-section .card-wrapper[data-service="gen"] {
             --card-bg: var(--color-eerie);
-            --card-bg-img: url('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780340176/card5_zz8plm.png');
+            --card-bg-img: url('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780763780/card5_udnbhw.png');
             --card-text: var(--color-pearl);
             --card-title-color: rgba(242, 240, 241, 0.1);
             --card-footer-bg: rgba(242, 240, 241, 0.03);
@@ -385,7 +411,31 @@ export default function Services() {
       `}</style>
 
       <div className="section-header">
-        <h2 className="section-title">Core Expertise</h2>
+        <div>
+          <h2 className="section-title">Core Expertise</h2>
+        </div>
+        <motion.div 
+          animate={{
+            opacity: hasDragged ? 0.25 : [0.7, 1, 0.7],
+            scale: hasDragged ? 0.96 : [1, 1.02, 1],
+          }}
+          transition={{
+            opacity: { duration: 0.3 },
+            scale: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+          }}
+          className="flex items-center gap-2.5 bg-[#0e0e11]/60 border border-white/10 px-3.5 py-1.5 rounded-full select-none backdrop-blur-md transition-all duration-300 hover:border-white/20 mt-4 md:mt-0"
+        >
+          <div className="relative w-1.5 h-1.5 flex items-center justify-center">
+            <span className="absolute w-2 h-2 rounded-full bg-[#b54a4a] opacity-75 animate-ping" />
+            <span className="relative w-1 h-1 rounded-full bg-[#b54a4a]" />
+          </div>
+          <span className="font-mono text-[8px] tracking-[0.25em] text-[#EFEFED]/90 uppercase font-bold flex items-center gap-1.5">
+            DRAG TO EXPLORE 
+            <span className="inline-flex text-[#b54a4a] text-[10px] items-center">
+              ↔
+            </span>
+          </span>
+        </motion.div>
       </div>
       
       <div className="gallery-viewport">
@@ -399,6 +449,9 @@ export default function Services() {
           dragElastic={0.1}
           dragTransition={{ bounceStiffness: 200, bounceDamping: 20 }}
           style={{ x }}
+          onDragStart={() => setHasDragged(true)}
+          onTouchStart={() => setHasDragged(true)}
+          onMouseDown={() => setHasDragged(true)}
         >
           
           {/* CARD 1: FIGMA */}
@@ -473,6 +526,35 @@ export default function Services() {
         
       </motion.div>
       </div>
+
+      {/* Horizontal HUD Progress Bar */}
+      <div className="flex justify-center mt-8 z-20 relative select-none pointer-events-none">
+        <div className="relative w-48 h-[2px] bg-white/5 rounded-full overflow-hidden">
+          <motion.div 
+            className="absolute top-0 bottom-0 left-0 w-16 bg-[#b54a4a]/85 rounded-full"
+            style={{ x: progressBarX }}
+          />
+        </div>
+      </div>
+
+      {/* Premium Minimal Side Hint */}
+      <motion.div 
+        animate={{ 
+          opacity: hasDragged ? 0 : [0, 0.45, 0],
+          x: hasDragged ? 15 : [10, -5, 10]
+        }}
+        transition={{ 
+          repeat: hasDragged ? 0 : Infinity, 
+          duration: 2.5, 
+          ease: "easeInOut" 
+        }}
+        className="absolute right-8 top-1/2 -translate-y-1/2 z-25 pointer-events-none hidden md:flex flex-col items-center gap-1.5"
+      >
+        <span className="font-mono text-[8px] tracking-[0.3em] font-extrabold text-white/40 uppercase [writing-mode:vertical-lr] select-none">
+          SWIPE TRACK
+        </span>
+        <span className="text-[#b54a4a] text-xs font-bold mt-1">→</span>
+      </motion.div>
     </section>
   );
 }

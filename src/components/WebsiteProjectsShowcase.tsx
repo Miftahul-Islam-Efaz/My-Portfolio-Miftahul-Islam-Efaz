@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'motion/react';
+import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionTemplate } from 'motion/react';
 import { ArrowLeft, ArrowRight, Volume2, VolumeX, ExternalLink } from 'lucide-react';
 import { PROJECTS_DATA } from './WebsiteProjectsShowcase/projectsData';
 import LiveWebsiteIframe from './WebsiteProjectsShowcase/LiveWebsiteIframe';
@@ -158,9 +158,11 @@ export default function WebsiteProjectsShowcase() {
     [-10, 0, 0]
   );
 
+  // High performance active index tracker using ref comparison to bypass 99% of React state reconciliations per scroll tick
+  const lastIndexRef = useRef(0);
+
   // Dynamic active index parser according to scroll progression and projects list count
   useEffect(() => {
-    if (isMobile) return;
     return smoothProgress.on("change", (latest) => {
       if (projects.length === 0) return;
       const count = projects.length;
@@ -174,9 +176,13 @@ export default function WebsiteProjectsShowcase() {
       
       let idx = Math.floor(latest / step);
       idx = Math.min(Math.max(0, idx), count - 1);
-      setActiveIndex(idx);
+      
+      if (idx !== lastIndexRef.current) {
+        lastIndexRef.current = idx;
+        setActiveIndex(idx);
+      }
     });
-  }, [smoothProgress, projects, isMobile]);
+  }, [smoothProgress, projects]);
 
   // Helper for mobile horizontal swipes
   const touchStartXRef = useRef<number>(0);
@@ -188,11 +194,6 @@ export default function WebsiteProjectsShowcase() {
     const targetIndex = direction === 'next' 
       ? Math.min(activeIndex + 1, count - 1) 
       : Math.max(activeIndex - 1, 0);
-
-    if (isMobile) {
-      setActiveIndex(targetIndex);
-      return;
-    }
 
     if (!containerRef.current) return;
     const element = containerRef.current;
@@ -242,13 +243,13 @@ export default function WebsiteProjectsShowcase() {
     <div 
       id="outcomes"
       ref={containerRef} 
-      className="relative w-full h-[100dvh] md:h-[750vh] bg-[#030202] z-30 overflow-visible"
+      className="relative w-full h-[350vh] md:h-[750vh] bg-[#030202] z-30 overflow-visible"
     >
       {/* Sticky viewing container that locks the viewport while scrolling through the effect */}
       <div 
         onTouchStart={isMobile ? handleTouchStart : undefined}
         onTouchEnd={isMobile ? handleTouchEnd : undefined}
-        className="sticky top-0 w-full h-[100dvh] md:h-screen overflow-hidden flex items-center justify-center"
+        className="sticky top-0 w-full h-[100dvh] md:h-screen overflow-hidden flex items-center justify-center pointer-events-none"
       >
         
         {/* Section Heading "OUTCOMES" */}
@@ -264,8 +265,8 @@ export default function WebsiteProjectsShowcase() {
 
         {/* ================= LAYER 1: TEXTURED COSMIC BACKGROUND ================= */}
         <motion.div 
-          style={isMobile ? { y: '0%', scale: 1 } : { y: bgY, scale: bgScale }}
-          className="absolute inset-0 w-full h-[120%] -top-[10%] select-none z-0"
+          style={{ y: bgY, scale: bgScale, willChange: 'transform' }}
+          className="absolute inset-0 w-full h-[120%] -top-[10%] select-none z-0 transform-gpu"
         >
           <img 
             src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231556/Background_wpwatv.jpg" 
@@ -286,8 +287,8 @@ export default function WebsiteProjectsShowcase() {
 
         {/* ================= LAYER 2: MYSELF ================= */}
         <motion.div 
-          style={isMobile ? { y: '0%', scale: 1 } : { y: personY, scale: personScale }}
-          className="absolute inset-0 w-full h-full flex items-center justify-center select-none z-10"
+          style={{ y: personY, scale: personScale, willChange: 'transform' }}
+          className="absolute inset-0 w-full h-full flex items-center justify-center select-none z-10 transform-gpu"
         >
           <img 
             src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231578/my_image_hthdxq.png" 
@@ -299,16 +300,8 @@ export default function WebsiteProjectsShowcase() {
 
         {/* ================= LAYER 3: TABLET CHASSIS & SCREEN ================= */}
         <motion.div 
-          style={
-            isMobile 
-              ? { y: '0%', scale: 1, rotate: 0 } 
-              : { 
-                  y: tabletY, 
-                  scale: tabletScale, 
-                  rotate: tabletRotate,
-                }
-          }
-          className="absolute inset-0 w-full h-full flex items-center justify-center select-none z-20 overflow-visible"
+          style={{ y: tabletY, scale: tabletScale, rotate: tabletRotate, willChange: 'transform' }}
+          className="absolute inset-0 w-full h-full flex items-center justify-center select-none z-20 overflow-visible transform-gpu"
         >
           <div 
             className="relative flex items-center justify-center overflow-visible w-[171px] sm:w-[350px] md:w-[410px] h-[116.78px] sm:h-auto aspect-[410/280] mt-[55px] sm:mt-[40px] md:mt-[146.742px] pl-[1px] sm:pl-0"
@@ -332,7 +325,6 @@ export default function WebsiteProjectsShowcase() {
                         x: `${(idx - activeIndex) * 100}%`,
                         scale: idx === activeIndex ? 1 : 0.94,
                         opacity: idx === activeIndex ? 1 : 0.15,
-                        filter: idx === activeIndex ? "blur(0px)" : "blur(8px)",
                       }}
                       transition={{
                         type: 'spring',
@@ -340,10 +332,12 @@ export default function WebsiteProjectsShowcase() {
                         damping: 19,
                         mass: 0.85,
                       }}
-                      className="absolute inset-0 w-full h-full"
+                      className="absolute inset-0 w-full h-full transform-gpu"
                       style={{
                         zIndex: idx === activeIndex ? 10 : 5,
                         pointerEvents: idx === activeIndex ? "auto" : "none",
+                        backfaceVisibility: 'hidden',
+                        willChange: 'transform, opacity',
                       }}
                     >
                       <LiveWebsiteIframe 
@@ -440,9 +434,9 @@ export default function WebsiteProjectsShowcase() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeIndex}
-              initial={{ opacity: 0, filter: 'blur(12px)', y: 12 }}
-              animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-              exit={{ opacity: 0, filter: 'blur(12px)', y: -12 }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-col items-start w-full text-left"
             >
@@ -463,39 +457,32 @@ export default function WebsiteProjectsShowcase() {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT TEXT PANEL: TITLES AND DATA TECH CODES STACK (DYNAMICALLY GENERATED) */}
+        {/* RIGHT SIDE BRANDING & PAGE INDEX */}
         <div 
-          className="absolute right-[clamp(1rem,4vw,50px)] top-[12vh] md:top-[12vh] pointer-events-none text-right z-30 select-none"
-          style={{ textShadow: "0 2px 12px rgba(0,0,0,0.95), 0 0 5px rgba(0,0,0,0.5)" }}
+          className="absolute right-[clamp(1.5rem,5vw,50px)] top-[12vh] pointer-events-none z-30 select-none text-right"
+          style={{ textShadow: "0 2px 14px rgba(0,0,0,1)" }}
         >
           <AnimatePresence mode="wait">
             <motion.div 
               key={activeIndex}
-              initial={{ opacity: 0, filter: 'blur(10px)', y: 15 }}
-              animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-              exit={{ opacity: 0, filter: 'blur(10px)', y: -15 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute top-0 right-0 w-[240px] md:w-[320px] flex flex-col items-end text-right"
+              initial={{ opacity: 0, x: 15 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -15 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="flex items-center gap-3.5 justify-end"
             >
-              {/* Massive light page numbering behind */}
-              <span className="font-display text-[4.5rem] md:text-[6.5rem] tracking-tighter text-white/5 font-thin leading-none select-none mb-1">
+              <div className="flex flex-col items-end text-right">
+                <span className="font-mono text-[8px] sm:text-[9px] text-stone-500 tracking-[0.25em] uppercase block font-medium leading-none mb-1">
+                  SHOWCASE
+                </span>
+                <span className="font-sans text-[10px] sm:text-[11px] md:text-xs text-[#A69F95] tracking-[0.18em] uppercase block font-medium leading-none">
+                  Vibe-Coded Websites
+                </span>
+              </div>
+              <span className="w-5 h-[1px] bg-stone-700 block" />
+              <span className="font-display text-[1.8rem] sm:text-[2.2rem] md:text-[2.8rem] tracking-tighter text-stone-100 font-extralight leading-none">
                 0{activeIndex + 1}
               </span>
-
-              <span className="font-sans text-[9px] text-[#A69F95] tracking-[0.25em] uppercase mb-3 block font-medium">
-                HIGHLIGHTS
-              </span>
-              
-              <div className="flex flex-col items-end gap-2 max-w-[200px] md:max-w-[280px]">
-                {activeProj.tech.map((v, i) => (
-                  <span 
-                    key={i} 
-                    className="font-sans text-[10px] md:text-xs text-stone-300 uppercase tracking-widest leading-none font-light"
-                  >
-                    {v}
-                  </span>
-                ))}
-              </div>
             </motion.div>
           </AnimatePresence>
         </div>

@@ -132,69 +132,46 @@ const PathGlowShader = {
 function Scene({ 
   gltfPath, 
   containerRef,
-  customContainerRef
+  customContainerRef,
+  waitFirstStage = false,
+  isVisible = true
 }: { 
   gltfPath: string; 
   containerRef: React.RefObject<HTMLDivElement | null>;
   customContainerRef?: React.RefObject<HTMLDivElement | null>;
+  waitFirstStage?: boolean;
+  isVisible?: boolean;
 }) {
   const { scene, materials } = useGLTF(gltfPath) as any;
   const pathMatRef = useRef<THREE.ShaderMaterial | null>(null);
   const currentTRef = useRef(0);
   const layoutRef = useRef({
     top: 0,
-    maxScroll: 1
+    maxScroll: 1,
+    initialized: false
   });
 
-  const scrollYRef = useRef(typeof window !== 'undefined' ? window.scrollY : 0);
+  const firstFrameSnapRef = useRef(true);
+  const frameCountRef = useRef(0);
+
+  // High-performance dynamic point light references
+  const light1Ref = useRef<THREE.PointLight | null>(null);
+  const light2Ref = useRef<THREE.PointLight | null>(null);
 
   // High-performance caching refs to avoid scene.getObjectByName and deep materials lookup during 60fps frame ticks
   const materialsCacheRef = useRef<Record<string, THREE.MeshStandardMaterial>>({});
-  const lightsCacheRef = useRef<Record<string, THREE.PointLight>>({});
   const textMatsCacheRef = useRef<Record<string, THREE.MeshStandardMaterial>>({});
   const sceneObjectsCacheRef = useRef<Record<string, THREE.Object3D>>({});
 
   useEffect(() => {
-    const handleScroll = () => {
-      scrollYRef.current = window.scrollY;
+    const handleResize = () => {
+      layoutRef.current.initialized = false;
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleResize);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
-
-  useEffect(() => {
-    const handleLayout = () => {
-      const target = customContainerRef?.current || containerRef.current;
-      if (target) {
-        let offsetTop = 0;
-        let obj: HTMLElement | null = target;
-        while (obj) {
-          offsetTop += obj.offsetTop;
-          obj = obj.offsetParent as HTMLElement | null;
-        }
-        const height = target.offsetHeight || (window.innerHeight * 8);
-        const maxScroll = Math.max(1, height - window.innerHeight);
-        layoutRef.current = {
-          top: offsetTop,
-          maxScroll
-        };
-      }
-    };
-
-    handleLayout();
-    window.addEventListener('resize', handleLayout);
-    // Double-checks to handle delayed layout offsets
-    const t1 = setTimeout(handleLayout, 500);
-    const t2 = setTimeout(handleLayout, 2500);
-
-    return () => {
-      window.removeEventListener('resize', handleLayout);
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [customContainerRef, containerRef]);
 
   useEffect(() => {
     // 1. Setup Custom Path Material
@@ -214,37 +191,50 @@ function Scene({
       sceneObjectsCacheRef.current['SkillPath'] = pathMesh;
     }
 
-    // 2. Initialize and structure dynamic lights and materials
+    // Traversal to hide any point, spot, or directional lights exported from Blender to prevent redundant calculations
+    scene.traverse((child: any) => {
+      if (child.isLight && child.name !== 'ActivePointLight1' && child.name !== 'ActivePointLight2') {
+        child.visible = false;
+      }
+    });
+
+    // 2. Setup 2 global performance-optimized point lights
+    let light1 = scene.getObjectByName('ActivePointLight1') as THREE.PointLight;
+    if (!light1) {
+      light1 = new THREE.PointLight('#ffffff', 0, 15, 1.5);
+      light1.name = 'ActivePointLight1';
+      scene.add(light1);
+    }
+    light1Ref.current = light1;
+
+    let light2 = scene.getObjectByName('ActivePointLight2') as THREE.PointLight;
+    if (!light2) {
+      light2 = new THREE.PointLight('#ffffff', 0, 15, 1.5);
+      light2.name = 'ActivePointLight2';
+      scene.add(light2);
+    }
+    light2Ref.current = light2;
+
+    // 3. Initialize and structure materials with permanent transparency
     SKILL_DATA.forEach((skill) => {
-      // Setup dynamic point lights in Three.js attached to the placeholders
       const placeholder = scene.getObjectByName(skill.placeholderName);
       if (placeholder) {
+        placeholder.visible = false; // Start hidden to prevent clumping on first render
         sceneObjectsCacheRef.current[skill.placeholderName] = placeholder;
-        let light = placeholder.userData.pointLight as THREE.PointLight;
-        if (!light) {
-          // Remove any existing point lights to avoid double-allocation on hot reload
-          placeholder.children = placeholder.children.filter(child => !(child instanceof THREE.PointLight));
-          
-          // Create new physical point light
-          light = new THREE.PointLight(skill.lightColor, 0.0, 15.0, 1.5);
-          light.position.set(0, 0.5, 0); // Position slightly above the object center
-          placeholder.add(light);
-          placeholder.userData.pointLight = light;
-        }
-        lightsCacheRef.current[skill.placeholderName] = light;
+        
+        // Remove any existing point lights on the child hierarchy to enforce the 2-light limit
+        placeholder.children = placeholder.children.filter(child => !(child instanceof THREE.PointLight));
       }
 
       // Initialize glow materials (WebDev, API, Supabase, n8n, MCP, AIDev, Android logos)
       skill.glowMaterialNames.forEach((matName) => {
         const mat = materials[matName] as THREE.MeshStandardMaterial;
         if (mat) {
-          mat.transparent = true;
+          mat.transparent = true; // Set permanently to true to prevent on-the-fly shader recompilation
           mat.opacity = 0.0;
           mat.roughness = 0.15;
           mat.metalness = 0.1;
           
-          // Explicitly override base color and emissive color to brand colors
-          // to prevent them from looking purely white or washed out.
           mat.color = new THREE.Color(skill.lightColor);
           mat.emissive = new THREE.Color(skill.lightColor);
           mat.emissiveIntensity = 0.0;
@@ -257,25 +247,22 @@ function Scene({
       skill.fadeMaterialNames.forEach((matName) => {
         const mat = materials[matName] as THREE.MeshStandardMaterial;
         if (mat) {
-          mat.transparent = true;
+          mat.transparent = true; // Set permanently to true to prevent on-the-fly shader recompilation
           mat.opacity = 0.0;
           
-          // Silver phone body override!
           if (matName === 'UIUX_PhoneBody_Material') {
-            mat.color = new THREE.Color('#E8E8E8'); // Clean bright silver body
+            mat.color = new THREE.Color('#E8E8E8');
             mat.metalness = 0.95;
             mat.roughness = 0.12;
           } else if (matName === 'UIUX_Material') {
-            mat.color = new THREE.Color('#F5F5F5'); // Silver phone outline
+            mat.color = new THREE.Color('#F5F5F5');
             mat.metalness = 0.85;
             mat.roughness = 0.15;
           } else if (matName === 'UIUX_PhoneScreen_Material') {
-            // Keep original screen texture, but make sure it has no metallic look
             mat.metalness = 0.05;
             mat.roughness = 0.4;
           }
 
-          // Generic fallback to bright silver/white if too dark
           if (matName !== 'UIUX_PhoneScreen_Material' && mat.color.r < 0.15 && mat.color.g < 0.15 && mat.color.b < 0.15) {
             mat.color = new THREE.Color('#E0E0E0');
             mat.metalness = 0.9;
@@ -283,7 +270,6 @@ function Scene({
           }
 
           if (mat.color && !mat.emissive) {
-            // Screen gets self-emissive screen light
             if (matName === 'UIUX_PhoneScreen_Material') {
               mat.emissive = mat.color.clone();
             }
@@ -297,23 +283,26 @@ function Scene({
       // Setup cloned individual materials for text elements
       const textMeshName = `Text_${skill.name}`;
       const textMesh = scene.getObjectByName(textMeshName) as THREE.Mesh;
-      if (textMesh && textMesh.material) {
-        let clonedMat = textMesh.userData.clonedMaterial as THREE.MeshStandardMaterial;
-        if (!clonedMat) {
-          clonedMat = (textMesh.material as THREE.MeshStandardMaterial).clone();
-          clonedMat.transparent = true;
-          clonedMat.opacity = 0.0;
-          clonedMat.emissive = clonedMat.color.clone();
-          clonedMat.emissiveIntensity = 0.0;
-          textMesh.material = clonedMat;
-          textMesh.userData.clonedMaterial = clonedMat;
-        }
-        textMatsCacheRef.current[skill.name] = clonedMat;
+      if (textMesh) {
+        textMesh.visible = false;
         sceneObjectsCacheRef.current[textMeshName] = textMesh;
+        if (textMesh.material) {
+          let clonedMat = textMesh.userData.clonedMaterial as THREE.MeshStandardMaterial;
+          if (!clonedMat) {
+            clonedMat = (textMesh.material as THREE.MeshStandardMaterial).clone();
+            clonedMat.transparent = true; // Set permanently to true to prevent material recompilation
+            clonedMat.opacity = 0.0;
+            clonedMat.emissive = clonedMat.color.clone();
+            clonedMat.emissiveIntensity = 0.0;
+            textMesh.material = clonedMat;
+            textMesh.userData.clonedMaterial = clonedMat;
+          }
+          textMatsCacheRef.current[skill.name] = clonedMat;
+        }
       }
     });
 
-    // 3. Optimize floor reflection
+    // 4. Optimize floor reflection
     const floor = scene.getObjectByName('Floor') as THREE.Mesh;
     if (floor && floor.material) {
       const floorMat = floor.material as THREE.MeshStandardMaterial;
@@ -325,11 +314,14 @@ function Scene({
   }, [scene, materials]);
 
   useFrame((state) => {
-    // Dynamically adjust Perspective Camera FOV on mobile portrait screens to keep horizontal field of view constant
+    if (!isVisible && frameCountRef.current > 5) {
+      return;
+    }
+    frameCountRef.current++;
+
     const aspect = state.size.width / state.size.height;
     let targetFov = 45;
     if (aspect < 1.0) {
-      // Standard landscape FOV is 45. We scale it up progressively as the display gets narrower.
       targetFov = Math.min(80, 45 + (1.0 - aspect) * 55);
     }
     if ((state.camera as THREE.PerspectiveCamera).fov !== targetFov) {
@@ -337,43 +329,63 @@ function Scene({
       (state.camera as THREE.PerspectiveCamera).updateProjectionMatrix();
     }
 
+    if (!layoutRef.current.initialized) {
+      const target = customContainerRef?.current || containerRef.current;
+      if (target) {
+        const rect = target.getBoundingClientRect();
+        const offsetTop = rect.top + window.scrollY;
+        const height = target.offsetHeight || (window.innerHeight * 8);
+        const maxScroll = Math.max(1, height - window.innerHeight);
+        
+        layoutRef.current = {
+          top: offsetTop,
+          maxScroll,
+          initialized: true
+        };
+      }
+    }
+
     let targetT = 0;
-    const { top: layoutTop, maxScroll } = layoutRef.current;
-    if (maxScroll > 0) {
-      const scrolled = scrollYRef.current - layoutTop;
+    const { top: layoutTop, maxScroll, initialized } = layoutRef.current;
+    
+    const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+    
+    if (initialized && maxScroll > 0) {
+      const scrolled = currentScrollY - layoutTop;
       const rawPercent = Math.max(0, Math.min(1, scrolled / maxScroll));
       
-      // Map OrbitSection scroll percentage to camera path progression
-      if (customContainerRef) {
+      if (customContainerRef || waitFirstStage) {
         if (rawPercent < 0.15) {
           targetT = 0;
         } else if (rawPercent > 0.95) {
           targetT = 1;
         } else {
-          targetT = (rawPercent - 0.15) / 0.80; // Map range [0.15, 0.95] to [0.0, 1.0]
+          targetT = (rawPercent - 0.15) / 0.80;
         }
       } else {
         targetT = rawPercent;
       }
+      
+      if (firstFrameSnapRef.current) {
+        currentTRef.current = targetT;
+        firstFrameSnapRef.current = false;
+      }
     }
 
-    // High-responsiveness scroll damping (factor 0.20 provides direct tactile control, stopping exactly when you stop)
-    currentTRef.current = THREE.MathUtils.lerp(currentTRef.current, targetT, 0.20);
+    currentTRef.current = Math.min(1, Math.max(0, THREE.MathUtils.lerp(currentTRef.current, targetT, 0.20)));
     const t = currentTRef.current;
 
     // --- STATION-TO-STATION CAMERA SYSTEM ---
-    // Decouples layout and camera angle so that each skill is perfectly centered when viewed,
-    // and never shifts off to the side or clips the edges of the screen.
     const stations = [
-      { cam: [0.0, 2.4, 18.0], look: [0.0, 0.8, 12.0] }, // Start (Hub)
-      { cam: [-3.0, 1.8, 10.0], look: [-3.0, 0.8, 5.0] }, // WebDev
-      { cam: [2.4, 1.8, 2.0], look: [2.4, 0.8, -3.0] }, // UIUX
-      { cam: [-3.7, 1.8, -6.0], look: [-3.7, 0.8, -11.0] }, // API
-      { cam: [3.0, 1.8, -14.0], look: [3.0, 0.8, -19.0] }, // Supabase
-      { cam: [-3.0, 1.8, -22.0], look: [-3.0, 0.8, -27.0] }, // n8n
-      { cam: [3.0, 1.8, -30.0], look: [3.0, 0.8, -35.0] }, // MCP
-      { cam: [-3.0, 1.8, -38.0], look: [-3.0, 0.8, -43.0] }, // AIDev
-      { cam: [3.0, 1.8, -46.0], look: [3.0, 0.8, -51.0] } // Android
+      { cam: [0.0, 2.4, 18.0], look: [0.0, 0.8, 12.0] },
+      { cam: [-3.0, 1.8, 10.0], look: [-3.0, 0.8, 5.0] },
+      { cam: [2.4, 1.8, 2.0], look: [2.4, 0.8, -3.0] },
+      { cam: [-3.7, 1.8, -6.0], look: [-3.7, 0.8, -11.0] },
+      { cam: [3.0, 1.8, -14.0], look: [3.0, 0.8, -19.0] },
+      { cam: [-3.0, 1.8, -22.0], look: [-3.0, 0.8, -27.0] },
+      { cam: [3.0, 1.8, -30.0], look: [3.0, 0.8, -35.0] },
+      { cam: [-3.0, 1.8, -38.0], look: [-3.0, 0.8, -43.0] },
+      { cam: [3.0, 1.8, -46.0], look: [3.0, 0.8, -51.0] }
     ];
 
     const numStations = stations.length;
@@ -381,18 +393,15 @@ function Scene({
     const index = Math.min(numStations - 2, Math.max(0, Math.floor(scaledT)));
     const fraction = scaledT - index;
 
-    // Smooth ease-in-out translation between stations
     const smoothFraction = THREE.MathUtils.smoothstep(fraction, 0, 1);
 
     const stA = stations[index];
     const stB = stations[index + 1];
 
-    // Interpolate camera position
     const camX = THREE.MathUtils.lerp(stA.cam[0], stB.cam[0], smoothFraction);
     const camY = THREE.MathUtils.lerp(stA.cam[1], stB.cam[1], smoothFraction);
     const camZ = THREE.MathUtils.lerp(stA.cam[2], stB.cam[2], smoothFraction);
 
-    // Interpolate lookAt target
     const lookX = THREE.MathUtils.lerp(stA.look[0], stB.look[0], smoothFraction);
     const lookY = THREE.MathUtils.lerp(stA.look[1], stB.look[1], smoothFraction);
     const lookZ = THREE.MathUtils.lerp(stA.look[2], stB.look[2], smoothFraction);
@@ -401,12 +410,21 @@ function Scene({
     state.camera.lookAt(new THREE.Vector3(lookX, lookY, lookZ));
 
     // --- DECOUPLED PATH PROGRESSION FOR TRIGGER GLOWS ---
-    // Ensures glow calculations and shader triggers remain perfectly linear.
     const pathZ = THREE.MathUtils.lerp(18.0, -56.0, t);
     
     if (pathMatRef.current) {
       pathMatRef.current.uniforms.uCameraZ.value = pathZ;
     }
+
+    // Reset our two high-performance dynamic point lights at the start of each frame tick
+    if (light1Ref.current) {
+      light1Ref.current.intensity = 0;
+    }
+    if (light2Ref.current) {
+      light2Ref.current.intensity = 0;
+    }
+
+    let activeLightIndex = 0;
 
     // --- SKILL PROXIMITY GLOWS & SOLID TRANSITIONS ---
     SKILL_DATA.forEach((skill) => {
@@ -418,11 +436,20 @@ function Scene({
         factor = Math.min(1.0, (6.5 - relativeZ) / 7.5);
       }
 
-      // Glow Material Transition (set solid opaque once fully reached to avoid transparency glitches)
+      // Proactive Visibility Culling: Make meshes completely invisible if out of view
+      const placeholder = sceneObjectsCacheRef.current[skill.placeholderName];
+      if (placeholder) {
+        placeholder.visible = factor > 0.005;
+      }
+      const textMesh = sceneObjectsCacheRef.current[`Text_${skill.name}`];
+      if (textMesh) {
+        textMesh.visible = factor > 0.005;
+      }
+
+      // Glow Material Transition (smooth opacity, no rebuild instructions)
       skill.glowMaterialNames.forEach((matName) => {
         const mat = materialsCacheRef.current[matName];
         if (mat) {
-          mat.transparent = factor < 0.99;
           mat.opacity = factor;
           mat.emissiveIntensity = factor * 2.0;
         }
@@ -432,10 +459,9 @@ function Scene({
       skill.fadeMaterialNames.forEach((matName) => {
         const mat = materialsCacheRef.current[matName];
         if (mat) {
-          mat.transparent = factor < 0.99;
           mat.opacity = factor;
           if (matName === 'UIUX_PhoneScreen_Material') {
-            mat.emissiveIntensity = factor * 0.45; // Crisp self-lit screen backlight
+            mat.emissiveIntensity = factor * 0.45;
           }
         }
       });
@@ -443,15 +469,19 @@ function Scene({
       // Cloned Text Material Transition
       const clonedMat = textMatsCacheRef.current[skill.name];
       if (clonedMat) {
-        clonedMat.transparent = factor < 0.99;
         clonedMat.opacity = factor;
         clonedMat.emissiveIntensity = factor * 1.5;
       }
 
-      // Point Light Transition
-      const light = lightsCacheRef.current[skill.placeholderName];
-      if (light) {
-        light.intensity = factor * skill.maxLightIntensity;
+      // Dynamically hand-off one of the 2 dynamic point lights to this skill if it is active
+      if (factor > 0.01 && activeLightIndex < 2) {
+        const targetLight = activeLightIndex === 0 ? light1Ref.current : light2Ref.current;
+        if (targetLight) {
+          targetLight.color.set(skill.lightColor);
+          targetLight.position.set(skill.x, 0.8, skill.z);
+          targetLight.intensity = factor * skill.maxLightIntensity;
+        }
+        activeLightIndex++;
       }
     });
   });
@@ -460,8 +490,8 @@ function Scene({
 }
 
 export default function SkillShowcase({ 
-  gltfPath = '/assets/portfolio_2nd_section.glb', 
-  height = '300vh',
+  gltfPath = '/assets/portfolio_2nd_section_updated.glb', 
+  height = '800vh',
   customContainerRef
 }: { 
   gltfPath?: string; 
@@ -498,58 +528,53 @@ export default function SkillShowcase({
   
   if (customContainerRef) {
     return (
-      <div style={{ width: '100%', height: '100%', overflow: 'hidden' }} ref={containerRef}>
-        {isVisible ? (
-          <Canvas
-            camera={{ position: [0, 2.5, 18], fov: 45 }}
-            gl={{ 
-              antialias: !isMobile, 
-              powerPreference: 'high-performance',
-              toneMapping: THREE.ACESFilmicToneMapping
-            }}
-            dpr={isMobile ? 1 : [1, 1.5]}
-          >
-            <color attach="background" args={['#000000']} />
-            <ambientLight intensity={0.08} />
-            {/* Studio three-point lighting for glossy highlights and well-lit silver models */}
-            <directionalLight position={[0, 10, -5]} intensity={0.3} />
-            <directionalLight position={[0, 5, 15]} intensity={0.7} color="#ffffff" />
-            <Scene gltfPath={gltfPath} containerRef={containerRef} customContainerRef={customContainerRef} />
-          </Canvas>
-        ) : (
-          <div style={{ width: '100%', height: '100%', background: '#000' }} />
-        )}
+      <div id="skills" style={{ width: '100%', height: '100%', overflow: 'hidden' }} ref={containerRef}>
+        <Canvas
+          camera={{ position: [0, 2.5, 18], fov: 45 }}
+          gl={{ 
+            antialias: !isMobile, 
+            powerPreference: 'high-performance',
+            toneMapping: THREE.ACESFilmicToneMapping,
+            alpha: true
+          }}
+          dpr={1}
+        >
+          <ambientLight intensity={0.08} />
+          {/* Studio three-point lighting for glossy highlights and well-lit silver models */}
+          <directionalLight position={[0, 10, -5]} intensity={0.3} />
+          <directionalLight position={[0, 5, 15]} intensity={0.7} color="#ffffff" />
+          <Scene gltfPath={gltfPath} containerRef={containerRef} customContainerRef={customContainerRef} isVisible={isVisible} />
+        </Canvas>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: height, background: '#000' }}>
+    <div id="skills" ref={containerRef} style={{ position: 'relative', width: '100%', height: height, background: '#000' }}>
       <div style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden' }}>
-        {isVisible ? (
+        
+        <div style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
           <Canvas
             camera={{ position: [0, 2.5, 18], fov: 45 }}
             gl={{ 
               antialias: !isMobile, 
               powerPreference: 'high-performance',
-              toneMapping: THREE.ACESFilmicToneMapping
+              toneMapping: THREE.ACESFilmicToneMapping,
+              alpha: true
             }}
-            dpr={isMobile ? 1 : [1, 1.5]}
+            dpr={1}
           >
-            <color attach="background" args={['#000000']} />
             <ambientLight intensity={0.08} />
             <directionalLight position={[0, 10, -5]} intensity={0.3} />
             <directionalLight position={[0, 5, 15]} intensity={0.7} color="#ffffff" />
-            <Scene gltfPath={gltfPath} containerRef={containerRef} />
+            <Scene gltfPath={gltfPath} containerRef={containerRef} waitFirstStage={false} isVisible={isVisible} />
           </Canvas>
-        ) : (
-          <div style={{ width: '100%', height: '100vh', background: '#000' }} />
-        )}
+        </div>
       </div>
     </div>
   );
 }
 
 if (typeof window !== 'undefined' && window.innerWidth > 768) {
-  useGLTF.preload('/assets/portfolio_2nd_section.glb');
+  useGLTF.preload('/assets/portfolio_2nd_section_updated.glb');
 }
