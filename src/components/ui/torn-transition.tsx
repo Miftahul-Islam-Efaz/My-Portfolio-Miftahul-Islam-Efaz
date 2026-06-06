@@ -294,11 +294,29 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     return (
       <div className="relative w-full flex flex-col bg-[#0F0B0A]">
         {/* Contact Container with explicit dark background */}
-        <div className="relative w-full">
+        <div className="relative w-full bg-[#0F0B0A]">
           {topContent}
         </div>
-        {/* Footer Container with explicit light background */}
-        <div className="relative w-full bg-[#f2f0f1]">
+        {/* Footer Container with explicit light background and torn paper transition ornament */}
+        <div className="relative w-full bg-[#f2f0f1] mt-12 pt-4">
+          <div className="absolute top-0 left-0 w-full overflow-hidden leading-none z-30 pointer-events-none -translate-y-[98%]">
+            {/* Organic 3D drop shadow layer for torn dimension */}
+            <svg 
+              viewBox="0 0 1200 120" 
+              preserveAspectRatio="none" 
+              className="relative block w-full h-[45px] text-black/15 fill-current translate-y-[2px]"
+            >
+              <path d="M0,0 Q 25,15 50,6 T 100,10 T 150,5 T 200,18 T 250,7 T 300,15 T 350,4 T 400,17 T 450,8 T 500,12 T 550,5 T 600,18 T 650,7 T 700,15 T 750,6 T 800,17 T 850,9 T 900,13 T 950,5 T 1000,18 T 1050,7 T 1100,12 T 1150,4 T 1200,15 L 1200,120 L 0,120 Z" />
+            </svg>
+            {/* Main torn paper layer matching footer color */}
+            <svg 
+              viewBox="0 0 1200 120" 
+              preserveAspectRatio="none" 
+              className="absolute top-0 left-0 block w-full h-[45px] text-[#f2f0f1] fill-current"
+            >
+              <path d="M0,0 Q 25,12 50,3 T 100,7 T 150,2 T 200,15 T 250,4 T 300,12 T 350,1 T 400,14 T 450,5 T 500,9 T 550,2 T 600,15 T 650,4 T 700,12 T 750,3 T 800,14 T 850,6 T 900,10 T 950,2 T 1000,15 T 1050,4 T 1100,9 T 1150,1 T 1200,12 L 1200,120 L 0,120 Z" />
+            </svg>
+          </div>
           {bottomContent}
         </div>
       </div>

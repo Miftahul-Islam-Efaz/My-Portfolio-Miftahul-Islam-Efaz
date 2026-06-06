@@ -475,50 +475,6 @@ export default function AchievementsSection() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* ================= PREMIUM CINEMATIC SHUTTER TRANSITION TO SERVICES ================= */}
-        {/* Left Curtain Glass Slab */}
-        <motion.div
-          style={{ x: leftCurtainX, y: leftCurtainY, display: curtainDisplay }}
-          className="fixed inset-y-0 left-0 w-1/2 h-screen bg-[#030202] border-r border-[#b54a4a]/15 z-[60] flex items-center justify-end overflow-hidden transform-gpu pointer-events-none"
-        >
-          {/* Fine cyber-grid background */}
-          <div className="absolute inset-0 opacity-15 bg-[linear-gradient(to_right,#8080800d_1px,transparent_1px),linear-gradient(to_bottom,#8080800d_1px,transparent_1px)] bg-[size:30px_30px]" />
-          <div className="w-[1px] h-full bg-gradient-to-b from-transparent via-[#b54a4a]/30 to-transparent absolute right-0" />
-        </motion.div>
-
-        {/* Right Curtain Glass Slab */}
-        <motion.div
-          style={{ x: rightCurtainX, y: rightCurtainY, display: curtainDisplay }}
-          className="fixed inset-y-0 right-0 w-1/2 h-screen bg-[#030202] border-l border-[#b54a4a]/15 z-[60] flex items-center justify-start overflow-hidden transform-gpu pointer-events-none"
-        >
-          {/* Fine cyber-grid background */}
-          <div className="absolute inset-0 opacity-15 bg-[linear-gradient(to_right,#8080800d_1px,transparent_1px),linear-gradient(to_bottom,#8080800d_1px,transparent_1px)] bg-[size:30px_30px]" />
-          <div className="w-[1px] h-full bg-gradient-to-b from-transparent via-[#b54a4a]/30 to-transparent absolute left-0" />
-        </motion.div>
-
-        {/* Glowing Center Line */}
-        <motion.div
-          style={{ scaleY: dividerScaleY, opacity: dividerGlowOpacity, display: dividerDisplay }}
-          className="fixed inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-gradient-to-b from-transparent via-[#b54a4a] to-transparent z-[65] origin-center blur-[0.5px] pointer-events-none"
-        />
-
-        {/* Editorial Text Reveal */}
-        <motion.div
-          style={{ opacity: transTextOpacity, scale: transTextScale, display: transTextDisplay }}
-          className="fixed inset-0 flex flex-col items-center justify-center z-[70] pointer-events-none select-none text-center px-6"
-        >
-          <span className="font-mono text-[9px] md:text-[10px] text-[#b54a4a] tracking-[0.45em] uppercase mb-4 font-semibold block">
-            CREATIVE PORTFOLIO
-          </span>
-          <h2 className="font-serif text-[clamp(24px,4vw,52px)] leading-tight text-neutral-100 tracking-tight max-w-3xl">
-            CORE EXPERTISE & SERVICES
-          </h2>
-          <span className="w-16 h-[1px] bg-neutral-800 my-6 block" />
-          <p className="font-sans text-[9px] md:text-[10px] text-neutral-400 tracking-[0.25em] uppercase font-light">
-            SCROLL TO EXPLORE THE GALLERY & SOLUTIONS
-          </p>
-        </motion.div>
       </section>
     );
   }
