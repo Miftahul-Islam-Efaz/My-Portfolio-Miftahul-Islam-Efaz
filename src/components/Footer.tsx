@@ -1,9 +1,48 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Github, Linkedin, Briefcase } from 'lucide-react';
+import { Github, Linkedin, Briefcase, Instagram, Facebook, Twitter } from 'lucide-react';
+import { motion } from 'motion/react';
 
 gsap.registerPlugin(ScrollTrigger);
+
+const socials = [
+  {
+    name: 'Instagram',
+    icon: Instagram,
+    url: 'https://www.instagram.com/miftahul_islam_efaz/',
+    handle: '@miftahul_islam_efaz',
+    colorClass: 'text-[#1A1A1A]/80 hover:text-pink-600',
+  },
+  {
+    name: 'GitHub',
+    icon: Github,
+    url: 'https://github.com/Miftahul-Islam-Efaz',
+    handle: 'Miftahul-Islam-Efaz',
+    colorClass: 'text-[#1A1A1A]/80 hover:text-neutral-950',
+  },
+  {
+    name: 'Facebook',
+    icon: Facebook,
+    url: 'https://www.facebook.com/miftahul.islam.efaz',
+    handle: 'miftahul.islam.efaz',
+    colorClass: 'text-[#1A1A1A]/80 hover:text-blue-600',
+  },
+  {
+    name: 'Twitter',
+    icon: Twitter,
+    url: 'https://twitter.com',
+    colorClass: 'text-[#1A1A1A]/80 hover:text-sky-500',
+    handle: '@miftahul_efaz',
+  },
+  {
+    name: 'LinkedIn',
+    icon: Linkedin,
+    url: 'https://www.linkedin.com/in/miftahul-islam-efaz-a91373284/',
+    colorClass: 'text-[#1A1A1A]/80 hover:text-blue-700',
+    handle: 'miftahul-islam',
+  }
+];
 
 export default function Footer() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -199,25 +238,49 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* SOCIAL LINKS STRAP */}
-        <div className="mt-10 flex flex-col xs:flex-row justify-between items-center gap-4 border-t border-[#1A1A1A]/20 pt-5 pb-2 text-left">
-          <div className="flex gap-4">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] font-bold text-neutral-700 hover:text-black uppercase tracking-wider">
-              GITHUB
-            </a>
-            <span className="text-neutral-300">/</span>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] font-bold text-neutral-700 hover:text-black uppercase tracking-wider">
-              LINKEDIN
-            </a>
-            <span className="text-neutral-300">/</span>
-            <a href="mailto:efaz@example.com" className="font-mono text-[10px] font-bold text-neutral-700 hover:text-black uppercase tracking-wider">
-              EMAIL
+        {/* SOCIAL LINKS STRAP (MOBILE) */}
+        <div className="mt-10 border-t border-[#1A1A1A] pt-8 pb-4 text-left">
+          <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-neutral-500 block mb-4 font-semibold">
+            [ SECURE CONNECT // ARCHIVES ]
+          </span>
+          <div className="grid grid-cols-2 xs:grid-cols-3 gap-2">
+            {socials.map((soc) => {
+              const Icon = soc.icon;
+              return (
+                <a
+                  key={soc.name}
+                  href={soc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="border border-[#1A1A1A] p-4 bg-white shadow-[2px_2px_0px_#1A1A1A] flex flex-col justify-between aspect-square active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+                >
+                  <span className="font-mono text-[7px] text-[#1A1A1A]/40 uppercase tracking-widest">{soc.name} //</span>
+                  <div className="text-[#1A1A1A] my-auto">
+                    <Icon size={24} strokeWidth={1.5} />
+                  </div>
+                  <span className="font-mono text-[8px] text-[#1A1A1A]/60 tracking-tight overflow-hidden text-ellipsis whitespace-nowrap">{soc.handle}</span>
+                </a>
+              );
+            })}
+            
+            {/* Direct Contact Button fallback to match symmetric layout of 6 cells */}
+            <a
+              href="mailto:webigns@gmail.com"
+              className="border border-[#1A1A1A] p-4 bg-[#b54a4a] text-white shadow-[2px_2px_0px_#1A1A1A] flex flex-col justify-between aspect-square active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+            >
+              <span className="font-mono text-[7px] text-white/50 uppercase tracking-widest">DIRECT //</span>
+              <div className="text-white my-auto">
+                <Briefcase size={24} strokeWidth={1.5} />
+              </div>
+              <span className="font-mono text-[8px] text-white/80 tracking-tight">EMAIL EFAZ</span>
             </a>
           </div>
           
-          <span className="font-mono text-[8px] text-neutral-400 select-none">
-            © 2026 MIFTATHUL ISLAM EFAZ
-          </span>
+          <div className="mt-8 flex justify-between items-center">
+            <span className="font-mono text-[8px] text-neutral-400 select-none">
+              © 2026 MIFTAHUL ISLAM EFAZ
+            </span>
+          </div>
         </div>
 
       </div>
@@ -270,6 +333,41 @@ export default function Footer() {
         </div>
       </div>
 
+      {/* MEGA SOCIAL LINKS BOARD (DESKTOP) */}
+      <div className="hidden md:flex relative z-20 w-full px-[clamp(1.5rem,5vw,4rem)] pb-12 flex-col items-center justify-center -mt-6">
+        <div className="w-full max-w-6xl bg-white/[0.03] backdrop-blur-[4px] border border-black/5 hover:border-black/10 rounded-3xl p-8 lg:p-10 flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-500 shadow-sm">
+          <div className="flex flex-col text-left max-w-xs select-none">
+            <span className="font-mono text-[9px] tracking-[0.25em] text-[#1A1A1A]/40 uppercase font-black mb-1">[ CHANNELS // OVERVIEW ]</span>
+            <h4 className="font-display font-bold text-xl text-[#1A1A1A] leading-tight mb-2">Connect Across Platforms</h4>
+            <p className="font-sans text-xs text-neutral-500 font-light leading-relaxed">
+              Find my thoughts, repositories, updates, and case studies across major digital social streams.
+            </p>
+          </div>
+          
+          <div className="flex gap-6 lg:gap-8 items-center justify-center flex-wrap">
+            {socials.map((soc) => {
+              const Icon = soc.icon;
+              return (
+                <motion.a
+                  key={soc.name}
+                  href={soc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  whileHover={{ y: -6, scale: 1.05 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="group relative flex flex-col items-center justify-center text-center p-4 bg-white/40 hover:bg-white/80 rounded-2xl border border-black/[0.04] transition-colors duration-300 min-w-[100px] w-24 aspect-square shadow-[0_2px_10px_rgba(0,0,0,0.01)]"
+                >
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center border border-[#1A1A1A]/5 shadow-inner transition-all duration-300 ${soc.colorClass}`}>
+                    <Icon size={26} strokeWidth={1.5} className="transition-transform duration-500 group-hover:scale-110" />
+                  </div>
+                  <span className="font-display text-[10px] font-bold text-neutral-800 tracking-wide mt-2">{soc.name}</span>
+                </motion.a>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* DESKTOP-ONLY FOOTER BOTTOM --> */}
       <div className="hidden md:flex relative z-20 w-full px-[clamp(1.5rem,5vw,4rem)] py-12 flex-col md:flex-row justify-between items-center gap-8 border-t border-[#1A1A1A]/10">
         <div className="flex flex-col items-center md:items-start gap-2 text-left">
@@ -290,18 +388,13 @@ export default function Footer() {
           ))}
         </div>
         
-        <div className="flex flex-col items-center md:items-end gap-4 text-right">
-          <div className="flex gap-6">
-            <a href="#" className="text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors"><Github size={20} /></a>
-            <a href="#" className="text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors"><Linkedin size={20} /></a>
-            <a href="#" className="text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors"><Briefcase size={20} /></a>
-          </div>
+        <div className="flex flex-col items-center md:items-end gap-2 text-right">
           <div className="font-mono text-[10px] text-[#1A1A1A]/50 uppercase tracking-widest">
             <a 
               href="https://www.miftahulislamefaz.xyz/" 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="hover:text-[#b54a4a] transition-all duration-300 cursor-pointer"
+              className="hover:text-[#b54a4a] transition-all duration-300 cursor-pointer font-bold"
             >
               © 2025 Miftahul Islam Efaz
             </a>

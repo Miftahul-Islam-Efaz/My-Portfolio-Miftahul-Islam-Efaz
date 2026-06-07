@@ -113,6 +113,12 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     const timeoutId = setTimeout(updateCache, 200);
     window.addEventListener('resize', updateCache);
 
+    const resizeObserver = new ResizeObserver(() => {
+      updateCache();
+    });
+    if (topLayerRef.current) resizeObserver.observe(topLayerRef.current);
+    if (bottomLayerRef.current) resizeObserver.observe(bottomLayerRef.current);
+
     let rafId: number | null = null;
 
     const handleScroll = () => {
@@ -133,7 +139,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
         // Calculate normalized overall progress (0.0 to 1.0)
         let p = -rectTop / scrollHeight;
         p = Math.max(0, Math.min(1, p));
-        
+
         // Phase boundaries: 
         // 0.0 -> 0.4: Scroll through Contact
         // 0.3 -> 0.7: The Transition (Tear/Burn)
@@ -202,6 +208,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
       clearTimeout(timeoutId);
       if (rafId !== null) cancelAnimationFrame(rafId);
       observer.disconnect();
+      resizeObserver.disconnect();
     };
   }, []);
 

@@ -179,8 +179,8 @@ export default function Contact() {
       <div className="relative z-10 w-full pb-24">
         {/* SVG Text Animation */}
         <div className="mb-16 w-full max-w-4xl">
-          <svg viewBox="0 0 800 200" className="w-full h-auto">
-            <text x="0" y="100" className="font-display font-black text-7xl md:text-9xl">
+          <svg viewBox="0 0 800 250" className="w-full h-auto overflow-visible" style={{ overflow: 'visible' }}>
+            <text x="0" y="105" className="font-display font-black text-7xl md:text-[8rem]">
               {"Let's".split('').map((char, i) => (
                 <tspan
                   key={`lets-${i}`}
@@ -198,7 +198,7 @@ export default function Contact() {
                 </tspan>
               ))}
             </text>
-            <text x="0" y="180" className="font-display font-black text-7xl md:text-9xl">
+            <text x="0" y="215" className="font-display font-black text-7xl md:text-[8rem]">
               {"Connect.".split('').map((char, i) => (
                 <tspan
                   key={`connect-${i}`}

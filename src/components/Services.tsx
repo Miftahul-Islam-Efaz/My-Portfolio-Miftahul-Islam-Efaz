@@ -9,7 +9,6 @@ export default function Services() {
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const [constraints, setConstraints] = useState({ left: 0, right: 0 });
-  const [hasDragged, setHasDragged] = useState(false);
 
   const x = useMotionValue(0);
   const xVelocity = useVelocity(x);
@@ -19,6 +18,56 @@ export default function Services() {
   
   // Map velocity to rotation (tilt). Higher boundaries to allow for faster intro speed air-dragging.
   const skew = useTransform(xVelocitySpring, [-4000, 4000], [-30, 30]);
+
+  // Track continuous slow drift auto-scroll state
+  const isInteractingRef = useRef(false);
+  const directionRef = useRef(-1); // -1 for leftwards drift, 1 for rightwards drift
+
+  // Perfect release fallback via global window listeners to avoid interaction lockups
+  useEffect(() => {
+    const handleRelease = () => {
+      isInteractingRef.current = false;
+    };
+    window.addEventListener('mouseup', handleRelease);
+    window.addEventListener('touchend', handleRelease);
+    return () => {
+      window.removeEventListener('mouseup', handleRelease);
+      window.removeEventListener('touchend', handleRelease);
+    };
+  }, []);
+
+  // Auto-scrolling drift effect
+  useEffect(() => {
+    let animFrameId: number;
+    
+    const tick = () => {
+      if (!isInteractingRef.current && containerRef.current) {
+        const currentX = x.get();
+        const minX = constraints.left;
+        const maxX = 0;
+        
+        // Only drift if the container can scroll and the intro animation is finished or card is inside normal bounds
+        if (minX < 0 && currentX <= maxX) {
+          const speed = 0.25; // Continuous subtle drift speed (pixels per frame)
+          let nextX = currentX + directionRef.current * speed;
+          
+          if (nextX <= minX) {
+            nextX = minX;
+            directionRef.current = 1; // Slide back to the right
+          } else if (nextX >= maxX) {
+            nextX = maxX;
+            directionRef.current = -1; // Resume sliding to the left
+          }
+          
+          x.set(nextX);
+        }
+      }
+      animFrameId = requestAnimationFrame(tick);
+    };
+    
+    animFrameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animFrameId);
+  }, [x, constraints]);
 
   // Elegant progress-bar transformation based on cards-container scroll value
   const progressBarX = useTransform(
@@ -43,12 +92,13 @@ export default function Services() {
     
     // Card Intro Animation with real physics (Framer hook integration) mapping to ScrollTrigger
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let introTween: gsap.core.Tween | null = null;
     if (!prefersReducedMotion && containerRef.current) {
       // Start container far right for right-to-left intro. No opacity fade, cards are fully firm and present.
       const proxy = { x: window.innerWidth * 1.5 };
       x.set(proxy.x);
       
-      gsap.to(proxy, {
+      introTween = gsap.to(proxy, {
         x: 0,
         duration: 1.3, // Increased speed for realistic inertia and sudden stop simulation
         ease: 'power3.out', // Snaps fast out but gracefully decelerates, causing physics spring to catch intense inertia
@@ -66,6 +116,12 @@ export default function Services() {
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('resize', updateConstraints);
+      if (introTween) {
+        introTween.kill();
+        if (introTween.scrollTrigger) {
+          introTween.scrollTrigger.kill();
+        }
+      }
     };
   }, [x]);
 
@@ -216,13 +272,6 @@ export default function Services() {
             height: 100%;
             position: relative;
             z-index: 10;
-            /* Punch hole at 50% X and 80px Y for the rod */
-            -webkit-mask-image: radial-gradient(circle at 50% 80px, transparent 15px, black 16px);
-            mask-image: radial-gradient(circle at 50% 80px, transparent 15px, black 16px);
-            will-change: transform;
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-            transform-style: preserve-3d;
         }
         
         .hanging-services-section .service-card {
@@ -236,16 +285,12 @@ export default function Services() {
             display: flex;
             flex-direction: column;
             position: relative;
-            will-change: transform;
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-            transform-style: preserve-3d;
         }
         
         /* The Flat Attachment Pad (Squircle) */
         .hanging-services-section .attachment-pad {
             position: absolute;
-            top: 80px;
+            top: 68px;
             left: 50%;
             transform: translate(-50%, -50%);
             width: 80px;
@@ -417,28 +462,6 @@ export default function Services() {
         <div>
           <h2 className="section-title">Core Expertise</h2>
         </div>
-        <motion.div 
-          animate={{
-            opacity: hasDragged ? 0.25 : [0.7, 1, 0.7],
-            scale: hasDragged ? 0.96 : [1, 1.02, 1],
-          }}
-          transition={{
-            opacity: { duration: 0.3 },
-            scale: { repeat: Infinity, duration: 2, ease: "easeInOut" }
-          }}
-          className="flex items-center gap-2.5 bg-[#0e0e11]/60 border border-white/10 px-3.5 py-1.5 rounded-full select-none backdrop-blur-md transition-all duration-300 hover:border-white/20 mt-4 md:mt-0"
-        >
-          <div className="relative w-1.5 h-1.5 flex items-center justify-center">
-            <span className="absolute w-2 h-2 rounded-full bg-[#b54a4a] opacity-75 animate-ping" />
-            <span className="relative w-1 h-1 rounded-full bg-[#b54a4a]" />
-          </div>
-          <span className="font-mono text-[8px] tracking-[0.25em] text-[#EFEFED]/90 uppercase font-bold flex items-center gap-1.5">
-            DRAG TO EXPLORE 
-            <span className="inline-flex text-[#b54a4a] text-[10px] items-center">
-              ↔
-            </span>
-          </span>
-        </motion.div>
       </div>
       
       <div className="gallery-viewport">
@@ -452,18 +475,21 @@ export default function Services() {
           dragElastic={0.1}
           dragTransition={{ bounceStiffness: 200, bounceDamping: 20 }}
           style={{ x }}
-          onDragStart={() => setHasDragged(true)}
-          onTouchStart={() => setHasDragged(true)}
-          onMouseDown={() => setHasDragged(true)}
+          onDragStart={() => { isInteractingRef.current = true; }}
+          onDragEnd={() => { isInteractingRef.current = false; }}
+          onTouchStart={() => { isInteractingRef.current = true; }}
+          onMouseDown={() => { isInteractingRef.current = true; }}
         >
           
           {/* CARD 1: FIGMA */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="figma" style={{ rotate: skew }}>
+            <motion.div className="card-wrapper" data-service="figma" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card">
+                <div className="service-card relative">
                   <div className="attachment-pad">
-                    <span>CRAFT</span>
+                    {/* Visual Eyelet Hole perfectly centered in the pad */}
+                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                    <span className="relative z-10">CRAFT</span>
                   </div>
                 </div>
               </div>
@@ -473,11 +499,13 @@ export default function Services() {
         
           {/* CARD 2: DEV */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="dev" style={{ rotate: skew }}>
+            <motion.div className="card-wrapper" data-service="dev" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card">
+                <div className="service-card relative">
                   <div className="attachment-pad">
-                    <span>RENDER</span>
+                    {/* Visual Eyelet Hole perfectly centered in the pad */}
+                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                    <span className="relative z-10">RENDER</span>
                   </div>
                 </div>
               </div>
@@ -487,11 +515,13 @@ export default function Services() {
         
           {/* CARD 3: AUTO */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="auto" style={{ rotate: skew }}>
+            <motion.div className="card-wrapper" data-service="auto" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card">
+                <div className="service-card relative font-sans">
                   <div className="attachment-pad">
-                    <span>SYNC</span>
+                    {/* Visual Eyelet Hole perfectly centered in the pad */}
+                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                    <span className="relative z-10">SYNC</span>
                   </div>
                 </div>
               </div>
@@ -501,11 +531,13 @@ export default function Services() {
         
           {/* CARD 4: BACKEND */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="backend" style={{ rotate: skew }}>
+            <motion.div className="card-wrapper" data-service="backend" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card">
+                <div className="service-card relative font-sans">
                   <div className="attachment-pad">
-                    <span>CORE</span>
+                    {/* Visual Eyelet Hole perfectly centered in the pad */}
+                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                    <span className="relative z-10">CORE</span>
                   </div>
                 </div>
               </div>
@@ -515,11 +547,13 @@ export default function Services() {
         
           {/* CARD 5: GEN */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="gen" style={{ rotate: skew }}>
+            <motion.div className="card-wrapper" data-service="gen" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card">
+                <div className="service-card relative font-sans">
                   <div className="attachment-pad">
-                    <span>GEN</span>
+                    {/* Visual Eyelet Hole perfectly centered in the pad */}
+                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                    <span className="relative z-10">GEN</span>
                   </div>
                 </div>
               </div>
@@ -539,25 +573,6 @@ export default function Services() {
           />
         </div>
       </div>
-
-      {/* Premium Minimal Side Hint */}
-      <motion.div 
-        animate={{ 
-          opacity: hasDragged ? 0 : [0, 0.45, 0],
-          x: hasDragged ? 15 : [10, -5, 10]
-        }}
-        transition={{ 
-          repeat: hasDragged ? 0 : Infinity, 
-          duration: 2.5, 
-          ease: "easeInOut" 
-        }}
-        className="absolute right-8 top-1/2 -translate-y-1/2 z-25 pointer-events-none hidden md:flex flex-col items-center gap-1.5"
-      >
-        <span className="font-mono text-[8px] tracking-[0.3em] font-extrabold text-white/40 uppercase [writing-mode:vertical-lr] select-none">
-          SWIPE TRACK
-        </span>
-        <span className="text-[#b54a4a] text-xs font-bold mt-1">→</span>
-      </motion.div>
     </section>
   );
 }
