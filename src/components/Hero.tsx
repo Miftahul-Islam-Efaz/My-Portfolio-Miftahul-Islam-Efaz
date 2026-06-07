@@ -208,6 +208,47 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
     };
   }, [isStarted]);
 
+  const handleViewWorkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const target = document.querySelector('#outcomes');
+    if (!target) return;
+    const scrollTarget = target.getBoundingClientRect().top + window.scrollY + window.innerHeight * 1.1;
+    (window as any).isJumping = true;
+    if ((window as any).lenis) {
+      (window as any).lenis.scrollTo(scrollTarget, { immediate: true });
+    } else {
+      window.scrollTo({
+        top: scrollTarget,
+        behavior: 'auto'
+      });
+    }
+    setTimeout(() => {
+      (window as any).isJumping = false;
+    }, 300);
+  };
+
+  const handleGetInTouchClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const target = document.querySelector('#contact');
+    if (!target) return;
+    const parentTransition = target.closest('[style*="500vh"]');
+    const scrollTarget = parentTransition
+      ? parentTransition.getBoundingClientRect().top + window.scrollY
+      : target.getBoundingClientRect().top + window.scrollY;
+    (window as any).isJumping = true;
+    if ((window as any).lenis) {
+      (window as any).lenis.scrollTo(scrollTarget, { immediate: true });
+    } else {
+      window.scrollTo({
+        top: scrollTarget,
+        behavior: 'auto'
+      });
+    }
+    setTimeout(() => {
+      (window as any).isJumping = false;
+    }, 300);
+  };
+
   return (
     <section 
       id="hero-section"
@@ -244,10 +285,10 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
         </div>
         
         <div className="hero-element flex flex-row sm:flex-row gap-4 mb-10 md:mb-12 w-full sm:w-auto items-center relative z-10">
-          <a href="#work" className="px-5 py-3.5 md:px-[34px] md:py-[15px] text-center bg-white text-black font-body font-bold text-sm md:text-base rounded transition-[transform,background-color,color,box-shadow] duration-300 hover:bg-neutral-100 hover:scale-[1.05] active:scale-[0.98] shadow-[0_4px_25px_rgba(255,255,255,0.25)] flex-1 sm:flex-none whitespace-nowrap">
+          <a href="#outcomes" onClick={handleViewWorkClick} className="px-5 py-3.5 md:px-[34px] md:py-[15px] text-center bg-white text-black font-body font-bold text-sm md:text-base rounded transition-[transform,background-color,color,box-shadow] duration-300 hover:bg-neutral-100 hover:scale-[1.05] active:scale-[0.98] shadow-[0_4px_25px_rgba(255,255,255,0.25)] flex-1 sm:flex-none whitespace-nowrap">
             View My Work
           </a>
-          <a href="#contact" className="px-4 py-3 md:px-7 md:py-3.5 text-center border border-white/25 text-white/80 font-body text-xs md:text-sm rounded transition-[transform,border-color,color] duration-300 hover:border-white/70 hover:text-white flex-1 sm:flex-none whitespace-nowrap">
+          <a href="#contact" onClick={handleGetInTouchClick} className="px-4 py-3 md:px-7 md:py-3.5 text-center border border-white/25 text-white/80 font-body text-xs md:text-sm rounded transition-[transform,border-color,color] duration-300 hover:border-white/70 hover:text-white flex-1 sm:flex-none whitespace-nowrap">
             Get In Touch →
           </a>
         </div>

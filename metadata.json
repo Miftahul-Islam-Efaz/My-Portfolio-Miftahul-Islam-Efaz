@@ -1,5 +1,6 @@
 {
-  "name": "Miftahul Islam Efaz Portfolio imported from 98200",
-  "description": "Awwwards-level creative portfolio for an Automation Specialist and Web Developer, featuring GSAP animations, WebGL, and Matter.js physics.",
-  "requestFramePermissions": ["microphone"]
+  "name": "Miftahul Islam Efaz",
+  "description": "Miftahul Islam Efaz — Entrepreneur, Vibe-Coder & AI Orchestrator building digital products and automation systems for international clients.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

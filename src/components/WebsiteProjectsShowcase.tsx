@@ -106,17 +106,19 @@ export default function WebsiteProjectsShowcase() {
   // Trigger cinematic mechanical sounds and transition glitches on slide changes
   useEffect(() => {
     if (prevIndexRef.current !== activeIndex) {
-      // Trigger temporary glitch flash
-      setGlitchTrigger(prev => prev + 1);
+      if (!(window as any).isJumping) {
+        // Trigger temporary glitch flash
+        setGlitchTrigger(prev => prev + 1);
 
-      // Play slide-shift sound
-      if (!isMuted) {
-        if (audioRef.current) {
-          audioRef.current.currentTime = 0;
-          audioRef.current.volume = 0.6;
-          audioRef.current.play().catch(err => {
-            console.log('Audio element playback error:', err);
-          });
+        // Play slide-shift sound
+        if (!isMuted) {
+          if (audioRef.current) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.volume = 0.6;
+            audioRef.current.play().catch(err => {
+              console.log('Audio element playback error:', err);
+            });
+          }
         }
       }
       prevIndexRef.current = activeIndex;

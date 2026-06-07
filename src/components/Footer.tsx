@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Github, Linkedin, Briefcase } from 'lucide-react';
-import LiquidImage from './LiquidImage';
+import { motion, AnimatePresence } from 'motion/react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -11,6 +11,92 @@ export default function Footer() {
   const photoRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLHeadingElement>(null);
   const bgImgRef = useRef<HTMLImageElement>(null);
+
+  // HTML DOM element references for direct, hardware-accelerated updating with zero re-render overhead
+  const lensRef = useRef<HTMLDivElement>(null);
+  const lensImgRef = useRef<HTMLImageElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (window.innerWidth <= 768) return; // Absolutely static on mobile and touchscreens
+    
+    const lens = lensRef.current;
+    const lensImg = lensImgRef.current;
+    const photo = photoRef.current;
+    if (!lens || !lensImg || !photo) return;
+
+    const rect = photo.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Center the 180px wide lens directly over the mouse coordinate (offset by 90px radius)
+    lens.style.opacity = '1';
+    lens.style.transform = `translate3d(${x - 90}px, ${y - 90}px, 0) scale(1)`;
+
+    // Apply high-fidelity magnification scale (1.75x) to the inner view
+    const magnify = 1.75;
+    const innerW = rect.width * magnify;
+    const innerH = rect.height * magnify;
+    
+    // Shift the reverse coordinates so the center matches the focal point
+    const innerX = -(x * magnify - 90);
+    const innerY = -(y * magnify - 90);
+
+    lensImg.style.width = `${innerW}px`;
+    lensImg.style.height = `${innerH}px`;
+    lensImg.style.transform = `translate3d(${innerX}px, ${innerY}px, 0)`;
+  };
+
+  const handleMouseEnter = () => {
+    if (window.innerWidth <= 768) return;
+    const lens = lensRef.current;
+    if (lens) {
+      lens.style.opacity = '1';
+      lens.style.transform = 'scale(1)';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    const lens = lensRef.current;
+    if (lens) {
+      lens.style.opacity = '0';
+      lens.style.transform = 'scale(0.75)';
+    }
+  };
+
+  const handleFooterLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    const target = document.getElementById(id);
+    if (!target) return;
+    
+    // Unlock body overflow scroll and launch Lenis instantly so it can handle immediate jumps
+    document.body.style.overflow = '';
+    if ((window as any).lenis) {
+      (window as any).lenis.start();
+    }
+
+    let scrollTarget = target.getBoundingClientRect().top + window.scrollY;
+    if (id === 'outcomes') {
+      scrollTarget = target.getBoundingClientRect().top + window.scrollY + window.innerHeight * 1.1;
+    } else if (id === 'contact') {
+      const parentTransition = target.closest('[style*="500vh"]');
+      if (parentTransition) {
+        scrollTarget = parentTransition.getBoundingClientRect().top + window.scrollY;
+      }
+    }
+    
+    (window as any).isJumping = true;
+    if ((window as any).lenis) {
+      (window as any).lenis.scrollTo(scrollTarget, { immediate: true, force: true });
+    } else {
+      window.scrollTo({
+        top: scrollTarget,
+        behavior: 'auto'
+      });
+    }
+    setTimeout(() => {
+      (window as any).isJumping = false;
+    }, 300);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -66,7 +152,7 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer ref={sectionRef} className="relative w-full flex flex-col z-20 bg-transparent">
+    <footer id="footer" ref={sectionRef} className="relative w-full flex flex-col z-20 bg-transparent">
 
       {/* ========================================================== */}
       {/* MOBILE-ONLY BRUTALIST EDITORIAL DESIGN (md:hidden)         */}
@@ -155,6 +241,7 @@ export default function Footer() {
               <a 
                 key={item.id}
                 href={`#${item.id}`}
+                onClick={(e) => handleFooterLinkClick(e, item.id)}
                 className="border-r border-b border-[#1A1A1A] p-4 flex flex-col justify-between aspect-[1.4/1] bg-[#1A1A1A]/[0.02] hover:bg-[#1A1A1A]/[0.06] active:bg-[#1A1A1A]/[0.1] transition-all text-left"
               >
                 <span className="font-mono text-[9px] text-[#1A1A1A]/40">{item.num} //</span>
@@ -215,17 +302,68 @@ export default function Footer() {
           </h1>
         </div>
 
-        {/* Image Container */}
+        {/* Image Container with Dynamic Glass Magnifying Lens Tracking */}
         <div 
           ref={photoRef}
-          className="relative w-[80%] sm:w-[60%] md:w-[40%] lg:w-[30%] aspect-[4/5] bg-[#E8E7E2] rounded-[2rem] md:rounded-[3rem] overflow-hidden z-20 shadow-2xl mt-[45vh]"
+          onMouseMove={handleMouseMove}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className="group relative w-[80%] sm:w-[60%] md:w-[40%] lg:w-[30%] aspect-[4/5] bg-[#E8E7E2] rounded-[2rem] md:rounded-[3rem] overflow-hidden z-20 shadow-2xl mt-[45vh] transition-transform duration-700 ease-out hover:scale-[1.03] select-none cursor-pointer"
         >
-          <div className="w-full h-full grayscale">
-            <LiquidImage 
+          {/* Main grayscale background image (kept static and perfectly sharp) */}
+          <div className="w-full h-full grayscale overflow-hidden relative">
+            <img 
               src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1775244322/upscaled-2x-1775244293295_el2gi1.png" 
-              alt="Miftahul Efaz" 
-              className="object-cover object-top"
+              alt="Miftahul Islam Efaz" 
+              className="w-full h-full object-cover object-top filter contrast-[1.02]"
+              referrerPolicy="no-referrer"
             />
+            
+            {/* Elegant high-precision glass frame border */}
+            <div className="absolute inset-0 border border-white/10 group-hover:border-white/30 rounded-[2rem] md:rounded-[3rem] transition-colors duration-700 pointer-events-none z-40" />
+          </div>
+
+          {/* Interactive Magnifying Glass Lens Orb (Desktop-Only, fully performance optimized) */}
+          <div
+            ref={lensRef}
+            className="pointer-events-none absolute rounded-full overflow-hidden border border-white/45 shadow-[inset_0_4px_32px_rgba(255,255,255,0.9),_0_24px_55px_rgba(0,0,0,0.6)] z-30 opacity-0 scale-75 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{
+              width: '180px',
+              height: '180px',
+              left: '0px',
+              top: '0px',
+            }}
+          >
+            {/* Circular Clip for Zoomed View */}
+            <div className="absolute inset-0 overflow-hidden rounded-full pointer-events-none">
+              <img
+                ref={lensImgRef}
+                src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1775244322/upscaled-2x-1775244293295_el2gi1.png"
+                alt="Magnified Reflection Inside Glass Orb"
+                className="absolute pointer-events-none object-cover object-top max-w-none filter brightness-110 contrast-[1.12] saturate-[1.12]"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            {/* Deep-purple/blue refraction shadow crescent on the bottom-left */}
+            <div className="absolute -inset-[2px] rounded-full bg-gradient-to-tr from-indigo-700/35 via-transparent to-transparent mix-blend-overlay z-15 pointer-events-none filter blur-[3px]" />
+
+            {/* Beautiful Cyan chromatic aberration ring on top-right shift */}
+            <div className="absolute inset-[1px] rounded-full border-2 border-cyan-400/40 translate-x-[2.5px] translate-y-[-2.5px] z-15 pointer-events-none filter blur-[0.2px]" />
+
+            {/* Beautiful Rose chromatic aberration ring on bottom-left shift */}
+            <div className="absolute inset-[1px] rounded-full border-2 border-rose-500/45 -translate-x-[2.5px] -translate-y-[-2.5px] z-15 pointer-events-none filter blur-[0.2px]" />
+
+            {/* Simulated lens depth curvature reflection & radial highlight */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.3)_0%,transparent_70%)] mix-blend-overlay pointer-events-none z-10" />
+            
+            {/* Dynamic glass spherical distortion shadow mask (Vignette) */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(0,0,0,0.3)_100%)] pointer-events-none z-20" />
+            
+            {/* 3D Glass high-precision glossy white flash reflection curve top right */}
+            <div className="absolute top-2 right-4.5 w-[55px] h-[28px] bg-white/40 rounded-full rotate-[20deg] filter blur-[0.5px] pointer-events-none z-30" />
+            {/* Secondary lower reflection bottom left */}
+            <div className="absolute bottom-3 left-6 w-[28px] h-[12px] bg-white/15 rounded-full rotate-[-15deg] filter blur-[1px] pointer-events-none z-30" />
           </div>
         </div>
       </div>
@@ -242,6 +380,7 @@ export default function Footer() {
             <a 
               key={item} 
               href={`#${item.toLowerCase()}`}
+              onClick={(e) => handleFooterLinkClick(e, item.toLowerCase())}
               className="font-mono text-xs text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors uppercase tracking-wider font-semibold"
             >
               {item}
@@ -256,7 +395,14 @@ export default function Footer() {
             <a href="#" className="text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors"><Briefcase size={20} /></a>
           </div>
           <div className="font-mono text-[10px] text-[#1A1A1A]/50 uppercase tracking-widest">
-            © 2025 Miftahul Islam Efaz
+            <a 
+              href="https://www.miftahulislamefaz.xyz/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="hover:text-[#b54a4a] transition-all duration-300 cursor-pointer"
+            >
+              © 2025 Miftahul Islam Efaz
+            </a>
           </div>
         </div>
       </div>
