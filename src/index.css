@@ -158,7 +158,7 @@ html.lenis, html.lenis body {
 
 @keyframes stacked-logos-appear {
   0%, 100% { opacity: 0; filter: blur(4px); }
-  5%, 20% { opacity: 1; filter: blur(0); }
+  5%, 20% { opacity: 1; filter: blur(0.01px); }
   25%, 100% { opacity: 0; filter: blur(4px); }
 }
 

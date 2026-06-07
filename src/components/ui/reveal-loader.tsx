@@ -74,7 +74,7 @@ const RevealLoader = ({
     // 3. Stagger-assemble the letters into place beautifully and with buttery 60fps fluidity
     tl.to(charsDom, {
       opacity: 1,
-      filter: "blur(0px)",
+      filter: "blur(0.01px)",
       scale: 1,
       x: 0,
       y: 0,

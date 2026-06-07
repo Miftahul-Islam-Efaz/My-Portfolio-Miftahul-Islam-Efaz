@@ -3,12 +3,13 @@ import TestimonialCards from './ui/testimonial';
 
 export default function Testimonials() {
   return (
-    <section id="testimonials" className="relative w-full bg-[var(--color-eerie)] border-t border-[rgba(255,255,255,0.05)] py-32 overflow-hidden">
+    <section id="testimonials" className="relative w-full bg-[var(--color-eerie)] border-t border-[rgba(255,255,255,0.05)] py-32 overflow-hidden transform-gpu">
       {/* Background Image */}
       <img 
+        loading="lazy"
         src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780328872/testimonials_bg_an2upi.png"
         alt="Testimonials Background"
-        className="absolute inset-0 w-full h-full object-cover z-0 select-none pointer-events-none"
+        className="absolute inset-0 w-full h-full object-cover z-0 select-none pointer-events-none transform-gpu will-change-transform"
         referrerPolicy="no-referrer"
       />
 

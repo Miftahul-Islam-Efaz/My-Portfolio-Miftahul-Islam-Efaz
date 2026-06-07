@@ -50,21 +50,20 @@ export default function Contact() {
     video.muted = settings.muted;
 
     let isPlaying = false;
+    let isInViewport = false;
+    let intervalId: any = null;
 
-    const checkVisibility = () => {
+    const updatePlayback = () => {
       const section = sectionRef.current;
       if (!section) return;
 
-      const rect = section.getBoundingClientRect();
-      
-      // Determine if the contact section is currently intersecting the viewport
-      const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
-
-      // Traverse up to find the scroll/opacity wrapper if available
+      let opacity = 1;
       const parentElement = section.parentElement;
-      const opacity = parentElement ? parseFloat(window.getComputedStyle(parentElement).opacity) : 1;
+      if (parentElement) {
+        opacity = parseFloat(window.getComputedStyle(parentElement).opacity);
+        if (isNaN(opacity)) opacity = 1;
+      }
 
-      // Only play active video if it is in view and parent layers aren't faded out
       const shouldPlay = isInViewport && opacity > 0.05;
 
       if (shouldPlay) {
@@ -93,17 +92,35 @@ export default function Contact() {
       }
     };
 
-    window.addEventListener('scroll', checkVisibility, { passive: true });
-    window.addEventListener('resize', checkVisibility, { passive: true });
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        isInViewport = entry.isIntersecting;
+        updatePlayback();
 
-    // Check regularly in case of layout state shifts from TornTransition or ScrollTrigger
-    const intervalId = setInterval(checkVisibility, 400);
-    checkVisibility();
+        // If visible in viewport, periodically monitor opacity of parent container
+        if (entry.isIntersecting) {
+          if (!intervalId) {
+            intervalId = setInterval(updatePlayback, 500);
+          }
+        } else {
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+        }
+      }
+    }, { threshold: 0.01 });
+
+    const section = sectionRef.current;
+    if (section) {
+      observer.observe(section);
+    }
 
     return () => {
-      window.removeEventListener('scroll', checkVisibility);
-      window.removeEventListener('resize', checkVisibility);
-      clearInterval(intervalId);
+      observer.disconnect();
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, [settings]);
 

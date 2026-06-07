@@ -14,7 +14,7 @@ export default function SoundGate({ onAccept, onDecline }: SoundGateProps) {
     // Elegant fade-in of the gate interface
     gsap.fromTo('.gate-container',
       { opacity: 0, scale: 0.96, filter: 'blur(10px)' },
-      { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 1.4, ease: 'power3.out' }
+      { opacity: 1, scale: 1, filter: 'blur(0.01px)', duration: 1.4, ease: 'power3.out' }
     );
   }, []);
 

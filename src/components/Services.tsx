@@ -15,7 +15,7 @@ export default function Services() {
   const xVelocity = useVelocity(x);
   
   // Optimized spring parameters for high-performance fluid rendering, reducing calculation drag/ticks on frame loop
-  const xVelocitySpring = useSpring(xVelocity, { damping: 25, stiffness: 140, mass: 0.5 });
+  const xVelocitySpring = useSpring(xVelocity, { damping: 25, stiffness: 140, mass: 0.5, restDelta: 0.1, restSpeed: 0.1 });
   
   // Map velocity to rotation (tilt). Higher boundaries to allow for faster intro speed air-dragging.
   const skew = useTransform(xVelocitySpring, [-4000, 4000], [-30, 30]);
@@ -73,9 +73,10 @@ export default function Services() {
     <section id="services" ref={sectionRef} className="hanging-services-section">
       {/* Background Image */}
       <img 
+        loading="lazy"
         src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780328743/services_bg_dftwtt.png"
         alt="Services Background"
-        className="absolute inset-0 w-full h-full object-cover z-0 select-none pointer-events-none"
+        className="absolute inset-0 w-full h-full object-cover z-0 select-none pointer-events-none transform-gpu will-change-transform"
         referrerPolicy="no-referrer"
       />
       <style>{`
@@ -189,8 +190,7 @@ export default function Services() {
             width: max-content;
             z-index: 10;
             will-change: transform;
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
+            transform: translate3d(0, 0, 0);
         }
         
         .hanging-services-section .card-wrapper {
@@ -200,10 +200,11 @@ export default function Services() {
             width: 100%;
             height: 100%;
             transform-origin: 50% 80px;
-            will-change: transform;
             z-index: 10;
+            will-change: transform;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
+            transform-style: preserve-3d;
         }
         
         .hanging-services-section .card-container {
@@ -221,6 +222,7 @@ export default function Services() {
             will-change: transform;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
+            transform-style: preserve-3d;
         }
         
         .hanging-services-section .service-card {
@@ -237,6 +239,7 @@ export default function Services() {
             will-change: transform;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
+            transform-style: preserve-3d;
         }
         
         /* The Flat Attachment Pad (Squircle) */

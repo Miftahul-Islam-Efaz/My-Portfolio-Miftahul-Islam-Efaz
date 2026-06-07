@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useRef, useLayoutEffect, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
 // --- 1. THE SHADER MATERIAL ---
@@ -69,8 +69,19 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
   const progressRef = useRef(0);
   const inViewRef = useRef(true);
 
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useLayoutEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // --- 2. SCROLL SYNC LOGIC ---
   useLayoutEffect(() => {
+    if (isMobile) return;
     let inView = true;
 
     const observer = new IntersectionObserver((entries) => {
@@ -196,6 +207,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
 
   // --- 3. PURE THREE.JS INITIALIZATION ---
   useEffect(() => {
+    if (isMobile) return;
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -278,9 +290,25 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     };
   }, []);
 
+  if (isMobile) {
+    return (
+      <div className="relative w-full bg-[#0F0B0A]" id="torn-transition-wrapper">
+        {/* TOP LAYER (Dark Contact Section) */}
+        <div className="relative w-full text-white bg-[#0F0B0A]">
+          {topContent}
+        </div>
+
+        {/* BOTTOM LAYER (Light About/Portrait Section) */}
+        <div className="relative w-full text-black bg-[#F2F0F1]">
+          {bottomContent}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} className="relative w-full" style={{ height: '500vh' }}>
-      <div className="sticky top-0 left-0 w-full h-screen overflow-hidden">
+      <div className="sticky top-0 left-0 w-full h-[100dvh] md:h-screen overflow-hidden">
         
         {/* FIXED BACKGROUND LAYER (Raw Three.js Canvas) */}
         <canvas 
@@ -291,7 +319,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
         {/* TOP LAYER (Dark Contact Section) */}
         <div 
           ref={topLayerRef} 
-          className="absolute inset-0 z-20 w-full h-full text-white overflow-y-auto no-scrollbar"
+          className="absolute inset-0 z-20 w-full h-full text-white overflow-hidden md:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {topContent}
         </div>
@@ -299,7 +327,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
         {/* BOTTOM LAYER (Light About/Portrait Section) */}
         <div 
           ref={bottomLayerRef} 
-          className="absolute inset-0 z-20 w-full h-full opacity-0 text-black overflow-y-auto no-scrollbar"
+          className="absolute inset-0 z-20 w-full h-full opacity-0 text-black overflow-hidden md:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {bottomContent}
         </div>
