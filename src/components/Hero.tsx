@@ -11,11 +11,10 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
   const containerRef = useRef<HTMLDivElement>(null);
 
   const taglines = [
-    "Currently the best website designer in Bangladesh",
-    "Expert n8n automation & backend integration",
-    "Figma UI/UX design & system architecture",
-    "Transforming businesses with custom workflows",
-    "Bangladesh's go-to automation specialist & creative developer"
+    "Entrepreneur. Vibe-Coder. AI Orchestrator.",
+    "Building digital products that outlast trends.",
+    "Not a developer — a builder with a mission.",
+    "Turning ideas into systems. Systems into legacy."
   ];
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -158,7 +157,7 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
         );
       }
 
-      // Tagline rotation (delayed out to allow entry animation to completely settle)
+      // Tagline rotation (updates styles dynamically for each tagline segment)
       setTimeout(() => {
         interval = setInterval(() => {
           const taglineEl = taglineRef.current;
@@ -172,13 +171,17 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
             onComplete: () => {
               currentTagline = (currentTagline + 1) % taglines.length;
               taglineEl.innerText = taglines[currentTagline];
+              
+              // Keep all taglines uniformly in the same font/sizes as the 1st text to maintain design consistency
+              taglineEl.className = "hero-element font-michroma text-[clamp(0.85rem,2vw,1.15rem)] uppercase tracking-[0.12em] font-normal mb-8 md:mb-10 h-auto min-h-[4.5rem] md:min-h-[3rem] text-neutral-200 mix-blend-difference relative z-10";
+
               gsap.fromTo(taglineEl, 
                 { opacity: 0, y: 10 },
                 { opacity: 1, y: 0, duration: 0.4, force3D: true }
               );
             }
           });
-        }, 3000);
+        }, 3400); // 3.4 seconds rotation
       }, 2500);
 
       // Assure existing floating cards logic is preserved and properly sequenced
@@ -201,7 +204,7 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
 
     return () => {
       ctx.revert();
-      if(interval) clearInterval(interval);
+      if (interval) clearInterval(interval);
       if (splitText) {
         splitText.revert();
       }
@@ -279,7 +282,7 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
         
         <div 
           ref={taglineRef}
-          className="hero-element font-body text-[clamp(0.9rem,2.2vw,1.3rem)] md:text-[clamp(1.1rem,2.5vw,1.5rem)] font-normal mb-8 md:mb-10 h-auto min-h-[3.5rem] md:h-8 text-white mix-blend-difference relative z-10"
+          className="hero-element font-michroma text-[clamp(0.85rem,2vw,1.15rem)] uppercase tracking-[0.12em] font-normal mb-8 md:mb-10 h-auto min-h-[4.5rem] md:min-h-[3rem] text-neutral-200 mix-blend-difference relative z-10"
         >
           {taglines[0]}
         </div>

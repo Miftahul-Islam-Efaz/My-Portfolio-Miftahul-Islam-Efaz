@@ -22,8 +22,10 @@ async function startServer() {
   // Dynamic /llms.txt Endpoint from Supabase
   app.get("/llms.txt", async (req, res) => {
     try {
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+
       if (!supabaseUrl || !supabaseAnonKey) {
-        res.setHeader("Content-Type", "text/plain; charset=utf-8");
         return res.status(500).send(
           "# Configuration Error\n\nSupabase credentials are not configured in the environment variables.\nPlease set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your settings."
         );
@@ -37,17 +39,16 @@ async function startServer() {
 
       if (error) {
         console.error("Supabase error fetching llms_content:", error);
-        res.setHeader("Content-Type", "text/plain; charset=utf-8");
         return res.status(404).send(
           `# Table 'llms_content' Not Found or Empty\n\nPlease run the SQL statements from your 'supabase_llms_schema.sql' inside your Supabase SQL Editor first.\n\nError detail: ${error.message}`
         );
       }
 
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
       return res.send(data?.content || "");
     } catch (err: any) {
       console.error("Internal server error:", err);
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
       return res.status(500).send(
         `# Internal Server Error\n\nAn unexpected error occurred while fetching the LLMs index: ${err.message || err}`
       );
