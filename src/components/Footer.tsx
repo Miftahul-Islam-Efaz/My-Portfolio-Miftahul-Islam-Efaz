@@ -31,9 +31,9 @@ const socials = [
   {
     name: 'Twitter',
     icon: Twitter,
-    url: 'https://twitter.com',
+    url: 'https://x.com/Miftahul_Islam9',
     colorClass: 'text-[#1A1A1A]/80 hover:text-sky-500',
-    handle: '@miftahul_efaz',
+    handle: '@Miftahul_Islam9',
   },
   {
     name: 'LinkedIn',

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { Github, Linkedin, Twitter, Instagram } from 'lucide-react';
+import { Github, Linkedin, Twitter, Instagram, Facebook } from 'lucide-react';
 import { AnimatedDock } from './ui/animated-dock';
 import SplitType from 'split-type';
 import { motion, useScroll, useTransform } from 'motion/react';
@@ -297,19 +297,19 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
           <AnimatedDock
             items={[
               {
-                link: "https://github.com/Miftahul-Islam",
+                link: "https://github.com/Miftahul-Islam-Efaz",
                 target: "_blank",
                 Icon: <Github size={22} />,
                 label: "GitHub",
               },
               {
-                link: "https://www.linkedin.com/in/s-m-miftahul-islam-a91373284/",
+                link: "https://www.linkedin.com/in/miftahul-islam-efaz-a91373284/",
                 target: "_blank",
                 Icon: <Linkedin size={22} />,
                 label: "LinkedIn",
               },
               {
-                link: "https://x.com/efaz_i",
+                link: "https://x.com/Miftahul_Islam9",
                 target: "_blank",
                 Icon: <Twitter size={22} />,
                 label: "Twitter",
@@ -319,6 +319,12 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
                 target: "_blank",
                 Icon: <Instagram size={22} />,
                 label: "Instagram",
+              },
+              {
+                link: "https://www.facebook.com/miftahul.islam.efaz",
+                target: "_blank",
+                Icon: <Facebook size={22} />,
+                label: "Facebook",
               },
             ]}
           />

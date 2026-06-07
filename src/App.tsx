@@ -18,6 +18,8 @@ import AchievementsSection from './components/AchievementsSection';
 import GlitchSectionTransition from './components/ui/GlitchSectionTransition';
 import SoundGate from './components/ui/SoundGate';
 import FaviconAnimator from './components/FaviconAnimator';
+import AskLLMPopup from './components/AskLLMPopup';
+import VibeCheckPopup from './components/VibeCheckPopup';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -144,6 +146,8 @@ export default function App() {
         />
         <GlitchSectionTransition />
       </div>
+      <AskLLMPopup />
+      <VibeCheckPopup />
       <CustomCursor />
     </>
   );
