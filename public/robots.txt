@@ -1,3 +1,7 @@
+# AI-readable profile
+# https://www.miftahulislamefaz.xyz/llms.txt
+# /llms.txt
+
 # Allow all search engine crawlers and AI bots to index and scrap the website
 User-agent: *
 Allow: /
