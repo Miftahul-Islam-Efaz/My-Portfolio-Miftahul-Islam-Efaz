@@ -34,11 +34,17 @@ const RevealLoader = ({
     // Initial scattered state for letters (gorgeous wave-like scattering)
     gsap.set(charsDom, {
       opacity: 0,
-      filter: "blur(12px)",
       scale: 0.65,
       x: (i) => Math.cos(i * 1.6) * 75,
       y: (i) => Math.sin(i * 1.3) * 50,
       rotation: (i) => Math.sin(i * 2.1) * 35,
+      force3D: true,
+    });
+
+    // Initial scale for progress bar to avoid reflows
+    gsap.set(barRef.current, {
+      scaleX: 0,
+      transformOrigin: "left center",
     });
 
     const obj = { val: 0 };
@@ -52,35 +58,51 @@ const RevealLoader = ({
       onUpdate: () => {
         const currentProgress = Math.round(obj.val);
         if (percentSpanRef.current) {
-          percentSpanRef.current.innerText = String(currentProgress);
-        }
-        if (glowRef.current) {
-          glowRef.current.style.transform = `scale(${1 + currentProgress / 350})`;
-        }
-        // Change colors slightly towards the very end
-        if (currentProgress >= 95) {
-          gsap.to(charsDom, { color: "#FFFFFF", duration: 0.2, overwrite: "auto" });
+          const currentText = percentSpanRef.current.textContent;
+          const nextText = String(currentProgress);
+          if (currentText !== nextText) {
+            percentSpanRef.current.textContent = nextText;
+          }
         }
       }
     }, 0);
 
-    // 2. Animate the progress bar line cleanly in perfect sync
+    // Smoothly scale the ambient glow
+    if (glowRef.current) {
+      tl.to(glowRef.current, {
+        scale: 1.285, // 1 + 100/350
+        duration: 3.0,
+        ease: "power2.out",
+        force3D: true
+      }, 0);
+    }
+
+    // Change colors slightly towards the very end (starting at 95% progress)
+    tl.to(charsDom, {
+      color: "#FFFFFF",
+      duration: 0.2,
+      ease: "none",
+      force3D: true
+    }, 2.85);
+
+    // 2. Animate the progress bar line cleanly in perfect sync using scaleX
     tl.to(barRef.current, {
-      width: "100%",
+      scaleX: 1,
       duration: 3.0,
       ease: "power2.out",
+      force3D: true,
     }, 0);
 
     // 3. Stagger-assemble the letters into place beautifully and with buttery 60fps fluidity
     tl.to(charsDom, {
       opacity: 1,
-      filter: "blur(0.01px)",
       scale: 1,
       x: 0,
       y: 0,
       rotation: 0,
       duration: 2.0,
       ease: "power3.out",
+      force3D: true,
       stagger: {
         each: 0.05,
         from: "start",
@@ -92,6 +114,7 @@ const RevealLoader = ({
       yPercent: -100,
       duration: 1.5,
       ease: "power4.inOut",
+      force3D: true,
       onStart: () => {
         if (onComplete) onComplete();
       },
@@ -137,9 +160,9 @@ const RevealLoader = ({
           {/* Soft, Luxurious Ambient Glow behind the cursive layout */}
           <div 
             ref={glowRef}
-            className="absolute w-[60vw] h-[60vw] rounded-full blur-[140px] pointer-events-none z-0" 
+            className="absolute w-[60vw] h-[60vw] rounded-full pointer-events-none z-0 will-change-transform transform-gpu" 
             style={{
-              background: "radial-gradient(circle, rgba(235,235,245,0.04) 0%, rgba(255,255,255,0) 70%)",
+              background: "radial-gradient(circle, rgba(235,235,245,0.06) 0%, rgba(235,235,245,0.02) 40%, rgba(255,255,255,0) 70%)",
               top: "20%",
               left: "20%",
               transform: "scale(1)",
@@ -158,7 +181,7 @@ const RevealLoader = ({
               return (
                 <span
                   key={index}
-                  className="char-span inline-block select-none text-gray-200 will-change-[transform,opacity,filter] transform-gpu"
+                  className="char-span inline-block select-none text-gray-200 will-change-[transform,opacity] transform-gpu"
                 >
                   {char}
                 </span>
@@ -173,8 +196,8 @@ const RevealLoader = ({
             <div className="w-full h-[2.5px] bg-white/10 rounded-full relative overflow-hidden">
               <div 
                 ref={barRef}
-                className="absolute left-0 top-0 h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.65)]"
-                style={{ width: "0%" }}
+                className="absolute left-0 top-0 w-full h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.65)] will-change-transform transform-gpu"
+                style={{ transform: "scaleX(0)", transformOrigin: "left center" }}
               />
             </div>
 

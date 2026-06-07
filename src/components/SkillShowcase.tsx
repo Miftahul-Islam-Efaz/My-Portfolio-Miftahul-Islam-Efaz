@@ -492,11 +492,13 @@ function Scene({
 export default function SkillShowcase({ 
   gltfPath = '/assets/portfolio_2nd_section_updated.glb', 
   height = '800vh',
-  customContainerRef
+  customContainerRef,
+  isStarted = false
 }: { 
   gltfPath?: string; 
   height?: string;
   customContainerRef?: React.RefObject<HTMLDivElement | null>;
+  isStarted?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -515,45 +517,23 @@ export default function SkillShowcase({
     const target = customContainerRef?.current || containerRef.current;
     if (!target) return;
 
+    const margin = isMobile ? '200px 0px' : '600px 0px';
+
     const observer = new IntersectionObserver(([entry]) => {
       setIsVisible(entry.isIntersecting);
     }, {
-      rootMargin: '2000px', // start building/rendering 2000px before entering viewport to avoid scrolling stutters on canvas mount
+      rootMargin: margin,
       threshold: 0
     });
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [customContainerRef]);
+  }, [customContainerRef, isMobile]);
   
   if (customContainerRef) {
     return (
       <div id="skills" style={{ width: '100%', height: '100%', overflow: 'hidden' }} ref={containerRef}>
-        <Canvas
-          camera={{ position: [0, 2.5, 18], fov: 45 }}
-          gl={{ 
-            antialias: !isMobile, 
-            powerPreference: 'high-performance',
-            toneMapping: THREE.ACESFilmicToneMapping,
-            alpha: true
-          }}
-          dpr={1}
-        >
-          <ambientLight intensity={0.08} />
-          {/* Studio three-point lighting for glossy highlights and well-lit silver models */}
-          <directionalLight position={[0, 10, -5]} intensity={0.3} />
-          <directionalLight position={[0, 5, 15]} intensity={0.7} color="#ffffff" />
-          <Scene gltfPath={gltfPath} containerRef={containerRef} customContainerRef={customContainerRef} isVisible={isVisible} />
-        </Canvas>
-      </div>
-    );
-  }
-
-  return (
-    <div id="skills" ref={containerRef} style={{ position: 'relative', width: '100%', height: height, background: '#000' }}>
-      <div style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden' }}>
-        
-        <div style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
+        {isStarted && (
           <Canvas
             camera={{ position: [0, 2.5, 18], fov: 45 }}
             gl={{ 
@@ -565,10 +545,38 @@ export default function SkillShowcase({
             dpr={1}
           >
             <ambientLight intensity={0.08} />
+            {/* Studio three-point lighting for glossy highlights and well-lit silver models */}
             <directionalLight position={[0, 10, -5]} intensity={0.3} />
             <directionalLight position={[0, 5, 15]} intensity={0.7} color="#ffffff" />
-            <Scene gltfPath={gltfPath} containerRef={containerRef} waitFirstStage={false} isVisible={isVisible} />
+            <Scene gltfPath={gltfPath} containerRef={containerRef} customContainerRef={customContainerRef} isVisible={isVisible} />
           </Canvas>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div id="skills" ref={containerRef} style={{ position: 'relative', width: '100%', height: height, background: '#000' }}>
+      <div style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden' }}>
+        
+        <div style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
+          {isStarted && (
+            <Canvas
+              camera={{ position: [0, 2.5, 18], fov: 45 }}
+              gl={{ 
+                antialias: !isMobile, 
+                powerPreference: 'high-performance',
+                toneMapping: THREE.ACESFilmicToneMapping,
+                alpha: true
+              }}
+              dpr={1}
+            >
+              <ambientLight intensity={0.08} />
+              <directionalLight position={[0, 10, -5]} intensity={0.3} />
+              <directionalLight position={[0, 5, 15]} intensity={0.7} color="#ffffff" />
+              <Scene gltfPath={gltfPath} containerRef={containerRef} waitFirstStage={false} isVisible={isVisible} />
+            </Canvas>
+          )}
         </div>
       </div>
     </div>

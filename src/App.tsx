@@ -16,7 +16,6 @@ import TornTransition from './components/ui/torn-transition';
 import WebsiteProjectsShowcase from './components/WebsiteProjectsShowcase';
 import AchievementsSection from './components/AchievementsSection';
 import GlitchSectionTransition from './components/ui/GlitchSectionTransition';
-import SoundGate from './components/ui/SoundGate';
 import FaviconAnimator from './components/FaviconAnimator';
 import AskLLMPopup from './components/AskLLMPopup';
 import VibeCheckPopup from './components/VibeCheckPopup';
@@ -25,7 +24,6 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function App() {
   const [loaderComplete, setLoaderComplete] = useState(false);
-  const [audioGateComplete, setAudioGateComplete] = useState(false);
   const lenisRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
@@ -110,16 +108,9 @@ export default function App() {
 
   return (
     <>
-      {!audioGateComplete && (
-        <SoundGate 
-          onAccept={() => setAudioGateComplete(true)} 
-          onDecline={() => setAudioGateComplete(true)} 
-        />
-      )}
-
       <RevealLoader 
         onComplete={() => setLoaderComplete(true)} 
-        isStarted={audioGateComplete}
+        isStarted={true}
       />
 
       <FaviconAnimator loaderComplete={loaderComplete} />
@@ -134,7 +125,10 @@ export default function App() {
         <Navigation />
         <main>
           <Hero isStarted={loaderComplete} />
-          <SkillShowcase gltfPath="/assets/portfolio_2nd_section_updated.glb" />
+          <SkillShowcase 
+            gltfPath="/assets/portfolio_2nd_section_updated.glb" 
+            isStarted={loaderComplete}
+          />
           <WebsiteProjectsShowcase />
           <AchievementsSection />
           <Services />

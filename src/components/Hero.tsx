@@ -24,6 +24,7 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
     if (!video) return;
 
     const tryPlay = () => {
+      if (!isStarted) return;
       // Only try play if the video is actually intersecting
       if (videoRef.current && !videoRef.current.paused) return; // already playing
       video.play().catch((err) => {
@@ -89,6 +90,20 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
     
     window.addEventListener('scroll', handleScrollPause, { passive: true });
     return () => window.removeEventListener('scroll', handleScrollPause);
+  }, [isStarted]);
+
+  // Sync playback when isStarted changes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isStarted) {
+      if (window.scrollY < window.innerHeight * 1.2) {
+        video.play().catch(() => {});
+      }
+    } else {
+      video.pause();
+    }
   }, [isStarted]);
 
   useEffect(() => {
@@ -267,7 +282,6 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
         loop
         muted
         playsInline
-        autoPlay
       />
 
       {/* LEFT COLUMN */}

@@ -16,7 +16,7 @@ const MenuLink: React.FC<MenuLinkProps> = ({ label, index, color, onClick }) => 
 
   return (
     <a
-      href="#"
+      href="javascript:void(0)"
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -45,10 +45,10 @@ const MenuLink: React.FC<MenuLinkProps> = ({ label, index, color, onClick }) => 
               initial={{ x: 45, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{
-                type: "spring",
-                stiffness: 110,
-                damping: 14,
-                delay: index * 0.05 + i * 0.015
+                type: "tween",
+                ease: "easeOut",
+                duration: 0.35,
+                delay: index * 0.04 + i * 0.01
               }}
               className={cn(
                 "inline-block",
@@ -118,21 +118,21 @@ export default function Navigation() {
     };
   }, []);
 
-  // Sync scroll lock of both body and Lenis on menu open
+  // Sync scroll lock of Lenis on menu open
   useEffect(() => {
     if (isMenuOpen) {
-      document.body.style.overflow = 'hidden';
       if ((window as any).lenis) {
+        // Settle scroll animation immediately at current scroll position to prevent jumps
+        const currentScroll = (window as any).lenis.scroll || window.scrollY;
+        (window as any).lenis.scrollTo(currentScroll, { immediate: true });
         (window as any).lenis.stop();
       }
     } else {
-      document.body.style.overflow = '';
       if ((window as any).lenis) {
         (window as any).lenis.start();
       }
     }
     return () => {
-      document.body.style.overflow = '';
       if ((window as any).lenis) {
         (window as any).lenis.start();
       }
@@ -140,25 +140,21 @@ export default function Navigation() {
   }, [isMenuOpen]);
 
   const overlayMenuItems = [
-    { label: 'HERO SECTION', target: '#hero-section' },
     { label: 'SKILLS', target: '#skills' },
     { label: 'OUTCOMES', target: '#outcomes' },
     { label: 'ACHIEVEMENTS', target: '#achievements' },
     { label: 'SERVICES', target: '#services' },
     { label: 'TESTIMONIALS', target: '#testimonials' },
-    { label: 'CONTACT', target: '#contact' },
-    { label: 'FOOTER', target: '#footer' }
+    { label: 'CONTACT', target: '#contact' }
   ];
 
   const SLASH_COLORS = [
-    '#b54a4a', // HERO SECTION: Red
     '#38bdf8', // SKILLS: Teal/Blue
     '#a855f7', // OUTCOMES: Purple
     '#f43f5e', // ACHIEVEMENTS: Rose Crimson
     '#eab308', // SERVICES: Yellow/Gold
     '#10b981', // TESTIMONIALS: Emerald Green
     '#b54a4a', // CONTACT: Red
-    '#6b7280', // FOOTER: Slate/Gray
   ];
 
   const handleOverlayNavigate = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string, itemName: string) => {
@@ -171,8 +167,7 @@ export default function Navigation() {
     const isHero = targetId === '#hero' || targetId === '#hero-section';
     const target = isHero ? document.documentElement : document.querySelector(targetId);
     
-    // Unlock body overflow scroll and launch Lenis instantly so it can handle immediate jumps
-    document.body.style.overflow = '';
+    // Launch Lenis instantly so it can handle immediate jumps
     if ((window as any).lenis) {
       (window as any).lenis.start();
     }
@@ -383,6 +378,23 @@ export default function Navigation() {
       <AnimatePresence>
         {isMenuOpen && (
           <div className="fixed inset-0 w-screen h-screen z-[99990] flex pointer-events-auto">
+            {/* Dummy button to trap autofocus and prevent browser layout scroll jumps */}
+            <button 
+              autoFocus 
+              aria-hidden="true"
+              style={{ 
+                position: 'fixed', 
+                top: 0, 
+                left: 0, 
+                width: 1, 
+                height: 1, 
+                opacity: 0, 
+                pointerEvents: 'none',
+                outline: 'none',
+                border: 'none',
+                background: 'transparent'
+              }} 
+            />
             
             {/* LEFT PANEL: Translucent Dark Graphic Panel */}
             <motion.div
@@ -390,7 +402,7 @@ export default function Navigation() {
               animate={{ x: '0%' }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
-              className="hidden md:flex w-1/2 h-full bg-[#030202]/85 backdrop-blur-2xl relative flex-col justify-between p-12 border-r border-neutral-800/40 select-none overflow-hidden"
+              className="hidden md:flex w-1/2 h-full bg-[#030202]/95 relative flex-col justify-between p-12 border-r border-neutral-800/40 select-none overflow-hidden"
             >
               {/* Top Left Label */}
               <div className="flex justify-between items-center w-full">
@@ -406,7 +418,7 @@ export default function Navigation() {
               <motion.div 
                 animate={{ backgroundPosition: ["0px 0px", "60px 60px"] }}
                 transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
-                className="absolute inset-0 opacity-[0.05] bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none" 
+                className="absolute inset-0 opacity-[0.18] bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none" 
               />
 
               {/* Bottom Editorial Copy with dynamic looping animation */}

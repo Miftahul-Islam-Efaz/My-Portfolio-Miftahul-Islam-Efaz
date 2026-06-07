@@ -168,6 +168,38 @@ export default function AskLLMPopup() {
   const handleClose = () => {
     setIsOpen(false);
     sessionStorage.setItem('portfolio_llm_panel_dismissed', 'true');
+
+    // Unlock Web Audio context and enable audio atmosphere silently on user interaction
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContextClass) {
+      try {
+        const ctx = new AudioContextClass();
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.05);
+      } catch (e) {
+        console.warn('AudioContext automatic unlock bypassed:', e);
+      }
+    }
+
+    // HTML5 Audio autoplay bypass
+    const dummyAudio = new Audio();
+    dummyAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+    dummyAudio.play().catch(() => {});
+
+    // Enable audio atmosphere
+    localStorage.setItem('audio_atmosphere', 'enabled');
+    localStorage.setItem('audio_atmosphere_asked', 'true');
+    
+    // Notify application
+    window.dispatchEvent(new Event('audio_preference_changed'));
   };
 
   // Mapped exact vector code from your uploaded files (/LLMS-icons)

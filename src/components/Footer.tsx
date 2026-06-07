@@ -396,7 +396,7 @@ export default function Footer() {
               rel="noopener noreferrer" 
               className="hover:text-[#b54a4a] transition-all duration-300 cursor-pointer font-bold"
             >
-              © 2025 Miftahul Islam Efaz
+              © 2026 Miftahul Islam Efaz
             </a>
           </div>
         </div>
