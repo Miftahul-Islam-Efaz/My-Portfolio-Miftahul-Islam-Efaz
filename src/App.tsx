@@ -129,7 +129,7 @@ export default function App() {
           <Hero isStarted={introExiting} isComplete={introComplete} />
           <SkillShowcase 
             gltfPath="/assets/portfolio_2nd_section_updated.glb" 
-            isStarted={introComplete}
+            isStarted={true}
           />
           <WebsiteProjectsShowcase />
           <AchievementsSection />
