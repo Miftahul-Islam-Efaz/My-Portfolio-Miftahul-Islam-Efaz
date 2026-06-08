@@ -1,14 +1,48 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Github, Linkedin, Briefcase, Mail } from 'lucide-react';
 import { supabase, DatabaseVideoSettings } from '../lib/supabase';
-
-gsap.registerPlugin(ScrollTrigger);
 
 export default function Contact() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email || !message) return;
+
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+    setErrorMessage('');
+
+    try {
+      const { error } = await supabase
+        .from('contact_submissions')
+        .insert([{ name, email, message }]);
+
+      if (error) throw error;
+
+      setSubmitStatus('success');
+      setName('');
+      setEmail('');
+      setMessage('');
+    } catch (err: any) {
+      console.error('Error submitting contact form:', err);
+      setSubmitStatus('error');
+      setErrorMessage(err.message || 'Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Initialize contact section video settings with elegant fallback defaults
   const [settings, setSettings] = useState<DatabaseVideoSettings>({
@@ -60,7 +94,8 @@ export default function Contact() {
       let opacity = 1;
       const parentElement = section.parentElement;
       if (parentElement) {
-        opacity = parseFloat(window.getComputedStyle(parentElement).opacity);
+        const rawOpacity = parentElement.style.opacity;
+        opacity = rawOpacity !== '' ? parseFloat(rawOpacity) : 1;
         if (isNaN(opacity)) opacity = 1;
       }
 
@@ -95,6 +130,7 @@ export default function Contact() {
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         isInViewport = entry.isIntersecting;
+        setIsVisible(entry.isIntersecting);
         updatePlayback();
 
         // If visible in viewport, periodically monitor opacity of parent container
@@ -125,10 +161,8 @@ export default function Contact() {
   }, [settings]);
 
   useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    const ctx = gsap.context(() => {
+    if (isVisible && !hasAnimated) {
+      setHasAnimated(true);
       gsap.fromTo('.svg-letter', 
         {
           strokeDashoffset: 600,
@@ -139,18 +173,11 @@ export default function Contact() {
           fillOpacity: 1,
           duration: 1.5,
           stagger: 0.05,
-          ease: 'power2.inOut',
-          scrollTrigger: {
-            trigger: section,
-            start: 'top 40%',
-            toggleActions: 'play none none none'
-          }
+          ease: 'power2.inOut'
         }
       );
-    }, section);
-
-    return () => ctx.revert();
-  }, []);
+    }
+  }, [isVisible, hasAnimated]);
 
   return (
     <section id="contact" ref={sectionRef} className="relative w-full px-[clamp(1.5rem,5vw,4rem)] py-24 md:py-32 overflow-hidden flex flex-col justify-center bg-transparent">
@@ -222,11 +249,13 @@ export default function Contact() {
         <div className="flex flex-col lg:flex-row gap-16 lg:gap-12 justify-between">
           {/* Form */}
           <div className="w-full lg:w-[48%] max-w-xl">
-            <form className="flex flex-col gap-8" onSubmit={(e) => e.preventDefault()}>
+            <form className="flex flex-col gap-8" onSubmit={handleSubmit}>
               <div className="relative group">
                 <input 
                   type="text" 
                   id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   required
                   className="w-full bg-transparent border-b border-white/20 py-3 text-[var(--color-pearl)] font-body focus:outline-none focus:border-[var(--color-pearl)] transition-colors peer"
                   placeholder=" "
@@ -240,6 +269,8 @@ export default function Contact() {
                 <input 
                   type="email" 
                   id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                   className="w-full bg-transparent border-b border-white/20 py-3 text-[var(--color-pearl)] font-body focus:outline-none focus:border-[var(--color-pearl)] transition-colors peer"
                   placeholder=" "
@@ -252,6 +283,8 @@ export default function Contact() {
               <div className="relative group">
                 <textarea 
                   id="message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
                   required
                   rows={4}
                   className="w-full bg-transparent border-b border-white/20 py-3 text-[var(--color-pearl)] font-body focus:outline-none focus:border-[var(--color-pearl)] transition-colors peer resize-none"
@@ -262,8 +295,30 @@ export default function Contact() {
                 </label>
               </div>
 
-              <button type="submit" className="w-full py-4 bg-[var(--color-pearl)] text-[var(--color-eerie)] font-body font-semibold rounded hover:bg-[var(--color-taupe)] transition-colors mt-4">
-                Start Your Automation Project →
+              {submitStatus === 'success' && (
+                <div className="p-4 bg-emerald-950/20 border border-emerald-500/30 text-emerald-300 text-xs rounded font-body leading-relaxed">
+                  Message sent successfully! I will get back to you soon.
+                </div>
+              )}
+              {submitStatus === 'error' && (
+                <div className="p-4 bg-rose-950/20 border border-rose-500/30 text-rose-300 text-xs rounded font-body leading-relaxed">
+                  {errorMessage}
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full py-4 bg-[var(--color-pearl)] text-[var(--color-eerie)] font-body font-semibold rounded hover:bg-[var(--color-taupe)] transition-colors mt-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="w-4.5 h-4.5 border-2 border-[var(--color-eerie)] border-t-transparent rounded-full animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Message →'
+                )}
               </button>
             </form>
           </div>

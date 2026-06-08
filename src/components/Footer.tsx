@@ -1,10 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Github, Linkedin, Briefcase, Instagram, Facebook, Twitter } from 'lucide-react';
 import { motion } from 'motion/react';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const socials = [
   {
@@ -49,6 +45,8 @@ export default function Footer() {
   const photoRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLHeadingElement>(null);
   const bgImgRef = useRef<HTMLImageElement>(null);
+  const cachedAbsoluteTopRef = useRef(0);
+  const cachedTotalHeightRef = useRef(0);
 
   const handleFooterLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
@@ -86,16 +84,29 @@ export default function Footer() {
   };
 
   useEffect(() => {
-    const handleScroll = () => {
+    const updateCache = () => {
       if (!sectionRef.current) return;
-      
-      // Since Footer is inside TornTransition, find the parent transition wrapper (500vh container)
       const parentTransition = sectionRef.current.closest('[style*="500vh"]');
       if (!parentTransition) return;
-      
       const rect = parentTransition.getBoundingClientRect();
-      const totalHeight = rect.height;
-      const top = rect.top; // Current relative top position from viewport top
+      cachedAbsoluteTopRef.current = rect.top + window.scrollY;
+      cachedTotalHeightRef.current = rect.height;
+    };
+
+    updateCache();
+    const timeoutId = setTimeout(updateCache, 150);
+
+    const handleScroll = () => {
+      const absoluteTop = cachedAbsoluteTopRef.current;
+      const totalHeight = cachedTotalHeightRef.current;
+      if (totalHeight <= 0) return;
+
+      const top = absoluteTop - window.scrollY;
+      
+      // Performance Optimization: Only run updates when the footer container is in/near the viewport
+      if (top > window.innerHeight || top + totalHeight < 0) {
+        return;
+      }
       
       // Calculate normalized overall scroll progress p (0.0 to 1.0)
       const scrollRange = totalHeight - window.innerHeight;
@@ -130,11 +141,14 @@ export default function Footer() {
     };
     
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', updateCache);
     // Run initial calculation to prevent jump
     handleScroll();
     
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', updateCache);
+      clearTimeout(timeoutId);
     };
   }, []);
 
@@ -187,6 +201,7 @@ export default function Footer() {
                   src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1775244322/upscaled-2x-1775244293295_el2gi1.png" 
                   alt="Miftahul Efaz" 
                   className="w-full h-full object-cover object-top"
+                  decoding="async"
                 />
               </div>
             </div>
@@ -276,16 +291,10 @@ export default function Footer() {
             </a>
           </div>
           
-          <div className="mt-8 flex justify-between items-center w-full">
+          <div className="mt-8 flex justify-between items-center">
             <span className="font-mono text-[8px] text-neutral-400 select-none">
               © 2026 MIFTAHUL ISLAM EFAZ
             </span>
-            <button
-              onClick={() => window.dispatchEvent(new Event('open_rating_widget'))}
-              className="text-[9px] font-mono uppercase bg-neutral-900 border border-transparent hover:bg-neutral-800 text-stone-200 px-3 py-1.5 rounded font-bold cursor-pointer transition-all duration-300"
-            >
-              ★ Rate Website
-            </button>
           </div>
         </div>
 
@@ -302,6 +311,8 @@ export default function Footer() {
           alt="Visual Background"
           className="absolute inset-0 w-full h-full object-cover z-0"
           referrerPolicy="no-referrer"
+          decoding="async"
+          style={{ willChange: 'transform' }}
         />
 
         {/* Huge Name Text */}
@@ -312,7 +323,8 @@ export default function Footer() {
             style={{ 
               fontSize: 'clamp(3rem, 18vw, 25rem)', 
               transformOrigin: 'center',
-              letterSpacing: '-0.02em'
+              letterSpacing: '-0.02em',
+              willChange: 'transform'
             }}
           >
             MIFTAHUL
@@ -323,6 +335,7 @@ export default function Footer() {
         <div 
           ref={photoRef}
           className="group relative w-[80%] sm:w-[60%] md:w-[40%] lg:w-[30%] aspect-[4/5] bg-[#E8E7E2] rounded-[2rem] md:rounded-[3rem] overflow-hidden z-20 shadow-2xl mt-[45vh] transition-transform duration-700 ease-out hover:scale-[1.03] select-none cursor-pointer"
+          style={{ willChange: 'transform' }}
         >
           {/* Main grayscale background image (kept static and perfectly sharp) */}
           <div className="w-full h-full grayscale overflow-hidden relative">
@@ -331,6 +344,7 @@ export default function Footer() {
               alt="Miftahul Islam Efaz" 
               className="w-full h-full object-cover object-top filter contrast-[1.02]"
               referrerPolicy="no-referrer"
+              decoding="async"
             />
             
             {/* Elegant high-precision glass frame border */}
@@ -394,15 +408,7 @@ export default function Footer() {
           ))}
         </div>
         
-        <div className="flex flex-col items-center md:items-end gap-3 text-right">
-          <div>
-            <button
-              onClick={() => window.dispatchEvent(new Event('open_rating_widget'))}
-              className="text-[9px] font-mono uppercase bg-[#111111] hover:bg-neutral-900 text-stone-200 border border-zinc-800/65 hover:border-zinc-500 hover:text-white px-3.5 py-2 rounded-xl font-bold cursor-pointer transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.15)] active:scale-95"
-            >
-              ★ Rate My Website
-            </button>
-          </div>
+        <div className="flex flex-col items-center md:items-end gap-2 text-right">
           <div className="font-mono text-[10px] text-[#1A1A1A]/50 uppercase tracking-widest">
             <a 
               href="https://www.miftahulislamefaz.xyz/" 

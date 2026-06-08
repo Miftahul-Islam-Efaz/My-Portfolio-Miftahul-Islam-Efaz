@@ -134,25 +134,51 @@ export default function WebsiteProjectsShowcase() {
   // Layer 2: Person (rises from deep up at start, reaches perfect hand placement by 0.12, remains stationary till unlocked)
   const personY = useTransform(
     smoothProgress,
-    [-0.15, 0.12, 1],
-    ['115vh', '0vh', '0vh']
+    (v) => {
+      if (isMobile) {
+        if (v < -0.15) return '115vh';
+        if (v > 0.12) return '-8.5vh';
+        const progress = (v + 0.15) / 0.27;
+        return `${115 - progress * (115 - (-8.5))}vh`;
+      } else {
+        if (v < -0.15) return '115vh';
+        if (v > 0.12) return '0vh';
+        const progress = (v + 0.15) / 0.27;
+        return `${115 - progress * 115}vh`;
+      }
+    }
   );
   const personScale = useTransform(
     smoothProgress,
-    [-0.15, 0.12, 1],
-    [0.85, 1.0, 1.0]
+    (v) => {
+      const base = v < -0.15 ? 0.85 : v > 0.12 ? 1.0 : 0.85 + ((v + 0.15) * 0.15) / 0.27;
+      return base * (isMobile ? 1.35 : 1.0);
+    }
   );
 
   // Layer 3: Tablet Bezel Chassis (synced perfectly with Miftahul's hands, stabilized by 0.12)
   const tabletY = useTransform(
     smoothProgress,
-    [-0.15, 0.12, 1],
-    ['85vh', '0vh', '0vh']
+    (v) => {
+      if (isMobile) {
+        if (v < -0.15) return '85vh';
+        if (v > 0.12) return '-8.5vh';
+        const progress = (v + 0.15) / 0.27;
+        return `${85 - progress * (85 - (-8.5))}vh`;
+      } else {
+        if (v < -0.15) return '85vh';
+        if (v > 0.12) return '0vh';
+        const progress = (v + 0.15) / 0.27;
+        return `${85 - progress * 85}vh`;
+      }
+    }
   );
   const tabletScale = useTransform(
     smoothProgress,
-    [-0.15, 0.12, 1],
-    [0.78, 1.0, 1.0]
+    (v) => {
+      const base = v < -0.15 ? 0.78 : v > 0.12 ? 1.0 : 0.78 + ((v + 0.15) * 0.22) / 0.27;
+      return base * (isMobile ? 1.35 : 1.0);
+    }
   );
   const tabletRotate = useTransform(
     smoothProgress,
@@ -255,9 +281,9 @@ export default function WebsiteProjectsShowcase() {
       >
         
         {/* Section Heading "OUTCOMES" */}
-        <div className="absolute top-[12vh] left-[clamp(1.5rem,5vw,50px)] pointer-events-none z-30 flex items-center gap-3.5 select-none font-sans">
-          <span className="w-5 h-[1px] bg-stone-600" />
-          <h2 className="text-xs uppercase tracking-[0.35em] text-stone-400 font-medium">
+        <div className="absolute top-[9vh] sm:top-[12vh] left-[1.5rem] sm:left-[clamp(1.5rem,5vw,50px)] pointer-events-none z-30 flex items-center gap-2 sm:gap-3.5 select-none font-sans">
+          <span className="w-3 sm:w-5 h-[1px] bg-stone-600" />
+          <h2 className="text-[10px] sm:text-xs uppercase tracking-[0.2em] sm:tracking-[0.35em] text-stone-400 font-medium">
             OUTCOMES
           </h2>
         </div>
@@ -292,12 +318,14 @@ export default function WebsiteProjectsShowcase() {
           style={{ y: personY, scale: personScale, willChange: 'transform' }}
           className="absolute inset-0 w-full h-full flex items-center justify-center select-none z-10 transform-gpu"
         >
-          <img 
-            src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231578/my_image_hthdxq.png" 
-            alt="Miftahul Islam"
-            className="w-full h-full max-w-[1240px] max-h-[85vh] object-contain md:filter md:drop-shadow-[0_28px_55px_rgba(0,0,0,0.92)] md:contrast-[1.04]"
-            referrerPolicy="no-referrer"
-          />
+          <div className="w-full h-full flex items-center justify-center scale-[1.35] sm:scale-100 origin-center transition-transform duration-300">
+            <img 
+              src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231578/my_image_hthdxq.png" 
+              alt="Miftahul Islam"
+              className="w-full h-full max-w-[1240px] max-h-[85vh] object-contain md:filter md:drop-shadow-[0_28px_55px_rgba(0,0,0,0.92)] md:contrast-[1.04]"
+              referrerPolicy="no-referrer"
+            />
+          </div>
         </motion.div>
 
         {/* ================= LAYER 3: TABLET CHASSIS & SCREEN ================= */}
@@ -305,9 +333,10 @@ export default function WebsiteProjectsShowcase() {
           style={{ y: tabletY, scale: tabletScale, rotate: tabletRotate, willChange: 'transform' }}
           className="absolute inset-0 w-full h-full flex items-center justify-center select-none z-20 overflow-visible transform-gpu"
         >
-          <div 
-            className="relative flex items-center justify-center overflow-visible w-[171px] sm:w-[350px] md:w-[410px] h-[116.78px] sm:h-auto aspect-[410/280] mt-[55px] sm:mt-[40px] md:mt-[146.742px] pl-[1px] sm:pl-0"
-          >
+          <div className="scale-[1.35] sm:scale-100 origin-center flex items-center justify-center overflow-visible w-full h-full">
+            <div 
+              className="relative flex items-center justify-center overflow-visible w-[171px] sm:w-[350px] md:w-[410px] h-[116.78px] sm:h-auto aspect-[410/280] mt-[55px] sm:mt-[40px] md:mt-[146.742px] pl-[1px] sm:pl-0"
+            >
             
             {/* Subtle, thin framing border */}
             <div className="absolute -inset-8 border border-white/[0.03] rounded-3xl pointer-events-none z-10 animate-fade-in" />
@@ -389,22 +418,22 @@ export default function WebsiteProjectsShowcase() {
              />
 
             {/* INTUITIVE STEP CONTROLS WITH EDITORIAL REFINEMENT */}
-            <div className="absolute -bottom-16 w-full flex justify-between items-center px-8 z-50 pointer-events-auto">
+            <div className="absolute -bottom-[35px] sm:-bottom-16 w-[185px] sm:w-full left-1/2 -translate-x-1/2 flex justify-between items-center px-1 sm:px-8 z-50 pointer-events-auto scale-[0.8] sm:scale-100 origin-center">
               <button 
                 id="slide-control-prev"
                 onClick={() => scrollToStage('prev')}
                 disabled={activeIndex === 0}
-                className="flex items-center gap-1 font-sans text-[10px] sm:text-xs uppercase tracking-[0.15em] text-stone-400 disabled:opacity-20 disabled:pointer-events-none transition-all duration-300 hover:text-white cursor-pointer"
+                className="flex items-center gap-0.5 font-sans text-[10px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] text-stone-400 disabled:opacity-20 disabled:pointer-events-none transition-all duration-300 hover:text-white cursor-pointer"
               >
                 Prev
               </button>
 
               {/* Elegant desaturated dots */}
-              <div className="flex gap-2.5 items-center">
+              <div className="flex gap-1.5 sm:gap-2.5 items-center">
                 {projects.map((_, i) => (
                   <span 
                     key={i} 
-                    className="w-1.5 h-1.5 rounded-full transition-all duration-500"
+                    className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full transition-all duration-500"
                     style={{
                       backgroundColor: activeIndex === i ? '#F5F5F4' : '#292524',
                       transform: activeIndex === i ? 'scale(1.25)' : 'scale(1)'
@@ -417,12 +446,13 @@ export default function WebsiteProjectsShowcase() {
                 id="slide-control-next"
                 onClick={() => scrollToStage('next')}
                 disabled={activeIndex === projects.length - 1}
-                className="flex items-center gap-1 font-sans text-[10px] sm:text-xs uppercase tracking-[0.15em] text-stone-400 disabled:opacity-20 disabled:pointer-events-none transition-all duration-300 hover:text-white cursor-pointer"
+                className="flex items-center gap-0.5 font-sans text-[10px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] text-stone-400 disabled:opacity-20 disabled:pointer-events-none transition-all duration-300 hover:text-white cursor-pointer"
               >
                 Next
               </button>
             </div>
 
+          </div>
           </div>
          </motion.div>
 
@@ -430,7 +460,7 @@ export default function WebsiteProjectsShowcase() {
 
         {/* LEFT TEXT PANEL: BEAUTIFUL EDITORIAL SECTION BRANDING */}
         <div 
-          className="absolute left-[clamp(1rem,4vw,50px)] bottom-[6vh] md:bottom-[12vh] max-w-[280px] md:max-w-md z-30 pointer-events-auto flex flex-col items-start justify-end text-left select-text"
+          className="absolute left-[clamp(1rem,4vw,50px)] bottom-[3.5vh] sm:bottom-[6vh] md:bottom-[12vh] max-w-[280px] md:max-w-md z-30 pointer-events-auto flex flex-col items-start justify-end text-left select-text"
           style={{ textShadow: "0 2px 14px rgba(0,0,0,1), 0 0 10px rgba(0,0,0,0.8)" }}
         >
           <AnimatePresence mode="wait">
@@ -443,12 +473,12 @@ export default function WebsiteProjectsShowcase() {
               className="flex flex-col items-start w-full text-left"
             >
               <span 
-                className="font-sans text-[10px] uppercase tracking-[0.25em] mb-4 font-semibold text-stone-400"
+                className="font-sans text-[10px] uppercase tracking-[0.25em] mb-4 font-semibold text-stone-400 hidden sm:block"
               >
                 — {activeProj.badge}
               </span>
               
-              <h2 className="font-display text-[clamp(1.5rem,4.5vw,2.5rem)] md:text-[clamp(2.1rem,3.8vw,3.2rem)] leading-[1.05] font-light text-white tracking-tight uppercase mb-5">
+              <h2 className="font-display text-[clamp(1.5rem,4.5vw,2.5rem)] md:text-[clamp(2.1rem,3.8vw,3.2rem)] leading-[1.05] font-light text-white tracking-tight uppercase mb-2.5 sm:mb-5">
                 {activeProj.title}
               </h2>
               
@@ -461,7 +491,7 @@ export default function WebsiteProjectsShowcase() {
 
         {/* RIGHT SIDE BRANDING & PAGE INDEX */}
         <div 
-          className="absolute right-[clamp(1.5rem,5vw,50px)] top-[12vh] pointer-events-none z-30 select-none text-right"
+          className="absolute right-[1.5rem] sm:right-[clamp(1.5rem,5vw,50px)] top-[9vh] sm:top-[12vh] pointer-events-none z-30 select-none text-right"
           style={{ textShadow: "0 2px 14px rgba(0,0,0,1)" }}
         >
           <AnimatePresence mode="wait">
@@ -471,18 +501,18 @@ export default function WebsiteProjectsShowcase() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -15 }}
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="flex items-center gap-3.5 justify-end"
+              className="flex items-center gap-2 sm:gap-3.5 justify-end"
             >
-              <div className="flex flex-col items-end text-right">
-                <span className="font-mono text-[8px] sm:text-[9px] text-stone-500 tracking-[0.25em] uppercase block font-medium leading-none mb-1">
+              <div className="hidden sm:flex flex-col items-end text-right">
+                <span className="font-mono text-[7px] sm:text-[9px] text-stone-500 tracking-[0.2em] sm:tracking-[0.25em] uppercase block font-medium leading-none mb-1">
                   SHOWCASE
                 </span>
-                <span className="font-sans text-[10px] sm:text-[11px] md:text-xs text-[#A69F95] tracking-[0.18em] uppercase block font-medium leading-none">
+                <span className="font-sans text-[10px] sm:text-[11px] md:text-xs text-[#A69F95] tracking-[0.18em] uppercase hidden sm:block font-medium leading-none">
                   Vibe-Coded Websites
                 </span>
               </div>
-              <span className="w-5 h-[1px] bg-stone-700 block" />
-              <span className="font-display text-[1.8rem] sm:text-[2.2rem] md:text-[2.8rem] tracking-tighter text-stone-100 font-extralight leading-none">
+              <span className="hidden sm:block w-3 sm:w-5 h-[1px] bg-stone-700" />
+              <span className="font-display text-[1.4rem] sm:text-[2.2rem] md:text-[2.8rem] tracking-tighter text-stone-100 font-extralight leading-none">
                 0{activeIndex + 1}
               </span>
             </motion.div>

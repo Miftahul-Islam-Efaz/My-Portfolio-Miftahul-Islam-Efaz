@@ -76,12 +76,12 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
       
       {/* Loading state visual backdrop block */}
       {!isIframeLoaded && shouldLoad && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-20 pointer-events-none">
-          <div className="relative flex items-center justify-center mb-3">
-            <div className="w-8 h-8 rounded-full border-2 border-dashed border-neutral-700 animate-spin" />
-            <div className="absolute w-3 h-3 rounded-full bg-red-500/20 animate-ping" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-20 pointer-events-none p-2 text-center">
+          <div className="relative flex items-center justify-center mb-1 sm:mb-3">
+            <div className="w-3.5 h-3.5 sm:w-8 sm:h-8 rounded-full border border-dashed border-neutral-700 animate-spin" />
+            <div className="absolute w-1.5 h-1.5 sm:w-3 sm:h-3 rounded-full bg-red-500/20 animate-ping" />
           </div>
-          <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-[#8e8e8e] animate-pulse">
+          <span className="font-mono text-[6px] sm:text-[9px] uppercase tracking-[0.05em] sm:tracking-[0.25em] text-[#8e8e8e] animate-pulse block truncate max-w-full">
             Establishing Link...
           </span>
         </div>
