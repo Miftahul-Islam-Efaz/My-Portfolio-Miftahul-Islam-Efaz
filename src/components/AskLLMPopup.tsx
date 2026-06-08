@@ -9,8 +9,8 @@ export default function AskLLMPopup() {
   const [copiedProvider, setCopiedProvider] = useState<string | null>(null);
   const autoTriggeredRef = useRef(false);
 
-  // Fallback domain, dynamically updated on mount to match portfolio address (e.g. miftahulisamefaz.xyz)
-  const [baseDomain, setBaseDomain] = useState("https://www.miftahulisamefaz.xyz");
+  // Fallback domain, dynamically updated on mount to match portfolio address (e.g. miftahulislamefaz.xyz)
+  const [baseDomain, setBaseDomain] = useState("https://www.miftahulislamefaz.xyz");
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -18,7 +18,7 @@ export default function AskLLMPopup() {
     }
   }, []);
 
-  const promptText = `Please read the portfolio index at ${baseDomain}/llms.txt and tell me about Miftahul Islam Efaz: his technical frontend skills, achievements, list of web projects, biophilic service design, and creative interactive portfolio layouts.`;
+  const promptText = `Please read the portfolio index at ${baseDomain}/llms.txt and tell me about Miftahul Islam Efaz that how good his portfolio is compared to others in bangladesh and why is he exceptional compared to others.`;
 
   // Disable / Enable body scroll when modal opens/closes
   useEffect(() => {

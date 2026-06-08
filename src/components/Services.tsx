@@ -9,15 +9,45 @@ export default function Services() {
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const [constraints, setConstraints] = useState({ left: 0, right: 0 });
+  const [isInView, setIsInView] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsInView(entry.isIntersecting);
+    }, {
+      rootMargin: '200px 0px',
+      threshold: 0
+    });
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   const x = useMotionValue(0);
   const xVelocity = useVelocity(x);
   
-  // Optimized spring parameters for high-performance fluid rendering, reducing calculation drag/ticks on frame loop
-  const xVelocitySpring = useSpring(xVelocity, { damping: 25, stiffness: 140, mass: 0.5, restDelta: 0.1, restSpeed: 0.1 });
+  // Tuned spring parameters for responsive and realistic swing (stiffness: 80, damping: 18, mass: 0.8)
+  const xVelocitySpring = useSpring(xVelocity, { damping: 18, stiffness: 80, mass: 0.8, restDelta: 0.1, restSpeed: 0.1 });
   
-  // Map velocity to rotation (tilt). Higher boundaries to allow for faster intro speed air-dragging.
-  const skew = useTransform(xVelocitySpring, [-4000, 4000], [-30, 30]);
+  // Map velocity to rotation (tilt) with high performance gate: return 0 for low velocity (such as auto-drift) to avoid DOM updates. Capped at a realistic max of 15 degrees.
+  const skew = useTransform(xVelocitySpring, (v) => {
+    if (Math.abs(v) < 80) return 0;
+    const mapped = (v / 2500) * 15;
+    return Math.min(Math.max(mapped, -15), 15);
+  });
+
+  const invSkew = useTransform(skew, (s) => -s);
 
   // Track continuous slow drift auto-scroll state
   const isInteractingRef = useRef(false);
@@ -38,6 +68,8 @@ export default function Services() {
 
   // Auto-scrolling drift effect
   useEffect(() => {
+    if (!isInView) return;
+
     let animFrameId: number;
     
     const tick = () => {
@@ -67,7 +99,7 @@ export default function Services() {
     
     animFrameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animFrameId);
-  }, [x, constraints]);
+  }, [x, constraints, isInView]);
 
   // Elegant progress-bar transformation based on cards-container scroll value
   const progressBarX = useTransform(
@@ -183,18 +215,26 @@ export default function Services() {
             cursor: grabbing;
         }
         
-        /* The Track Line passing through the eyelets */
+        /* The Track Line passing through the eyelets - Styled as a 3D Metallic Cylinder */
         .hanging-services-section .track-line {
             position: absolute;
             top: 77px;
             left: 0;
             width: 100%;
             height: 6px;
-            background: #C0C0C0;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            background: linear-gradient(
+                to bottom,
+                #2d2d2d 0%,
+                #8c8c8c 15%,
+                #f5f5f5 30%,
+                #ffffff 45%,
+                #a3a3a3 70%,
+                #444444 90%,
+                #1a1a1a 100%
+            );
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.65);
             /* Z-index must be LOWER than the cards so the left side of cards cover it */
             z-index: 5;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
             pointer-events: none;
         }
 
@@ -204,36 +244,6 @@ export default function Services() {
             height: 570px;
             flex-shrink: 0;
         }
-        
-        .hanging-services-section .track-overlay {
-            position: absolute;
-            top: 77px;
-            left: calc(50% + 14px); /* Starts right at the right edge of the hole */
-            width: calc(50% - 14px); /* Ends exactly at right edge of slot */
-            height: 6px;
-            background: #C0C0C0;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 15; /* OVER the card */
-            pointer-events: none;
-        }
-
-        /* The hole must be masked in the pad, but the rod goes INTO it. */
-        /* To create the illusion of going INTO the hole, we need a small mask on the track-line itself 
-           However, a simpler and more robust CSS approach to "in through the hole" is:
-           1. Track z-index is higher than the card body. (It covers the card).
-           2. The pad has a hole cut out of it.
-           3. Inside the hole, we render a small "shadow" or dark circle that sits OVER the track line
-              but UNDER the pad mask, or we just rely on the track line passing across the card, 
-              but being masked *out* by the hole's "interior". 
-              
-           The simplest way to perfectly replicate the video:
-           The card is at z-index 10.
-           The rod is at z-index 15 (it is drawn over everything).
-           BUT to make it look like it goes *into* the hole, we create an absolutely positioned circle 
-           (the "hole interior") that sits at z-index 20 (on top of the rod), 
-           which renders the dark background color and inner shadow, effectively "hiding" the rod where the hole is.
-        */
         
         .hanging-services-section .cards-container {
             display: flex;
@@ -271,7 +281,28 @@ export default function Services() {
             border: 1px solid rgba(255,255,255,0.05);
             height: 100%;
             position: relative;
-            z-index: 10;
+            z-index: 5;
+        }
+        
+        .hanging-services-section .card-rod-left {
+            position: absolute;
+            top: 77px;
+            left: 0;
+            width: 50%;
+            height: 6px;
+            background: linear-gradient(
+                to bottom,
+                #2d2d2d 0%,
+                #8c8c8c 15%,
+                #f5f5f5 30%,
+                #ffffff 45%,
+                #a3a3a3 70%,
+                #444444 90%,
+                #1a1a1a 100%
+            );
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.65);
+            z-index: 25; /* Renders on top of the white pad and hole overlay */
+            pointer-events: none;
         }
         
         .hanging-services-section .service-card {
@@ -290,7 +321,7 @@ export default function Services() {
         /* The Flat Attachment Pad (Squircle) */
         .hanging-services-section .attachment-pad {
             position: absolute;
-            top: 68px;
+            top: 80px; /* Aligned to rod center */
             left: 50%;
             transform: translate(-50%, -50%);
             width: 80px;
@@ -302,10 +333,11 @@ export default function Services() {
             justify-content: flex-end;
             align-items: center;
             padding: 10px 0 12px 0;
-            /* Must be lower than rod (15) so rod goes OVER the pad. */
-            z-index: 10; 
+            z-index: 15; /* Sits over card-rod */
             box-shadow: 0 8px 20px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.2);
             border: 1px solid rgba(0,0,0,0.05);
+            -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 10px, black 10.5px);
+            mask-image: radial-gradient(circle at 50% 50%, transparent 10px, black 10.5px);
         }
         
         .hanging-services-section .attachment-pad span {
@@ -483,82 +515,92 @@ export default function Services() {
           
           {/* CARD 1: FIGMA */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="figma" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
+            <motion.div className="card-wrapper" data-service="figma" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative">
-                  <div className="attachment-pad">
-                    {/* Visual Eyelet Hole perfectly centered in the pad */}
-                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                    <span className="relative z-10">CRAFT</span>
-                  </div>
-                </div>
+                <div className="service-card relative" />
+              </div>
+              <motion.div 
+                className="card-rod-left"
+                style={{ rotate: isMobile ? 0 : invSkew, transformOrigin: '100% 3px' }}
+              />
+              <div className="attachment-pad">
+                {/* Visual Eyelet Hole perfectly centered in the pad */}
+                <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                <span className="relative z-10">CRAFT</span>
               </div>
             </motion.div>
-            <div className="track-overlay"></div>
           </div>
         
           {/* CARD 2: DEV */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="dev" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
+            <motion.div className="card-wrapper" data-service="dev" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative">
-                  <div className="attachment-pad">
-                    {/* Visual Eyelet Hole perfectly centered in the pad */}
-                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                    <span className="relative z-10">RENDER</span>
-                  </div>
-                </div>
+                <div className="service-card relative" />
+              </div>
+              <motion.div 
+                className="card-rod-left"
+                style={{ rotate: isMobile ? 0 : invSkew, transformOrigin: '100% 3px' }}
+              />
+              <div className="attachment-pad">
+                {/* Visual Eyelet Hole perfectly centered in the pad */}
+                <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                <span className="relative z-10">RENDER</span>
               </div>
             </motion.div>
-            <div className="track-overlay"></div>
           </div>
         
           {/* CARD 3: AUTO */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="auto" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
+            <motion.div className="card-wrapper" data-service="auto" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative font-sans">
-                  <div className="attachment-pad">
-                    {/* Visual Eyelet Hole perfectly centered in the pad */}
-                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                    <span className="relative z-10">SYNC</span>
-                  </div>
-                </div>
+                <div className="service-card relative font-sans" />
+              </div>
+              <motion.div 
+                className="card-rod-left"
+                style={{ rotate: isMobile ? 0 : invSkew, transformOrigin: '100% 3px' }}
+              />
+              <div className="attachment-pad">
+                {/* Visual Eyelet Hole perfectly centered in the pad */}
+                <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                <span className="relative z-10">SYNC</span>
               </div>
             </motion.div>
-            <div className="track-overlay"></div>
           </div>
         
           {/* CARD 4: BACKEND */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="backend" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
+            <motion.div className="card-wrapper" data-service="backend" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative font-sans">
-                  <div className="attachment-pad">
-                    {/* Visual Eyelet Hole perfectly centered in the pad */}
-                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                    <span className="relative z-10">CORE</span>
-                  </div>
-                </div>
+                <div className="service-card relative font-sans" />
+              </div>
+              <motion.div 
+                className="card-rod-left"
+                style={{ rotate: isMobile ? 0 : invSkew, transformOrigin: '100% 3px' }}
+              />
+              <div className="attachment-pad">
+                {/* Visual Eyelet Hole perfectly centered in the pad */}
+                <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                <span className="relative z-10">CORE</span>
               </div>
             </motion.div>
-            <div className="track-overlay"></div>
           </div>
         
           {/* CARD 5: GEN */}
           <div className="card-slot">
-            <motion.div className="card-wrapper" data-service="gen" style={{ rotate: skew, transformOrigin: '50% 80px' }}>
+            <motion.div className="card-wrapper" data-service="gen" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative font-sans">
-                  <div className="attachment-pad">
-                    {/* Visual Eyelet Hole perfectly centered in the pad */}
-                    <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                    <span className="relative z-10">GEN</span>
-                  </div>
-                </div>
+                <div className="service-card relative font-sans" />
+              </div>
+              <motion.div 
+                className="card-rod-left"
+                style={{ rotate: isMobile ? 0 : invSkew, transformOrigin: '100% 3px' }}
+              />
+              <div className="attachment-pad">
+                {/* Visual Eyelet Hole perfectly centered in the pad */}
+                <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
+                <span className="relative z-10">GEN</span>
               </div>
             </motion.div>
-            <div className="track-overlay"></div>
           </div>
         
       </motion.div>

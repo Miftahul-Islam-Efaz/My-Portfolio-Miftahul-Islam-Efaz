@@ -8,11 +8,15 @@ gsap.registerPlugin(useGSAP);
 
 interface RevealLoaderProps {
   onComplete?: () => void;
+  onExitStart?: () => void;
+  onExitComplete?: () => void;
   isStarted?: boolean;
 }
 
 const RevealLoader = ({
   onComplete,
+  onExitStart,
+  onExitComplete,
   isStarted = true,
 }: RevealLoaderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -23,10 +27,25 @@ const RevealLoader = ({
   const glowRef = useRef<HTMLDivElement>(null);
   
   const [isDone, setIsDone] = useState(false);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  // Load the signature custom font before starting animations
+  React.useEffect(() => {
+    if (typeof document !== "undefined" && document.fonts) {
+      document.fonts.load("1em Backstreet")
+        .then(() => setFontsLoaded(true))
+        .catch((err) => {
+          console.warn("Backstreet font load failed, starting fallback:", err);
+          setFontsLoaded(true);
+        });
+    } else {
+      setFontsLoaded(true);
+    }
+  }, []);
 
   // High performance, 60fps loader sequence
   useGSAP(() => {
-    if (!isStarted) return;
+    if (!isStarted || !fontsLoaded) return;
     if (!nameRef.current || !barRef.current || !contentRef.current) return;
 
     const charsDom = nameRef.current.querySelectorAll(".char-span");
@@ -116,14 +135,16 @@ const RevealLoader = ({
       ease: "power4.inOut",
       force3D: true,
       onStart: () => {
+        if (onExitStart) onExitStart();
         if (onComplete) onComplete();
       },
       onComplete: () => {
         setIsDone(true);
+        if (onExitComplete) onExitComplete();
       }
     }, "+=0.3");
 
-  }, { scope: containerRef, dependencies: [isStarted] });
+  }, { scope: containerRef, dependencies: [isStarted, fontsLoaded] });
 
   const nameChars = "Miftahul Islam Efaz".split("");
 

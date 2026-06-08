@@ -23,7 +23,8 @@ import VibeCheckPopup from './components/VibeCheckPopup';
 gsap.registerPlugin(ScrollTrigger);
 
 export default function App() {
-  const [loaderComplete, setLoaderComplete] = useState(false);
+  const [introExiting, setIntroExiting] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
   const lenisRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
@@ -94,40 +95,41 @@ export default function App() {
     };
   }, []);
 
-  // Sync scroll lock and refresh ScrollTrigger once the loader completes
+  // Sync scroll lock and refresh ScrollTrigger once the loader starts exiting
   useEffect(() => {
     if (lenisRef.current) {
-      if (loaderComplete) {
+      if (introExiting) {
         lenisRef.current.start();
         ScrollTrigger.refresh();
       } else {
         lenisRef.current.stop();
       }
     }
-  }, [loaderComplete]);
+  }, [introExiting]);
 
   return (
     <>
       <RevealLoader 
-        onComplete={() => setLoaderComplete(true)} 
+        onExitStart={() => setIntroExiting(true)}
+        onExitComplete={() => setIntroComplete(true)}
         isStarted={true}
       />
 
-      <FaviconAnimator loaderComplete={loaderComplete} />
+      <FaviconAnimator loaderComplete={introComplete} />
       
       <div 
         className="relative w-full"
         style={{ 
           opacity: 1,
-          pointerEvents: loaderComplete ? 'auto' : 'none',
+          pointerEvents: introExiting ? 'auto' : 'none',
         }}
       >
         <Navigation />
         <main>
-          <Hero isStarted={loaderComplete} />
+          <Hero isStarted={introExiting} isComplete={introComplete} />
           <SkillShowcase 
             gltfPath="/assets/portfolio_2nd_section_updated.glb" 
-            isStarted={loaderComplete}
+            isStarted={introComplete}
           />
           <WebsiteProjectsShowcase />
           <AchievementsSection />

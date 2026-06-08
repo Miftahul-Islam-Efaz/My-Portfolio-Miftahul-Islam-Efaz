@@ -5,7 +5,13 @@ import { AnimatedDock } from './ui/animated-dock';
 import SplitType from 'split-type';
 import { motion, useScroll, useTransform } from 'motion/react';
 
-const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boolean }) {
+const Hero = React.memo(function Hero({ 
+  isStarted = false,
+  isComplete = false
+}: { 
+  isStarted?: boolean;
+  isComplete?: boolean;
+}) {
   const nameRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -24,7 +30,7 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
     if (!video) return;
 
     const tryPlay = () => {
-      if (!isStarted) return;
+      if (!isComplete) return;
       // Only try play if the video is actually intersecting
       if (videoRef.current && !videoRef.current.paused) return; // already playing
       video.play().catch((err) => {
@@ -82,7 +88,7 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
       if (window.scrollY > window.innerHeight * 1.2) {
         if (!video.paused) video.pause();
       } else {
-        if (video.paused && isStarted) {
+        if (video.paused && isComplete) {
           video.play().catch(() => {});
         }
       }
@@ -90,21 +96,21 @@ const Hero = React.memo(function Hero({ isStarted = false }: { isStarted?: boole
     
     window.addEventListener('scroll', handleScrollPause, { passive: true });
     return () => window.removeEventListener('scroll', handleScrollPause);
-  }, [isStarted]);
+  }, [isComplete]);
 
-  // Sync playback when isStarted changes
+  // Sync playback when isComplete changes
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (isStarted) {
+    if (isComplete) {
       if (window.scrollY < window.innerHeight * 1.2) {
         video.play().catch(() => {});
       }
     } else {
       video.pause();
     }
-  }, [isStarted]);
+  }, [isComplete]);
 
   useEffect(() => {
     if (!isStarted) {
