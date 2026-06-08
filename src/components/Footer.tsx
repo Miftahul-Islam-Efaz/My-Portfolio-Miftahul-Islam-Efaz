@@ -276,10 +276,16 @@ export default function Footer() {
             </a>
           </div>
           
-          <div className="mt-8 flex justify-between items-center">
+          <div className="mt-8 flex justify-between items-center w-full">
             <span className="font-mono text-[8px] text-neutral-400 select-none">
               © 2026 MIFTAHUL ISLAM EFAZ
             </span>
+            <button
+              onClick={() => window.dispatchEvent(new Event('open_rating_widget'))}
+              className="text-[9px] font-mono uppercase bg-neutral-900 border border-transparent hover:bg-neutral-800 text-stone-200 px-3 py-1.5 rounded font-bold cursor-pointer transition-all duration-300"
+            >
+              ★ Rate Website
+            </button>
           </div>
         </div>
 
@@ -388,7 +394,15 @@ export default function Footer() {
           ))}
         </div>
         
-        <div className="flex flex-col items-center md:items-end gap-2 text-right">
+        <div className="flex flex-col items-center md:items-end gap-3 text-right">
+          <div>
+            <button
+              onClick={() => window.dispatchEvent(new Event('open_rating_widget'))}
+              className="text-[9px] font-mono uppercase bg-[#111111] hover:bg-neutral-900 text-stone-200 border border-zinc-800/65 hover:border-zinc-500 hover:text-white px-3.5 py-2 rounded-xl font-bold cursor-pointer transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.15)] active:scale-95"
+            >
+              ★ Rate My Website
+            </button>
+          </div>
           <div className="font-mono text-[10px] text-[#1A1A1A]/50 uppercase tracking-widest">
             <a 
               href="https://www.miftahulislamefaz.xyz/" 

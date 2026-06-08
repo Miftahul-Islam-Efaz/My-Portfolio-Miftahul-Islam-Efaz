@@ -19,6 +19,21 @@ async function startServer() {
   // Parse incoming JSON
   app.use(express.json());
 
+  // Intercept AI Bots, scrapers and crawlers and direct them to /llms.txt
+  app.use((req, res, next) => {
+    const userAgent = req.headers["user-agent"] || "";
+    
+    // Comprehensive regex targeting AI agents, scanners, and standard crawlers
+    const isBot = /gptbot|chatgpt-user|claudebot|google-extended|perplexity|groq|cohere|anthropic|oai-searchbot|meta-externalagent|scrapper|crawler|spider|facebookexternalhit|scrappy/i.test(userAgent);
+    
+    // Only redirect if it's indeed a bot, and they are seeking the main HTML pages (not assets, API, or /llms.txt)
+    if (isBot && !req.path.startsWith("/api") && req.path !== "/llms.txt" && !path.extname(req.path)) {
+      console.log(`Bot/Crawler detected: "${userAgent}". Redirecting ${req.path} to /llms.txt`);
+      return res.redirect(302, "/llms.txt");
+    }
+    next();
+  });
+
   // Dynamic /llms.txt Endpoint from Supabase
   app.get("/llms.txt", async (req, res) => {
     try {

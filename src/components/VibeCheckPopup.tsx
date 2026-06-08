@@ -104,62 +104,15 @@ export default function VibeCheckPopup() {
     };
   }, [isOpen]);
 
-  const autoTriggeredRef = useRef(false);
-
-  // Monitor scrolling to see precisely when user reaches the end part of the website
+  // Listen to open widget event emitted by footer items
   useEffect(() => {
-    // Rely on memory-only trigger flag so that fresh page reloads can always trigger it for testing
-    if (autoTriggeredRef.current) return;
-
-    const triggerPopup = () => {
-      if (autoTriggeredRef.current) return;
-      autoTriggeredRef.current = true;
+    const handleOpen = () => {
       setIsOpen(true);
-      setHasTriggeredThisSession(true);
     };
-
-    const checkScrollBottom = () => {
-      const scrollY = window.scrollY || window.pageYOffset;
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-
-      // Safe threshold (240px from bottom) to handle mobile and various screen sizing
-      if (scrollY + windowHeight >= documentHeight - 240) {
-        triggerPopup();
-        window.removeEventListener('scroll', checkScrollBottom);
-      }
-    };
-
-    window.addEventListener('scroll', checkScrollBottom, { passive: true });
+    window.addEventListener('open_rating_widget', handleOpen);
     
-    // Target #footer container with low threshold (triggers as soon as footer enters viewport)
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            triggerPopup();
-            observer.disconnect();
-            window.removeEventListener('scroll', checkScrollBottom);
-          }
-        });
-      },
-      {
-        root: null,
-        threshold: 0.02, // Trigger as soon as 2% of the footer enters viewport
-      }
-    );
-
-    const footerElement = document.getElementById('footer');
-    if (footerElement) {
-      observer.observe(footerElement);
-    }
-
-    // Run custom immediate check in case already at bottom on mount
-    setTimeout(checkScrollBottom, 300);
-
     return () => {
-      window.removeEventListener('scroll', checkScrollBottom);
-      observer.disconnect();
+      window.removeEventListener('open_rating_widget', handleOpen);
     };
   }, []);
 

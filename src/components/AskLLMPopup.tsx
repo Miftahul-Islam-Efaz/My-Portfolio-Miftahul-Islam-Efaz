@@ -47,68 +47,8 @@ export default function AskLLMPopup() {
     };
   }, [isOpen]);
 
-  // Monitor scrolling to show centered popup when entering the 2nd section (#skills)
-  // as well as tracking visibility of allowed sections (Hero, 2nd section, Footer)
+  // Monitor and track visibility of allowed sections (Hero, 2nd section, Footer)
   useEffect(() => {
-    const triggerThreshold = () => {
-      if (autoTriggeredRef.current) return;
-      autoTriggeredRef.current = true;
-      setIsOpen(true);
-      setHasTriggered(true);
-    };
-
-    let observer: IntersectionObserver | null = null;
-    let found = false;
-
-    const setupObserver = () => {
-      const skillsSection = document.getElementById('skills');
-      if (skillsSection) {
-        observer = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              if (entry.isIntersecting && !autoTriggeredRef.current) {
-                triggerThreshold();
-                if (observer) observer.disconnect();
-              }
-            });
-          },
-          {
-            root: null,
-            rootMargin: '0px 0px -12% 0px',
-            threshold: 0.05,
-          }
-        );
-        observer.observe(skillsSection);
-        found = true;
-      }
-    };
-
-    // Attempt immediately
-    setupObserver();
-
-    // If not found yet (due to rendering timing), retry query periodically
-    let intervalId: any = null;
-    if (!found) {
-      intervalId = setInterval(() => {
-        setupObserver();
-        if (found && intervalId) {
-          clearInterval(intervalId);
-        }
-      }, 100);
-    }
-
-    // Backup scroll position watcher
-    const backupTrigger = () => {
-      if (autoTriggeredRef.current) return;
-      // Scroll triggers once exceeding HERO container (e.g. 45% of total screen height)
-      if (window.scrollY > window.innerHeight * 0.45) {
-        triggerThreshold();
-        window.removeEventListener('scroll', backupTrigger);
-      }
-    };
-
-    window.addEventListener('scroll', backupTrigger, { passive: true });
-
     // Track allowed sections (hero-section, skills, footer) for displaying trigger button
     const checkSectionVisibility = () => {
       const heroEl = document.getElementById('hero-section');
@@ -139,11 +79,11 @@ export default function AskLLMPopup() {
 
     window.addEventListener('scroll', checkSectionVisibility, { passive: true });
     const visibilityInterval = setInterval(checkSectionVisibility, 200);
+    
+    // Immediate check on mount
+    setTimeout(checkSectionVisibility, 300);
 
     return () => {
-      if (observer) observer.disconnect();
-      if (intervalId) clearInterval(intervalId);
-      window.removeEventListener('scroll', backupTrigger);
       window.removeEventListener('scroll', checkSectionVisibility);
       clearInterval(visibilityInterval);
     };
@@ -395,7 +335,7 @@ export default function AskLLMPopup() {
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
               </div>
               <Cpu className="w-3.5 h-3.5 text-zinc-400 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="text-[9px] uppercase tracking-widest font-semibold">ASK LLM</span>
+              <span className="text-[9px] uppercase tracking-widest font-semibold">ASK AI</span>
             </button>
           </motion.div>
         )}
