@@ -28,15 +28,16 @@ export default function App() {
   const lenisRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
+    const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
     const lenis = new Lenis({
-      duration: 0.9,
+      duration: isMobileDevice ? 1.2 : 0.9,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 0.9,
-      touchMultiplier: 1.8,
-      syncTouch: false,
+      touchMultiplier: isMobileDevice ? 0.8 : 1.8,
+      syncTouch: isMobileDevice ? true : false,
     });
 
     lenisRef.current = lenis;

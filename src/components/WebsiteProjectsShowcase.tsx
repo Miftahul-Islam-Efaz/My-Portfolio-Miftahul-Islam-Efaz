@@ -280,7 +280,7 @@ export default function WebsiteProjectsShowcase() {
     <div 
       id="outcomes"
       ref={containerRef} 
-      className="relative w-full h-[350vh] md:h-[750vh] bg-[#030202] z-30 overflow-visible"
+      className="relative w-full h-[480vh] md:h-[750vh] bg-[#030202] z-30 overflow-visible"
     >
       {/* Sticky viewing container that locks the viewport while scrolling through the effect */}
       <div 
@@ -353,7 +353,7 @@ export default function WebsiteProjectsShowcase() {
             {/* ONE SINGLE UNIFIED DYNAMIC PORTAL IFRAME SECTION WITH AESTHETIC SLIDING SCENE LAYOUT */}
             {/* Fits absolutely perfectly within the tablet chassis with a smaller centered custom framing window */}
             <div 
-              className="absolute top-[16.2%] left-[11.8%] w-[76.4%] h-[64.0%] rounded-[1px] sm:rounded-[3px] md:rounded-[4px] overflow-hidden bg-black z-10 p-0 shadow-[0_8px_16px_rgba(0,0,0,0.6)] border border-stone-900/50"
+              className="absolute top-[15.8%] sm:top-[16.2%] left-[11.4%] sm:left-[11.8%] w-[77.2%] sm:w-[76.4%] h-[64.8%] sm:h-[64.0%] rounded-[1px] sm:rounded-[3px] md:rounded-[4px] overflow-hidden bg-black z-10 p-0 shadow-[0_8px_16px_rgba(0,0,0,0.6)] border border-stone-900/50"
             >
               <div className="relative w-full h-full overflow-hidden bg-black">
                 {projects.map((proj, idx) => {
@@ -406,7 +406,7 @@ export default function WebsiteProjectsShowcase() {
                 animate={{ opacity: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.45, ease: 'easeOut' }}
-                className="absolute top-[16.2%] left-[11.8%] w-[76.4%] h-[64.0%] bg-[#030202] rounded-[1px] sm:rounded-[3px] md:rounded-[4px] pointer-events-none z-20"
+                className="absolute top-[15.8%] sm:top-[16.2%] left-[11.4%] sm:left-[11.8%] w-[77.2%] sm:w-[76.4%] h-[64.8%] sm:h-[64.0%] bg-[#030202] rounded-[1px] sm:rounded-[3px] md:rounded-[4px] pointer-events-none z-20"
               />
             </AnimatePresence>
 
@@ -420,7 +420,7 @@ export default function WebsiteProjectsShowcase() {
             </div>
 
              {/* GLASS HEAVY GLARE OVERLAY (Sits right over screen content inside Bezel framework) */}
-            <div className="absolute top-[16.2%] left-[11.8%] w-[76.4%] h-[64.0%] bg-gradient-to-tr from-white/[0.015] via-transparent to-white/[0.04] rounded-[1px] sm:rounded-[3px] md:rounded-[4px] pointer-events-none z-40 mix-blend-overlay" />
+            <div className="absolute top-[15.8%] sm:top-[16.2%] left-[11.4%] sm:left-[11.8%] w-[77.2%] sm:w-[76.4%] h-[64.8%] sm:h-[64.0%] bg-gradient-to-tr from-white/[0.015] via-transparent to-white/[0.04] rounded-[1px] sm:rounded-[3px] md:rounded-[4px] pointer-events-none z-40 mix-blend-overlay" />
 
              {/* HOVER CURSOR VIEW LIVE INTERACTIVE TRIGGERS OVERLAY */}
              <div 
@@ -430,7 +430,7 @@ export default function WebsiteProjectsShowcase() {
                    window.open(activeProj.linkUrl, '_blank', 'noopener,noreferrer');
                  }
                }}
-               className="absolute top-[16.2%] left-[11.8%] w-[76.4%] h-[64.0%] rounded-[1px] sm:rounded-[3px] md:rounded-[4px] z-45 cursor-none bg-transparent pointer-events-auto"
+               className="absolute top-[15.8%] sm:top-[16.2%] left-[11.4%] sm:left-[11.8%] w-[77.2%] sm:w-[76.4%] h-[64.8%] sm:h-[64.0%] rounded-[1px] sm:rounded-[3px] md:rounded-[4px] z-45 cursor-none bg-transparent pointer-events-auto"
              />
 
             {/* INTUITIVE STEP CONTROLS WITH EDITORIAL REFINEMENT */}

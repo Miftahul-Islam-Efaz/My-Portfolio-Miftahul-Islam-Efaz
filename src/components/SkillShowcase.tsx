@@ -134,15 +134,23 @@ function Scene({
   containerRef,
   customContainerRef,
   waitFirstStage = false,
-  isVisible = true
+  isVisible = true,
+  onLoad
 }: { 
   gltfPath: string; 
   containerRef: React.RefObject<HTMLDivElement | null>;
   customContainerRef?: React.RefObject<HTMLDivElement | null>;
   waitFirstStage?: boolean;
   isVisible?: boolean;
+  onLoad?: () => void;
 }) {
   const { scene, materials } = useGLTF(gltfPath) as any;
+
+  useEffect(() => {
+    if (onLoad) {
+      onLoad();
+    }
+  }, [onLoad]);
   const pathMatRef = useRef<THREE.ShaderMaterial | null>(null);
   const currentTRef = useRef(0);
   const lastFactorsRef = useRef<number[]>(new Array(SKILL_DATA.length).fill(-1));
@@ -551,12 +559,14 @@ export default function SkillShowcase({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isStarted, isVisible]);
   
-  const { active, progress } = useProgress();
+  const { progress } = useProgress();
+  const [modelLoaded, setModelLoaded] = useState(false);
+  const showLoader = isStarted && !modelLoaded;
 
   if (customContainerRef) {
     return (
       <div id="skills" style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }} ref={containerRef}>
-        {isStarted && active && (
+        {showLoader && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 pointer-events-none transition-opacity duration-300">
             <div className="font-michroma text-[9px] text-neutral-400 tracking-[0.2em] uppercase mb-3 select-none">
               Loading Skills 3D Engine
@@ -588,7 +598,7 @@ export default function SkillShowcase({
             {/* Studio three-point lighting for glossy highlights and well-lit silver models */}
             <directionalLight position={[0, 10, -5]} intensity={0.3} />
             <directionalLight position={[0, 5, 15]} intensity={0.7} color="#ffffff" />
-            <Scene gltfPath={gltfPath} containerRef={containerRef} customContainerRef={customContainerRef} isVisible={isVisible} />
+            <Scene gltfPath={gltfPath} containerRef={containerRef} customContainerRef={customContainerRef} isVisible={isVisible} onLoad={() => setModelLoaded(true)} />
           </Canvas>
         )}
       </div>
@@ -599,7 +609,7 @@ export default function SkillShowcase({
     <div id="skills" ref={containerRef} style={{ position: 'relative', width: '100%', height: height, background: '#000' }}>
       <div style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden' }}>
         
-        {isStarted && active && (
+        {showLoader && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 pointer-events-none transition-opacity duration-300">
             <div className="font-michroma text-[9px] text-neutral-400 tracking-[0.2em] uppercase mb-3 select-none">
               Loading Skills 3D Engine
@@ -632,7 +642,7 @@ export default function SkillShowcase({
               <ambientLight intensity={0.08} />
               <directionalLight position={[0, 10, -5]} intensity={0.3} />
               <directionalLight position={[0, 5, 15]} intensity={0.7} color="#ffffff" />
-              <Scene gltfPath={gltfPath} containerRef={containerRef} waitFirstStage={false} isVisible={isVisible} />
+              <Scene gltfPath={gltfPath} containerRef={containerRef} waitFirstStage={false} isVisible={isVisible} onLoad={() => setModelLoaded(true)} />
             </Canvas>
           )}
         </div>
@@ -642,8 +652,8 @@ export default function SkillShowcase({
 }
 
 // Defer preload to avoid competing with loader for bandwidth on startup
-if (typeof window !== 'undefined' && window.innerWidth > 768) {
+if (typeof window !== 'undefined') {
   setTimeout(() => {
     useGLTF.preload('/portfolio_2nd_section_eiyd6w.glb');
-  }, 1000); // preloads after 1s for immediate display since served locally
+  }, window.innerWidth <= 768 ? 2500 : 1000); // 1s delay for desktop, 2.5s delay for mobile to run background load after paint settles
 }
