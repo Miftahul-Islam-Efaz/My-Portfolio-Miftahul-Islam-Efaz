@@ -10,6 +10,7 @@ export default function WebsiteProjectsShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [projects, setProjects] = useState<ProjectItem[]>(PROJECTS_DATA);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [settledActiveIndex, setSettledActiveIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -34,11 +35,11 @@ export default function WebsiteProjectsShowcase() {
     offset: ['start start', 'end end'],
   });
 
-  // Decelerate values elegantly
+  // Decelerate values elegantly — higher stiffness means fewer frames to settle
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 90,
-    damping: 28,
-    mass: 0.85,
+    stiffness: 130,
+    damping: 38,
+    mass: 0.7,
   });
 
   // Load custom projects directly from Supabase
@@ -212,6 +213,14 @@ export default function WebsiteProjectsShowcase() {
     });
   }, [smoothProgress, projects]);
 
+  // Debounce the iframe activation during active scrolling to prevent layout locks
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSettledActiveIndex(activeIndex);
+    }, 280);
+    return () => clearTimeout(handler);
+  }, [activeIndex]);
+
   // Helper for mobile horizontal swipes
   const touchStartXRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
@@ -348,6 +357,9 @@ export default function WebsiteProjectsShowcase() {
             >
               <div className="relative w-full h-full overflow-hidden bg-black">
                 {projects.map((proj, idx) => {
+                  // Only mount the iframe component for the active and adjacent slides to keep DOM clean
+                  const isClose = Math.abs(idx - activeIndex) <= 1;
+                  
                   return (
                     <motion.div
                       key={proj.id || idx}
@@ -371,11 +383,15 @@ export default function WebsiteProjectsShowcase() {
                         willChange: 'transform, opacity',
                       }}
                     >
-                      <LiveWebsiteIframe 
-                        url={proj.linkUrl} 
-                        index={idx} 
-                        activeIndex={activeIndex} 
-                      />
+                      {isClose ? (
+                        <LiveWebsiteIframe 
+                          url={proj.linkUrl} 
+                          index={idx} 
+                          activeIndex={settledActiveIndex} 
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-[#0a0a0a]" />
+                      )}
                     </motion.div>
                   );
                 })}

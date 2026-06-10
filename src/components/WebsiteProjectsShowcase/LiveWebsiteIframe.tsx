@@ -12,9 +12,8 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isIframeLoaded, setIsIframeLoaded] = useState(false);
 
-  // Lazy loading: on mobile, only load the active item to prevent memory and network saturation. On desktop, load adjacent slides for instant loading feel.
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-  const shouldLoad = isMobile ? activeIndex === index : Math.abs(activeIndex - index) <= 1;
+  // Load ONLY the active iframe to prevent concurrent network requests and layout paint lag on all devices
+  const shouldLoad = activeIndex === index;
 
   useEffect(() => {
     setIsIframeLoaded(false);
@@ -26,19 +25,42 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
     }
   }, [shouldLoad, hasLoadedOnce]);
 
+  // High performance dimensions tracking: replace ResizeObserver with static window resize listeners and activation triggers
   useEffect(() => {
-    if (!containerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          setDimensions({ width, height });
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          setDimensions({ width: rect.width, height: rect.height });
         }
       }
-    });
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    };
+    
+    updateDimensions();
+    const t = setTimeout(updateDimensions, 200);
+
+    window.addEventListener('resize', updateDimensions);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', updateDimensions);
+    };
   }, []);
+
+  useEffect(() => {
+    if (shouldLoad) {
+      const updateDimensions = () => {
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            setDimensions({ width: rect.width, height: rect.height });
+          }
+        }
+      };
+      updateDimensions();
+      const t = setTimeout(updateDimensions, 100);
+      return () => clearTimeout(t);
+    }
+  }, [shouldLoad]);
 
   const virtualWidth = 1280;
   const scale = dimensions.width / virtualWidth;
@@ -66,10 +88,13 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
           <iframe
             src={url}
             title={`Live Showcase - ${url}`}
+            scrolling="no"
+            style={{ overflow: 'hidden' }}
             className="w-full h-full border-0 select-none bg-[#030202]"
             onLoad={() => setIsIframeLoaded(true)}
             referrerPolicy="no-referrer"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            loading="lazy"
           />
         </div>
       )}

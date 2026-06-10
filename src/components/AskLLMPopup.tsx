@@ -49,43 +49,42 @@ export default function AskLLMPopup() {
 
   // Monitor and track visibility of allowed sections (Hero, 2nd section, Footer)
   useEffect(() => {
-    // Track allowed sections (hero-section, skills, footer) for displaying trigger button
-    const checkSectionVisibility = () => {
-      const heroEl = document.getElementById('hero-section');
-      const skillsEl = document.getElementById('skills');
-      const footerEl = document.getElementById('footer');
+    const heroEl = document.getElementById('hero-section');
+    const skillsEl = document.getElementById('skills');
+    const footerEl = document.getElementById('footer');
 
-      if (!heroEl && !skillsEl && !footerEl) return;
-
-      let inHero = false;
-      let inSkills = false;
-      let inFooter = false;
-
-      if (heroEl) {
-        const rect = heroEl.getBoundingClientRect();
-        inHero = rect.bottom > 0 && rect.top < window.innerHeight;
-      }
-      if (skillsEl) {
-        const rect = skillsEl.getBoundingClientRect();
-        inSkills = rect.bottom > 0 && rect.top < window.innerHeight;
-      }
-      if (footerEl) {
-        const rect = footerEl.getBoundingClientRect();
-        inFooter = rect.bottom > 0 && rect.top < window.innerHeight;
-      }
-
-      setIsInAllowedSection(inHero || inSkills || inFooter);
+    const sections = {
+      hero: false,
+      skills: false,
+      footer: false
     };
 
-    window.addEventListener('scroll', checkSectionVisibility, { passive: true });
-    const visibilityInterval = setInterval(checkSectionVisibility, 200);
-    
-    // Immediate check on mount
-    setTimeout(checkSectionVisibility, 300);
+    const updateVisibility = () => {
+      setIsInAllowedSection(sections.hero || sections.skills || sections.footer);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target.id === 'hero-section') {
+            sections.hero = entry.isIntersecting;
+          } else if (entry.target.id === 'skills') {
+            sections.skills = entry.isIntersecting;
+          } else if (entry.target.id === 'footer') {
+            sections.footer = entry.isIntersecting;
+          }
+        });
+        updateVisibility();
+      },
+      { threshold: 0 }
+    );
+
+    if (heroEl) observer.observe(heroEl);
+    if (skillsEl) observer.observe(skillsEl);
+    if (footerEl) observer.observe(footerEl);
 
     return () => {
-      window.removeEventListener('scroll', checkSectionVisibility);
-      clearInterval(visibilityInterval);
+      observer.disconnect();
     };
   }, []);
 

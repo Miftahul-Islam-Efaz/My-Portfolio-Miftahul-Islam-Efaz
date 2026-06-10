@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, useMotionValue, useVelocity, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useVelocity, useSpring, useTransform } from 'motion/react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -71,34 +71,43 @@ export default function Services() {
     if (!isInView) return;
 
     let animFrameId: number;
+    let isRunning = true;
     
     const tick = () => {
+      if (!isRunning || !isInteractingRef.current === false) {
+        // Only drift if not interacting
+      }
       if (!isInteractingRef.current && containerRef.current) {
         const currentX = x.get();
         const minX = constraints.left;
         const maxX = 0;
         
-        // Only drift if the container can scroll and the intro animation is finished or card is inside normal bounds
         if (minX < 0 && currentX <= maxX) {
-          const speed = 0.25; // Continuous subtle drift speed (pixels per frame)
+          const speed = 0.25;
           let nextX = currentX + directionRef.current * speed;
           
           if (nextX <= minX) {
             nextX = minX;
-            directionRef.current = 1; // Slide back to the right
+            directionRef.current = 1;
           } else if (nextX >= maxX) {
             nextX = maxX;
-            directionRef.current = -1; // Resume sliding to the left
+            directionRef.current = -1;
           }
           
           x.set(nextX);
         }
       }
-      animFrameId = requestAnimationFrame(tick);
+      // Only schedule next frame if still running and in view
+      if (isRunning) {
+        animFrameId = requestAnimationFrame(tick);
+      }
     };
     
     animFrameId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animFrameId);
+    return () => {
+      isRunning = false;
+      cancelAnimationFrame(animFrameId);
+    };
   }, [x, constraints, isInView]);
 
   // Elegant progress-bar transformation based on cards-container scroll value

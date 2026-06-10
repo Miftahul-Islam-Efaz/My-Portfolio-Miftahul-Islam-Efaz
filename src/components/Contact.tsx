@@ -130,7 +130,14 @@ export default function Contact() {
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         isInViewport = entry.isIntersecting;
-        setIsVisible(entry.isIntersecting);
+        
+        // Trigger text animation only when at least 40% of the contact section is in view
+        if (entry.intersectionRatio >= 0.40) {
+          setIsVisible(true);
+        } else if (!entry.isIntersecting) {
+          setIsVisible(false);
+        }
+        
         updatePlayback();
 
         // If visible in viewport, periodically monitor opacity of parent container
@@ -145,7 +152,7 @@ export default function Contact() {
           }
         }
       }
-    }, { threshold: 0.01 });
+    }, { threshold: [0.01, 0.40] });
 
     const section = sectionRef.current;
     if (section) {

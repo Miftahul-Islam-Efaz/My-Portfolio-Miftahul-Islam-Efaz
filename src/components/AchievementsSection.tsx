@@ -27,18 +27,31 @@ export default function AchievementsSection() {
       });
     };
 
-    tryPlay();
+    // Only play when section is in viewport to save GPU memory
+    const sectionObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          tryPlay();
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.05 }
+    );
+
+    if (containerRef.current) {
+      sectionObserver.observe(containerRef.current);
+    }
 
     window.addEventListener('click', tryPlay, { once: true });
     window.addEventListener('touchstart', tryPlay, { once: true });
-    window.addEventListener('scroll', tryPlay, { once: true });
     window.addEventListener('audio_preference_changed', tryPlay);
 
     return () => {
       window.removeEventListener('click', tryPlay);
       window.removeEventListener('touchstart', tryPlay);
-      window.removeEventListener('scroll', tryPlay);
       window.removeEventListener('audio_preference_changed', tryPlay);
+      sectionObserver.disconnect();
     };
   }, []);
 
@@ -49,18 +62,32 @@ export default function AchievementsSection() {
   });
 
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 60,
-    damping: 25,
+    stiffness: 100,
+    damping: 30,
     mass: 0.5
   });
 
-  // Track scroll and update steps dynamically (01 <-> 02)
+  // Track scroll and update steps dynamically (01 <-> 02) + play/pause video on scroll
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
     // Scroll ranges from 0 to 1. Threshold of 0.5 switches active achievement tiers.
     if (latest < 0.5) {
       setActiveStep(1);
     } else {
       setActiveStep(2);
+    }
+
+    // Play/pause background WebM video dynamically based on viewport/scroll visibility
+    const video = videoRef.current;
+    if (video) {
+      if (latest > 0 && latest < 0.71 && !isMobile) {
+        if (video.paused && document.visibilityState === 'visible') {
+          video.play().catch(() => {});
+        }
+      } else {
+        if (!video.paused) {
+          video.pause();
+        }
+      }
     }
   });
 
@@ -72,32 +99,35 @@ export default function AchievementsSection() {
   
   // ========== ENHANCED SCROLL PARALLAX EFFECTS ==========
   const bgScale = useTransform(smoothProgress, [0, 1], [1, 1.12]);
-  const bgY = useTransform(smoothProgress, [0, 1], ['-2%', '2%']);
+  const bgY = useTransform(smoothProgress, [0, 1], ['-2vh', '2vh']);
   
-  const smokeY = useTransform(smoothProgress, [0, 1], ['2%', '-4%']);
+  const smokeY = useTransform(smoothProgress, [0, 1], ['2vh', '-4vh']);
   const smokeScale = useTransform(smoothProgress, [0, 1], [0.98, 1.02]);
 
-  const textY = useTransform(smoothProgress, [0, 1], ['-4%', '2%']);
+  const textY = useTransform(smoothProgress, [0, 1], ['-4vh', '2vh']);
   const textScale = useTransform(smoothProgress, [0, 1], [0.82, 0.88]);
 
-  const trophyY = useTransform(smoothProgress, [0, 1], ['1%', '-5%']);
+  const trophyY = useTransform(smoothProgress, [0, 1], ['1vh', '-5vh']);
   const trophyScale = useTransform(smoothProgress, [0, 1], [0.98, 1.04]);
 
   // Dynamic Cinematic Vignette Overlay that intensifies depth as the sequence advances
   const vignetteOpacity = useTransform(smoothProgress, [0, 0.5, 1], [0.2, 0.5, 0.85]);
 
-  // Card Scroll Parallax
-  const groupLeftY_scroll = useTransform(smoothProgress, [0, 1], ['20%', '-20%']);
-  const groupRightY_scroll = useTransform(smoothProgress, [0, 1], ['28%', '-28%']);
+  // Card Scroll Parallax - using absolute viewport height (vh) instead of percentages (%)
+  // to avoid layout recalculation thrashing during scrolling.
+  const groupLeftY_scroll = useTransform(smoothProgress, [0, 1], ['12vh', '-12vh']);
+  const groupRightY_scroll = useTransform(smoothProgress, [0, 1], ['16vh', '-16vh']);
 
   // ========== SHUTTER CURTAIN TRANSITIONS (TRANSITION CHRONOLOGY TO SERVICES) ==========
   // Horizontal cover: progressive meet in the center from progress 0.63 to 0.71 (exact sticky unpin trigger point)
-  const leftCurtainX = useTransform(smoothProgress, [0.63, 0.71, 1.0], ['-100%', '0%', '0%']);
-  const rightCurtainX = useTransform(smoothProgress, [0.63, 0.71, 1.0], ['100%', '0%', '0%']);
+  // Using vw units for hardware-accelerated translations.
+  const leftCurtainX = useTransform(smoothProgress, [0.63, 0.71, 1.0], ['-50vw', '0vw', '0vw']);
+  const rightCurtainX = useTransform(smoothProgress, [0.63, 0.71, 1.0], ['50vw', '0vw', '0vw']);
 
   // Vertical reveal: slide apart vertically (left up, right down) from progress 0.85 to 0.97
-  const leftCurtainY = useTransform(smoothProgress, [0.0, 0.85, 0.97], ['0%', '0%', '-100%']);
-  const rightCurtainY = useTransform(smoothProgress, [0.0, 0.85, 0.97], ['0%', '0%', '100%']);
+  // Using vh units for hardware-accelerated translations.
+  const leftCurtainY = useTransform(smoothProgress, [0.0, 0.85, 0.97], ['0vh', '0vh', '-100vh']);
+  const rightCurtainY = useTransform(smoothProgress, [0.0, 0.85, 0.97], ['0vh', '0vh', '100vh']);
 
   // A glowing central divider line that stretches vertically when the curtains meet
   const dividerScaleY = useTransform(smoothProgress, [0.66, 0.70], [0, 1]);
@@ -107,11 +137,15 @@ export default function AchievementsSection() {
   const transTextOpacity = useTransform(smoothProgress, [0.64, 0.71, 0.83, 0.87], [0, 1, 1, 0]);
   const transTextScale = useTransform(smoothProgress, [0.64, 0.87], [0.96, 1.03]);
 
-  // Performance Booster: Completely toggle CSS display to hide custom curtain/glowing assets once open (progress >= 0.98) 
-  // to avoid browser layout & canvas re-composition updates during scroll on the remainder of the site.
-  const curtainDisplay = useTransform(smoothProgress, (val) => val >= 0.98 ? 'none' : 'flex');
-  const dividerDisplay = useTransform(smoothProgress, (val) => val >= 0.90 ? 'none' : 'block');
-  const transTextDisplay = useTransform(smoothProgress, (val) => val >= 0.97 ? 'none' : 'flex');
+  // Performance Booster: Completely toggle CSS display to hide custom curtain/glowing assets except when active.
+  // This avoids background rendering and compositing layers while scrolling through other sections.
+  const curtainDisplay = useTransform(smoothProgress, (val) => (val >= 0.62 && val < 0.98) ? 'flex' : 'none');
+  const dividerDisplay = useTransform(smoothProgress, (val) => (val >= 0.65 && val < 0.90) ? 'block' : 'none');
+  const transTextDisplay = useTransform(smoothProgress, (val) => (val >= 0.63 && val < 0.97) ? 'flex' : 'none');
+
+  // Sticky container display toggler: hide the achievements content once the curtains cover the viewport (at 0.75)
+  // to prevent rendering of WebM video, trophies, and card layers during the split reveal animation.
+  const stickyDisplay = useTransform(smoothProgress, (val) => val >= 0.75 ? 'none' : 'flex');
 
   if (isMobile) {
     return (
@@ -127,8 +161,8 @@ export default function AchievementsSection() {
         </div>
         
         {/* Subtle, luxurious background glows */}
-        <div className="absolute -left-1/4 top-1/4 w-96 h-96 rounded-full bg-[#b54a4a]/3 blur-[120px] pointer-events-none" />
-        <div className="absolute -right-1/4 bottom-1/4 w-96 h-96 rounded-full bg-[#cfa851]/3 blur-[120px] pointer-events-none" />
+        <div className="absolute -left-1/4 top-1/4 w-96 h-96 rounded-full bg-[#b54a4a]/3 blur-[120px] pointer-events-none transform-gpu will-change-transform" />
+        <div className="absolute -right-1/4 bottom-1/4 w-96 h-96 rounded-full bg-[#cfa851]/3 blur-[120px] pointer-events-none transform-gpu will-change-transform" />
 
         <div className="relative z-10 flex flex-col items-center">
           {/* Elegant Editorial Header */}
@@ -181,17 +215,17 @@ export default function AchievementsSection() {
               initial={{ opacity: 0, scale: 0.88 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="relative w-40 h-40 flex items-center justify-center animate-pulse"
+              className="relative w-40 h-40 flex items-center justify-center animate-pulse transform-gpu will-change-[opacity]"
               style={{ animationDuration: '5s' }}
             >
-              <div className={`absolute w-24 h-24 rounded-full blur-[45px] opacity-15 ${
+              <div className={`absolute w-24 h-24 rounded-full blur-[45px] opacity-15 transform-gpu will-change-transform ${
                 activeStep === 1 ? 'bg-[#b54a4a]' : 'bg-[#cfa851]'
               }`} />
               
               <img
                 src={activeStep === 1 
-                  ? "https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780547474/bronze_Trophy_ep03zn.png"
-                  : "https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780547474/gold_trophy_x8he0r.png"
+                  ? "https://res.cloudinary.com/dr2tc3dyk/image/upload/w_320,q_auto,f_auto/v1780547474/bronze_Trophy_ep03zn.png"
+                  : "https://res.cloudinary.com/dr2tc3dyk/image/upload/w_320,q_auto,f_auto/v1780547474/gold_trophy_x8he0r.png"
                 }
                 alt={activeStep === 1 ? "Bronze Award Trophy" : "Gold Championship Trophy"}
                 className="max-w-full max-h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.85)]"
@@ -226,15 +260,11 @@ export default function AchievementsSection() {
                 >
                   {/* UPGRAD */}
                   <div
-                    onClick={() => setSelectedCert({
-                      url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780745781/Upgrad_Prompt_Engineering_yptpsq.png',
-                      title: 'Upgrad - Generative AI & Prompt Engineering Masterclass Certificate'
-                    })}
-                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center cursor-pointer transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
+                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
                   >
                     <div className="w-16 h-11 bg-black/60 rounded-sm overflow-hidden flex-shrink-0 border border-neutral-900 relative">
                       <img
-                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780745781/Upgrad_Prompt_Engineering_yptpsq.png"
+                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_180,h_120,c_fill,q_auto,f_auto/v1780745781/Upgrad_Prompt_Engineering_yptpsq.png"
                         alt="Upgrad Certificate"
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
@@ -258,15 +288,11 @@ export default function AchievementsSection() {
 
                   {/* WORDPRESS */}
                   <div
-                    onClick={() => setSelectedCert({
-                      url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780746084/wordpress_certificate_znnalh.png',
-                      title: 'Interactive Cares - WordPress Web Development Mastery Certificate'
-                    })}
-                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center cursor-pointer transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
+                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
                   >
                     <div className="w-16 h-11 bg-black/60 rounded-sm overflow-hidden flex-shrink-0 border border-neutral-900 relative">
                       <img
-                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780746084/wordpress_certificate_znnalh.png"
+                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_180,h_120,c_fill,q_auto,f_auto/v1780746084/wordpress_certificate_znnalh.png"
                         alt="WordPress Certificate"
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
@@ -290,15 +316,11 @@ export default function AchievementsSection() {
 
                   {/* HP LIFE */}
                   <div
-                    onClick={() => setSelectedCert({
-                      url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564404/Hp_life_AI_for_Beginners_z1woti.png',
-                      title: 'HP LIFE - AI & Prompt Engineering for Beginners Certificate'
-                    })}
-                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center cursor-pointer transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
+                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
                   >
                     <div className="w-16 h-11 bg-black/60 rounded-sm overflow-hidden flex-shrink-0 border border-neutral-900 relative">
                       <img
-                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564404/Hp_life_AI_for_Beginners_z1woti.png"
+                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_180,h_120,c_fill,q_auto,f_auto/v1780564404/Hp_life_AI_for_Beginners_z1woti.png"
                         alt="HP Life Certificate"
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
@@ -322,15 +344,11 @@ export default function AchievementsSection() {
 
                   {/* INTERACTIVE CARES CHATGPT */}
                   <div
-                    onClick={() => setSelectedCert({
-                      url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564382/Interactive_cares_cvbdcu.png',
-                      title: 'Interactive Cares - ChatGPT with Prompt Engineering Hacks Certificate'
-                    })}
-                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center cursor-pointer transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
+                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
                   >
                     <div className="w-16 h-11 bg-black/60 rounded-sm overflow-hidden flex-shrink-0 border border-neutral-900 relative">
                       <img
-                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564382/Interactive_cares_cvbdcu.png"
+                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_180,h_120,c_fill,q_auto,f_auto/v1780564382/Interactive_cares_cvbdcu.png"
                         alt="ChatGPT Hacks Certificate"
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
@@ -363,15 +381,11 @@ export default function AchievementsSection() {
                 >
                   {/* LABLAB WINNER */}
                   <div
-                    onClick={() => setSelectedCert({
-                      url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564302/Agentic_Economy_on_Arc-certificate_rp3jwq.png',
-                      title: 'LabLab.ai Vibe Coding Hackathon - 1st Place / Winner Certificate'
-                    })}
-                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center cursor-pointer transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
+                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
                   >
                     <div className="w-16 h-11 bg-black/60 rounded-sm overflow-hidden flex-shrink-0 border border-neutral-900 relative">
                       <img
-                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564302/Agentic_Economy_on_Arc-certificate_rp3jwq.png"
+                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_180,h_120,c_fill,q_auto,f_auto/v1780564302/Agentic_Economy_on_Arc-certificate_rp3jwq.png"
                         alt="Lablab ai winner certificate"
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
@@ -395,15 +409,11 @@ export default function AchievementsSection() {
 
                   {/* IMPACT DHAKA */}
                   <div
-                    onClick={() => setSelectedCert({
-                      url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780748387/Impact_Dhaka_hackathon_Certificates_gihlbt.png',
-                      title: 'Impact Dhaka AI Vibe Coding Hackathon - Winner Certificate'
-                    })}
-                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center cursor-pointer transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
+                    className="group bg-[#080809] border border-neutral-900/80 rounded-md overflow-hidden p-3.5 flex gap-4 items-center transition-all duration-300 hover:border-neutral-800 hover:bg-[#0c0c0e]"
                   >
                     <div className="w-16 h-11 bg-black/60 rounded-sm overflow-hidden flex-shrink-0 border border-neutral-900 relative">
                       <img
-                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780748387/Impact_Dhaka_hackathon_Certificates_gihlbt.png"
+                        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_180,h_120,c_fill,q_auto,f_auto/v1780748387/Impact_Dhaka_hackathon_Certificates_gihlbt.png"
                         alt="Impact Dhaka winner certificate"
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
@@ -498,7 +508,8 @@ export default function AchievementsSection() {
       <motion.div 
         style={isMobile ? {} : { 
           scale: containerScale, 
-          opacity: containerOpacity
+          opacity: containerOpacity,
+          display: stickyDisplay
         }}
         className="sticky top-0 w-full h-[100dvh] overflow-hidden flex items-center justify-center will-change-transform"
       >
@@ -509,7 +520,7 @@ export default function AchievementsSection() {
           className="absolute inset-0 w-full h-full select-none z-0 tracking-wider transform-gpu"
         >
           <img
-            src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780561559/background_black_color_fade_effect_202606041425_vazrhc.jpg"
+            src="https://res.cloudinary.com/dr2tc3dyk/image/upload/q_auto,f_auto/v1780561559/background_black_color_fade_effect_202606041425_vazrhc.jpg"
             alt="Atmospheric Background"
             className="w-full h-full object-cover opacity-100"
             referrerPolicy="no-referrer"
@@ -544,7 +555,7 @@ export default function AchievementsSection() {
           className="absolute inset-[0%] w-full h-[120%] -top-[10%] select-none z-20 pointer-events-none transform-gpu"
         >
           <img
-            src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780547474/achievements_text_jsavwh.png"
+            src="https://res.cloudinary.com/dr2tc3dyk/image/upload/q_auto,f_auto/v1780547474/achievements_text_jsavwh.png"
             alt="Achievements Typography"
             className="w-full h-full object-cover scale-[0.8] md:scale-[0.85] -translate-x-[5%] opacity-70 md:opacity-85 filter contrast-[1.1]"
             referrerPolicy="no-referrer"
@@ -560,7 +571,7 @@ export default function AchievementsSection() {
             <motion.img
               animate={{ opacity: activeStep === 1 ? 1 : 0, scale: activeStep === 1 ? 1 : 0.95 }}
               transition={{ duration: 0.8, ease: "easeInOut" }}
-              src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780547474/bronze_Trophy_ep03zn.png"
+              src="https://res.cloudinary.com/dr2tc3dyk/image/upload/h_960,q_auto,f_auto/v1780547474/bronze_Trophy_ep03zn.png"
               alt="Bronze Trophy Cup Model"
               className="absolute bottom-0 h-full w-auto object-contain translate-y-[11%]"
               referrerPolicy="no-referrer"
@@ -568,7 +579,7 @@ export default function AchievementsSection() {
             <motion.img
               animate={{ opacity: activeStep === 2 ? 1 : 0, scale: activeStep === 2 ? 1 : 0.95 }}
               transition={{ duration: 0.8, ease: "easeInOut" }}
-              src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780547474/gold_trophy_x8he0r.png"
+              src="https://res.cloudinary.com/dr2tc3dyk/image/upload/h_960,q_auto,f_auto/v1780547474/gold_trophy_x8he0r.png"
               alt="Gold Trophy Cup Model"
               className="absolute bottom-0 h-full w-auto object-contain translate-y-[15%]"
               referrerPolicy="no-referrer"
@@ -604,15 +615,11 @@ export default function AchievementsSection() {
               >
                 {/* Image 1: Bottom Layer - HP Life Prompt Engineering */}
                 <div 
-                  onClick={() => setSelectedCert({ 
-                    url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564404/Hp_life_AI_for_Beginners_z1woti.png', 
-                    title: 'HP LIFE - AI & Prompt Engineering for Beginners Certificate' 
-                  })}
-                  className="absolute top-[5%] left-[28%] w-[32%] h-[24%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 z-10 cursor-zoom-in hover:border-white/30" 
+                  className="absolute top-[5%] left-[28%] w-[32%] h-[24%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 z-10 cursor-default hover:border-white/30" 
                   style={{ transform: 'translateZ(-50px)' }}
                 >
                   <img
-                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564404/Hp_life_AI_for_Beginners_z1woti.png"
+                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_400,q_auto,f_auto/v1780564404/Hp_life_AI_for_Beginners_z1woti.png"
                     alt="HP LIFE AI for Beginners & Prompt Engineering Certificate"
                     className="w-full h-full object-cover filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
                     referrerPolicy="no-referrer"
@@ -622,15 +629,11 @@ export default function AchievementsSection() {
        
                 {/* Image 2: Middle Sage - Upgrad Prompt Engineering */}
                 <div 
-                  onClick={() => setSelectedCert({ 
-                    url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780745781/Upgrad_Prompt_Engineering_yptpsq.png', 
-                    title: 'Upgrad - Generative AI & Prompt Engineering Masterclass Certificate' 
-                  })}
-                  className="absolute top-[25%] left-[3%] w-[32%] h-[24%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 z-30 cursor-zoom-in hover:border-white/30" 
+                  className="absolute top-[25%] left-[3%] w-[32%] h-[24%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 z-30 cursor-default hover:border-white/30" 
                   style={{ transform: 'translateZ(20px)' }}
                 >
                   <img
-                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780745781/Upgrad_Prompt_Engineering_yptpsq.png"
+                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_400,q_auto,f_auto/v1780745781/Upgrad_Prompt_Engineering_yptpsq.png"
                     alt="Upgrad Prompt Engineering Certificate"
                     className="w-full h-full object-cover filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
                     referrerPolicy="no-referrer"
@@ -640,15 +643,11 @@ export default function AchievementsSection() {
        
                 {/* Image 3: Bottom - Interactive Cares ChatGPT with Prompt Engineering Hacks */}
                 <div 
-                  onClick={() => setSelectedCert({ 
-                    url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564382/Interactive_cares_cvbdcu.png', 
-                    title: 'Interactive Cares - ChatGPT with Prompt Engineering Hacks Certificate' 
-                  })}
-                  className="absolute top-[52%] left-[28%] w-[48%] h-[36%] bg-neutral-950 border border-white/15 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 z-20 cursor-zoom-in hover:border-white/40" 
+                  className="absolute top-[52%] left-[28%] w-[48%] h-[36%] bg-neutral-950 border border-white/15 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 z-20 cursor-default hover:border-white/40" 
                   style={{ transform: 'translateZ(70px)' }}
                 >
                   <img
-                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564382/Interactive_cares_cvbdcu.png"
+                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_400,q_auto,f_auto/v1780564382/Interactive_cares_cvbdcu.png"
                     alt="Interactive Cares ChatGPT with Prompt Engineering Hacks Certificate"
                     className="w-full h-full object-cover filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
                     referrerPolicy="no-referrer"
@@ -681,15 +680,11 @@ export default function AchievementsSection() {
               >
                 {/* Image 1: LabLab Ai Vibe Coding hackathon winner certificate (9:16 aspect ratio, clean design) */}
                 <div 
-                  onClick={() => setSelectedCert({ 
-                    url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564302/Agentic_Economy_on_Arc-certificate_rp3jwq.png', 
-                    title: 'LabLab.ai Vibe Coding Hackathon - 1st Place / Winner Certificate' 
-                  })}
-                  className="absolute top-[4%] left-[12%] w-[48%] h-[58%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 z-10 cursor-zoom-in hover:border-white/30 flex items-center justify-center p-0.5" 
+                  className="absolute top-[4%] left-[12%] w-[48%] h-[58%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 z-10 cursor-default hover:border-white/30 flex items-center justify-center p-0.5" 
                   style={{ transform: 'translateZ(40px)' }}
                 >
                   <img
-                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780564302/Agentic_Economy_on_Arc-certificate_rp3jwq.png"
+                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_400,q_auto,f_auto/v1780564302/Agentic_Economy_on_Arc-certificate_rp3jwq.png"
                     alt="LabLab.ai Vibe Coding Hackathon Winner Certificate"
                     className="w-full h-full object-cover filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                     referrerPolicy="no-referrer"
@@ -740,15 +735,11 @@ export default function AchievementsSection() {
               >
                 {/* Larger Single Portrait Card - WordPress Web Development (scaled to avoid white margins, with grayscale filter) */}
                 <div 
-                  onClick={() => setSelectedCert({ 
-                    url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780746084/wordpress_certificate_znnalh.png', 
-                    title: 'Interactive Cares - WordPress Web Development Mastery Certificate' 
-                  })}
-                  className="absolute top-[16%] left-[8%] w-[84%] h-[48%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 cursor-zoom-in hover:border-white/30" 
+                  className="absolute top-[16%] left-[8%] w-[84%] h-[48%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 cursor-default hover:border-white/30" 
                   style={{ transform: 'translateZ(50px)' }}
                 >
                   <img
-                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780746084/wordpress_certificate_znnalh.png"
+                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_400,q_auto,f_auto/v1780746084/wordpress_certificate_znnalh.png"
                     alt="WordPress Web Development Course Certificate"
                     className="w-full h-full object-cover object-center scale-[1.05] filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-[1.12] transition-all duration-500"
                     referrerPolicy="no-referrer"
@@ -779,15 +770,11 @@ export default function AchievementsSection() {
               >
                 {/* Card 2: Impact Dhaka Ai Vibe Coding Hackathon Winner certificate (4:2.5 ratio, with grayscale hover filter) */}
                 <div 
-                  onClick={() => setSelectedCert({ 
-                    url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780748387/Impact_Dhaka_hackathon_Certificates_gihlbt.png', 
-                    title: 'Impact Dhaka AI Vibe Coding Hackathon - Winner Certificate' 
-                  })}
-                  className="absolute top-[22%] left-[5%] w-[90%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 cursor-zoom-in hover:border-white/30 aspect-[4/2.5] flex items-center justify-center p-0.5" 
+                  className="absolute top-[22%] left-[5%] w-[90%] bg-neutral-950 border border-white/10 overflow-hidden shadow-2xl group rounded-sm transition-all duration-300 cursor-default hover:border-white/30 aspect-[4/2.5] flex items-center justify-center p-0.5" 
                   style={{ transform: 'translateZ(50px)' }}
                 >
                   <img
-                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780748387/Impact_Dhaka_hackathon_Certificates_gihlbt.png"
+                    src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_400,q_auto,f_auto/v1780748387/Impact_Dhaka_hackathon_Certificates_gihlbt.png"
                     alt="Impact Dhaka AI Vibe Coding Hackathon Winner Certificate"
                     className="w-full h-full object-cover filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                     referrerPolicy="no-referrer"

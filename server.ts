@@ -7,6 +7,11 @@ import { createServer as createViteServer } from "vite";
 // Load environment variables
 dotenv.config();
 
+// Auto-detect production mode if running from the compiled dist directory
+if (typeof __dirname !== "undefined" && __dirname.replace(/\\/g, "/").includes("/dist")) {
+  process.env.NODE_ENV = "production";
+}
+
 const app = express();
 const PORT = 3000;
 

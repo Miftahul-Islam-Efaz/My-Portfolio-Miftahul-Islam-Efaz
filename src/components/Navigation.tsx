@@ -12,7 +12,6 @@ interface MenuLinkProps {
 
 const MenuLink: React.FC<MenuLinkProps> = ({ label, index, color, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const chars = label.split('');
 
   return (
     <a
@@ -34,31 +33,22 @@ const MenuLink: React.FC<MenuLinkProps> = ({ label, index, color, onClick }) => 
         <span className="font-sans text-[10px] md:text-xs tracking-widest font-light select-none text-neutral-400 group-hover:text-neutral-800 transition-colors">)</span >
       </div>
 
-      {/* Letter by letter character space animation on mount */}
+      {/* Unified word slide-in animation on mount */}
       <div className="relative flex overflow-visible">
-        <div 
+        <motion.div 
+          initial={{ x: 30, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{
+            type: "tween",
+            ease: "easeOut",
+            duration: 0.4,
+            delay: index * 0.05
+          }}
+          style={{ willChange: 'transform, opacity' }}
           className="flex font-display uppercase text-[clamp(16px,4vh,38px)] font-black tracking-tight text-neutral-400 group-hover:text-neutral-900 transition-colors duration-300 leading-[1.1]"
         >
-          {chars.map((char, i) => (
-            <motion.span
-              key={i}
-              initial={{ x: 45, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{
-                type: "tween",
-                ease: "easeOut",
-                duration: 0.35,
-                delay: index * 0.04 + i * 0.01
-              }}
-              className={cn(
-                "inline-block",
-                char === ' ' ? "mr-[0.25em]" : ""
-              )}
-            >
-              {char}
-            </motion.span>
-          ))}
-        </div>
+          {label}
+        </motion.div>
 
         {/* Luxury strike-through slash over the text */}
         <motion.span
@@ -81,6 +71,22 @@ export default function Navigation() {
   const [time, setTime] = useState('');
   const [activePhraseIndex, setActivePhraseIndex] = useState(0);
   const blocksRef = useRef<(HTMLDivElement | null)[]>([]);
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnterMenu = () => {
+    if (isMobile) return;
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      setIsMenuOpen(true);
+    }, 80); // 80ms hover intent delay to prevent accidental trigger (feels instant but gates fast sweeps)
+  };
+
+  const handleMouseLeaveMenu = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -121,6 +127,7 @@ export default function Navigation() {
   // Sync scroll lock of Lenis on menu open
   useEffect(() => {
     if (isMenuOpen) {
+      document.documentElement.classList.add('menu-open');
       if ((window as any).lenis) {
         // Settle scroll animation immediately at current scroll position to prevent jumps
         const currentScroll = (window as any).lenis.scroll || window.scrollY;
@@ -128,11 +135,13 @@ export default function Navigation() {
         (window as any).lenis.stop();
       }
     } else {
+      document.documentElement.classList.remove('menu-open');
       if ((window as any).lenis) {
         (window as any).lenis.start();
       }
     }
     return () => {
+      document.documentElement.classList.remove('menu-open');
       if ((window as any).lenis) {
         (window as any).lenis.start();
       }
@@ -292,19 +301,18 @@ export default function Navigation() {
     }, "+=0.1");
   };
 
-  // Grid dimensions for pixel transition
-  const GRID_ROWS = 15;
-  const GRID_COLS = 20;
+  // Grid dimensions for pixel transition - optimized to 48 blocks for butter-smooth scrolling
+  const GRID_ROWS = 6;
+  const GRID_COLS = 8;
   const totalBlocks = GRID_ROWS * GRID_COLS;
 
   return (
     <>
-      {!isMobile && (
+      {/* Pixel grid transition — lazy-mounted only when actively transitioning to avoid
+          300 dark DOM nodes causing the black-screen flash when menu opens */}
+      {!isMobile && isTransitioning && (
         <div 
-          className={cn(
-            "fixed inset-0 z-[99998] flex flex-wrap",
-            isTransitioning ? "pointer-events-auto" : "pointer-events-none"
-          )}
+          className={"fixed inset-0 z-[99998] pointer-events-auto"}
           style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
@@ -315,8 +323,9 @@ export default function Navigation() {
             <div 
               key={i} 
               ref={el => { blocksRef.current[i] = el; }}
-              className="w-full h-full bg-[var(--color-eerie)] opacity-0"
+              className="w-full h-full opacity-0"
               style={{ 
+                backgroundColor: 'var(--color-eerie)',
                 transform: 'scale(0)',
                 transformOrigin: 'center center'
               }}
@@ -345,18 +354,20 @@ export default function Navigation() {
 
         {/* Center Hover-Activated Menu Button */}
         <div className="flex items-center justify-end md:justify-center relative flex-1 z-10">
-          <motion.button
-            onMouseEnter={() => !isMobile && setIsMenuOpen(true)}
-            onClick={() => setIsMenuOpen(prev => !prev)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="outline-none border-none bg-transparent text-white font-mono text-[11px] md:text-xs tracking-[0.3em] uppercase cursor-pointer py-2 px-4 md:px-6 relative group select-none"
+          <button
+            onMouseEnter={handleMouseEnterMenu}
+            onMouseLeave={handleMouseLeaveMenu}
+            onClick={() => {
+              handleMouseLeaveMenu();
+              setIsMenuOpen(prev => !prev);
+            }}
+            className="outline-none border-none bg-transparent text-white font-mono text-[11px] md:text-xs tracking-[0.3em] uppercase cursor-pointer py-2 px-4 md:px-6 relative group select-none transition-transform duration-150 active:scale-95"
           >
             <span className="relative z-10 group-hover:text-[#b54a4a] transition-colors duration-300">
               MENU
             </span>
             <span className="absolute bottom-1 left-4 right-4 md:left-6 md:right-6 h-[1px] bg-white scale-x-0 group-hover:scale-x-100 group-hover:bg-[#b54a4a] origin-left transition-all duration-500 ease-out" />
-          </motion.button>
+          </button>
         </div>
 
         {/* Right Let's Talk CTA */}
@@ -401,8 +412,9 @@ export default function Navigation() {
               initial={{ x: '-100%' }}
               animate={{ x: '0%' }}
               exit={{ x: '-100%' }}
-              transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
-              className="hidden md:flex w-1/2 h-full bg-[#030202]/95 relative flex-col justify-between p-12 border-r border-neutral-800/40 select-none overflow-hidden"
+              transition={{ duration: 0.45, ease: [0.25, 1, 0.5, 1] }}
+              style={{ willChange: 'transform' }}
+              className="hidden md:flex w-1/2 h-full bg-[#030202] relative flex-col justify-between p-12 border-r border-neutral-800/40 select-none overflow-hidden"
             >
               {/* Top Left Label */}
               <div className="flex justify-between items-center w-full">
@@ -414,10 +426,8 @@ export default function Navigation() {
                 </span>
               </div>
 
-              {/* Center Spinning Grid Details behind text (minimally animated with lower opacity) */}
-              <motion.div 
-                animate={{ backgroundPosition: ["0px 0px", "60px 60px"] }}
-                transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
+              {/* Center Static Grid Details behind text (no repaint overhead) */}
+              <div 
                 className="absolute inset-0 opacity-[0.18] bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none" 
               />
 
@@ -466,7 +476,8 @@ export default function Navigation() {
               initial={{ x: '100%' }}
               animate={{ x: '0%' }}
               exit={{ x: '100%' }}
-              transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
+              transition={{ duration: 0.45, ease: [0.25, 1, 0.5, 1] }}
+              style={{ willChange: 'transform' }}
               className="w-full md:w-1/2 h-full bg-[#f2f0f1] relative flex flex-col justify-center px-6 md:px-16 lg:px-24"
             >
               {/* Close Button at top corner */}

@@ -133,11 +133,11 @@ const Hero = React.memo(function Hero({
 
       // 1. Butter-smooth fade in of the entire section background with parallax feeling
       tl.fromTo(containerRef.current, 
-        { opacity: 0, y: 50 }, 
+        { opacity: 0, y: 30 }, 
         {
           opacity: 1,
           y: 0,
-          duration: 1.8,
+          duration: 1.2,
           ease: 'power3.out',
           force3D: true,
         }
@@ -145,16 +145,16 @@ const Hero = React.memo(function Hero({
 
       // 3. Stagger inner components smoothly drifting up like butter
       tl.fromTo('.hero-element', 
-        { y: 40, opacity: 0 },
+        { y: 30, opacity: 0 },
         {
           y: 0,
           opacity: 1,
-          duration: 1.5,
-          stagger: 0.1,
+          duration: 1.0,
+          stagger: 0.08,
           ease: 'power3.out',
           force3D: true,
         }, 
-        "-=1.4"
+        "-=1.0"
       );
 
       if (nameRef.current) {
@@ -280,14 +280,16 @@ const Hero = React.memo(function Hero({
       className="relative min-h-screen w-full flex flex-col justify-center md:flex-row md:justify-start items-center px-[clamp(1rem,5vw,4rem)] pt-24 pb-24 md:pt-20 md:pb-0 overflow-hidden"
       style={{ perspective: '1200px' }}
     >
-      {/* Native background video */}
+      {/* Native background video - optimized with Cloudinary auto-format/auto-quality and poster fallback */}
       <video
         ref={videoRef}
-        src="https://res.cloudinary.com/dr2tc3dyk/video/upload/v1780723250/hero_section_video_q01df4.mp4"
+        src="https://res.cloudinary.com/dr2tc3dyk/video/upload/q_auto,f_auto/v1780723250/hero_section_video_q01df4.mp4"
         className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0"
         loop
         muted
         playsInline
+        preload="auto"
+        poster="https://res.cloudinary.com/dr2tc3dyk/video/upload/v1780723250/hero_section_video_q01df4.jpg"
       />
 
       {/* LEFT COLUMN */}

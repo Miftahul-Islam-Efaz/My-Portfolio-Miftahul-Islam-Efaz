@@ -106,12 +106,10 @@ export const DockItem = ({ mouseX, children }: DockItemProps) => {
     const timer2 = setTimeout(updateBounds, 3000); // safety fallback
 
     window.addEventListener("resize", updateBounds);
-    window.addEventListener("scroll", updateBounds, { passive: true });
     return () => {
       clearTimeout(timer);
       clearTimeout(timer2);
       window.removeEventListener("resize", updateBounds);
-      window.removeEventListener("scroll", updateBounds);
     };
   }, []);
 

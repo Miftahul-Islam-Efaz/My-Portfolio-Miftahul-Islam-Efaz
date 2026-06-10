@@ -72,7 +72,7 @@ const RevealLoader = ({
     // 1. Smoothly animate progress percentage from 0 to 100 with an elegant deceleration
     tl.to(obj, {
       val: 100,
-      duration: 3.0,
+      duration: 2.0,
       ease: "power2.out",
       onUpdate: () => {
         const currentProgress = Math.round(obj.val);
@@ -89,8 +89,8 @@ const RevealLoader = ({
     // Smoothly scale the ambient glow
     if (glowRef.current) {
       tl.to(glowRef.current, {
-        scale: 1.285, // 1 + 100/350
-        duration: 3.0,
+        scale: 1.285,
+        duration: 2.0,
         ease: "power2.out",
         force3D: true
       }, 0);
@@ -102,12 +102,12 @@ const RevealLoader = ({
       duration: 0.2,
       ease: "none",
       force3D: true
-    }, 2.85);
+    }, 1.85);
 
     // 2. Animate the progress bar line cleanly in perfect sync using scaleX
     tl.to(barRef.current, {
       scaleX: 1,
-      duration: 3.0,
+      duration: 2.0,
       ease: "power2.out",
       force3D: true,
     }, 0);
@@ -119,19 +119,19 @@ const RevealLoader = ({
       x: 0,
       y: 0,
       rotation: 0,
-      duration: 2.0,
+      duration: 1.5,
       ease: "power3.out",
       force3D: true,
       stagger: {
-        each: 0.05,
+        each: 0.04,
         from: "start",
       }
-    }, 0.2);
+    }, 0.15);
 
-    // 4. Curtain Pull up exit transition (with a luxurious 0.3s pause)
+    // 4. Curtain Pull up exit transition
     tl.to(containerRef.current, {
       yPercent: -100,
-      duration: 1.5,
+      duration: 1.0,
       ease: "power4.inOut",
       force3D: true,
       onStart: () => {
@@ -142,7 +142,7 @@ const RevealLoader = ({
         setIsDone(true);
         if (onExitComplete) onExitComplete();
       }
-    }, "+=0.3");
+    }, "+=0.1");
 
   }, { scope: containerRef, dependencies: [isStarted, fontsLoaded] });
 

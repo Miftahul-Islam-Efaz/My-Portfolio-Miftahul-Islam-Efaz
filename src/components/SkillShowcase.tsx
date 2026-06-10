@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
+import { Canvas, useFrame, invalidate } from '@react-three/fiber';
+import { useGLTF, useProgress } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface Skill {
@@ -145,6 +145,7 @@ function Scene({
   const { scene, materials } = useGLTF(gltfPath) as any;
   const pathMatRef = useRef<THREE.ShaderMaterial | null>(null);
   const currentTRef = useRef(0);
+  const lastFactorsRef = useRef<number[]>(new Array(SKILL_DATA.length).fill(-1));
   const layoutRef = useRef({
     top: 0,
     maxScroll: 1,
@@ -375,6 +376,11 @@ function Scene({
     currentTRef.current = Math.min(1, Math.max(0, THREE.MathUtils.lerp(currentTRef.current, targetT, 0.20)));
     const t = currentTRef.current;
 
+    // Invalidate to request next frame only if scroll is still changing (demand rendering)
+    if (Math.abs(currentTRef.current - targetT) > 0.0005) {
+      state.invalidate();
+    }
+
     // --- STATION-TO-STATION CAMERA SYSTEM ---
     const stations = [
       { cam: [0.0, 2.4, 18.0], look: [0.0, 0.8, 12.0] },
@@ -427,7 +433,7 @@ function Scene({
     let activeLightIndex = 0;
 
     // --- SKILL PROXIMITY GLOWS & SOLID TRANSITIONS ---
-    SKILL_DATA.forEach((skill) => {
+    SKILL_DATA.forEach((skill, idx) => {
       const relativeZ = pathZ - skill.z;
 
       // Calculate activation factor
@@ -436,44 +442,50 @@ function Scene({
         factor = Math.min(1.0, (6.5 - relativeZ) / 7.5);
       }
 
-      // Proactive Visibility Culling: Make meshes completely invisible if out of view
-      const placeholder = sceneObjectsCacheRef.current[skill.placeholderName];
-      if (placeholder) {
-        placeholder.visible = factor > 0.005;
-      }
-      const textMesh = sceneObjectsCacheRef.current[`Text_${skill.name}`];
-      if (textMesh) {
-        textMesh.visible = factor > 0.005;
-      }
+      // Optimize: Only write to material properties and toggle visibility if the factor changed significantly
+      const lastFactor = lastFactorsRef.current[idx];
+      if (Math.abs(lastFactor - factor) > 0.001) {
+        lastFactorsRef.current[idx] = factor;
 
-      // Glow Material Transition (smooth opacity, no rebuild instructions)
-      skill.glowMaterialNames.forEach((matName) => {
-        const mat = materialsCacheRef.current[matName];
-        if (mat) {
-          mat.opacity = factor;
-          mat.emissiveIntensity = factor * 2.0;
+        // Proactive Visibility Culling: Make meshes completely invisible if out of view
+        const placeholder = sceneObjectsCacheRef.current[skill.placeholderName];
+        if (placeholder) {
+          placeholder.visible = factor > 0.005;
         }
-      });
+        const textMesh = sceneObjectsCacheRef.current[`Text_${skill.name}`];
+        if (textMesh) {
+          textMesh.visible = factor > 0.005;
+        }
 
-      // Fade Material Transition (solid phone casing, screen textures)
-      skill.fadeMaterialNames.forEach((matName) => {
-        const mat = materialsCacheRef.current[matName];
-        if (mat) {
-          mat.opacity = factor;
-          if (matName === 'UIUX_PhoneScreen_Material') {
-            mat.emissiveIntensity = factor * 0.45;
+        // Glow Material Transition (smooth opacity, no rebuild instructions)
+        skill.glowMaterialNames.forEach((matName) => {
+          const mat = materialsCacheRef.current[matName];
+          if (mat) {
+            mat.opacity = factor;
+            mat.emissiveIntensity = factor * 2.0;
           }
-        }
-      });
+        });
 
-      // Cloned Text Material Transition
-      const clonedMat = textMatsCacheRef.current[skill.name];
-      if (clonedMat) {
-        clonedMat.opacity = factor;
-        clonedMat.emissiveIntensity = factor * 1.5;
+        // Fade Material Transition (solid phone casing, screen textures)
+        skill.fadeMaterialNames.forEach((matName) => {
+          const mat = materialsCacheRef.current[matName];
+          if (mat) {
+            mat.opacity = factor;
+            if (matName === 'UIUX_PhoneScreen_Material') {
+              mat.emissiveIntensity = factor * 0.45;
+            }
+          }
+        });
+
+        // Cloned Text Material Transition
+        const clonedMat = textMatsCacheRef.current[skill.name];
+        if (clonedMat) {
+          clonedMat.opacity = factor;
+          clonedMat.emissiveIntensity = factor * 1.5;
+        }
       }
 
-      // Dynamically hand-off one of the 2 dynamic point lights to this skill if it is active
+      // Dynamically hand-off one of the 2 dynamic point lights to this skill if it is active (needs to run every frame since lights are reset)
       if (factor > 0.01 && activeLightIndex < 2) {
         const targetLight = activeLightIndex === 0 ? light1Ref.current : light2Ref.current;
         if (targetLight) {
@@ -490,7 +502,7 @@ function Scene({
 }
 
 export default function SkillShowcase({ 
-  gltfPath = '/assets/portfolio_2nd_section_updated.glb', 
+  gltfPath = '/portfolio_2nd_section_eiyd6w.glb', 
   height = '800vh',
   customContainerRef,
   isStarted = false
@@ -529,20 +541,48 @@ export default function SkillShowcase({
     observer.observe(target);
     return () => observer.disconnect();
   }, [customContainerRef, isMobile]);
+
+  useEffect(() => {
+    if (!isStarted || !isVisible) return;
+    const handleScroll = () => {
+      invalidate();
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isStarted, isVisible]);
   
+  const { active, progress } = useProgress();
+
   if (customContainerRef) {
     return (
-      <div id="skills" style={{ width: '100%', height: '100%', overflow: 'hidden' }} ref={containerRef}>
+      <div id="skills" style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }} ref={containerRef}>
+        {isStarted && active && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 pointer-events-none transition-opacity duration-300">
+            <div className="font-michroma text-[9px] text-neutral-400 tracking-[0.2em] uppercase mb-3 select-none">
+              Loading Skills 3D Engine
+            </div>
+            <div className="w-48 h-[2px] bg-neutral-900 relative overflow-hidden rounded-full">
+              <div 
+                className="absolute top-0 left-0 h-full bg-white transition-all duration-300 ease-out" 
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="font-mono text-[9px] text-neutral-500 mt-2 tracking-widest select-none">
+              {Math.round(progress)}%
+            </div>
+          </div>
+        )}
         {isStarted && (
           <Canvas
             camera={{ position: [0, 2.5, 18], fov: 45 }}
+            frameloop="demand"
             gl={{ 
-              antialias: !isMobile, 
+              antialias: false, 
               powerPreference: 'high-performance',
               toneMapping: THREE.ACESFilmicToneMapping,
               alpha: true
             }}
-            dpr={1}
+            dpr={isMobile ? 0.75 : 1}
           >
             <ambientLight intensity={0.08} />
             {/* Studio three-point lighting for glossy highlights and well-lit silver models */}
@@ -559,17 +599,35 @@ export default function SkillShowcase({
     <div id="skills" ref={containerRef} style={{ position: 'relative', width: '100%', height: height, background: '#000' }}>
       <div style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden' }}>
         
+        {isStarted && active && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 pointer-events-none transition-opacity duration-300">
+            <div className="font-michroma text-[9px] text-neutral-400 tracking-[0.2em] uppercase mb-3 select-none">
+              Loading Skills 3D Engine
+            </div>
+            <div className="w-48 h-[2px] bg-neutral-900 relative overflow-hidden rounded-full">
+              <div 
+                className="absolute top-0 left-0 h-full bg-white transition-all duration-300 ease-out" 
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="font-mono text-[9px] text-neutral-500 mt-2 tracking-widest select-none">
+              {Math.round(progress)}%
+            </div>
+          </div>
+        )}
+
         <div style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
           {isStarted && (
             <Canvas
               camera={{ position: [0, 2.5, 18], fov: 45 }}
+              frameloop="demand"
               gl={{ 
-                antialias: !isMobile, 
+                antialias: false, 
                 powerPreference: 'high-performance',
                 toneMapping: THREE.ACESFilmicToneMapping,
                 alpha: true
               }}
-              dpr={1}
+              dpr={isMobile ? 0.75 : 1}
             >
               <ambientLight intensity={0.08} />
               <directionalLight position={[0, 10, -5]} intensity={0.3} />
@@ -583,6 +641,9 @@ export default function SkillShowcase({
   );
 }
 
+// Defer preload to avoid competing with loader for bandwidth on startup
 if (typeof window !== 'undefined' && window.innerWidth > 768) {
-  useGLTF.preload('/assets/portfolio_2nd_section_updated.glb');
+  setTimeout(() => {
+    useGLTF.preload('/portfolio_2nd_section_eiyd6w.glb');
+  }, 1000); // preloads after 1s for immediate display since served locally
 }

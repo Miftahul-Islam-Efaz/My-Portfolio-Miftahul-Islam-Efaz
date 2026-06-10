@@ -218,7 +218,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: true });
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: false });
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
@@ -247,7 +247,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
       width = innerWidth;
       height = innerHeight;
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Capped ratio for performance
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0)); // Cap at 1.0 for performance
       material.uniforms.u_resolution.value.set(width, height);
       lastProgress = -1; // Force re-render
     };

@@ -50,8 +50,13 @@ export default function CustomCursor() {
     document.documentElement.classList.add('in-hero-section');
     checkHeroSection();
 
+    let checkHeroRafId: number | null = null;
     const onScroll = () => {
-      checkHeroSection();
+      if (checkHeroRafId !== null) return;
+      checkHeroRafId = requestAnimationFrame(() => {
+        checkHeroSection();
+        checkHeroRafId = null;
+      });
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -175,6 +180,9 @@ export default function CustomCursor() {
     document.documentElement.addEventListener('mouseenter', handleMouseEnter);
 
     return () => {
+      if (checkHeroRafId !== null) {
+        cancelAnimationFrame(checkHeroRafId);
+      }
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
       window.removeEventListener('mousemove', onMouseMove);

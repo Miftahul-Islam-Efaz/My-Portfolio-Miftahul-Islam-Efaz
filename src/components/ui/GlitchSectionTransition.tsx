@@ -29,6 +29,7 @@ export default function GlitchSectionTransition({
   const progressRef = useRef(0);
   const isActiveRef = useRef(false);
   const outcomesTopRef = useRef<number>(0);
+  const frameCounterRef = useRef(0);
 
   const isLoopingRef = useRef(false);
   const animationFrameIdRef = useRef<number | null>(null);
@@ -53,6 +54,10 @@ export default function GlitchSectionTransition({
           const pVal = progressRef.current;
           const { blockSize } = gridConfigRef.current;
           const cells = cellsRef.current;
+
+          // Throttle scramble to every 4th frame to reduce CPU cost
+          frameCounterRef.current = (frameCounterRef.current + 1) % 4;
+          const shouldScramble = frameCounterRef.current === 0;
 
           // Process Phase Cover & Reveal
           let pCover = 0;
@@ -83,8 +88,8 @@ export default function GlitchSectionTransition({
             const isDissolved = pReveal >= cell.thresholdReveal;
             if (isDissolved) continue;
 
-            // Scramble active cell characters randomly for digital noise aesthetics
-            if (Math.random() < 0.16) {
+            // Scramble active cell characters — throttled to every 4th frame
+            if (shouldScramble && Math.random() < 0.16) {
               cell.char = CHARS[Math.floor(Math.random() * CHARS.length)];
             }
 
@@ -141,8 +146,8 @@ export default function GlitchSectionTransition({
       const width = window.innerWidth;
       const height = window.innerHeight;
 
-      // Mobile responsive block size - larger blocks on mobile to render buttery smooth & high performance
-      const blockSize = width > 768 ? 24 : 24;
+      // Mobile responsive block size - larger blocks on mobile to reduce cell count & improve performance
+      const blockSize = width > 768 ? 24 : 32;
       gridConfigRef.current.blockSize = blockSize;
 
       const cols = Math.ceil(width / blockSize);

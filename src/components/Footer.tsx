@@ -96,6 +96,8 @@ export default function Footer() {
     updateCache();
     const timeoutId = setTimeout(updateCache, 150);
 
+    let rafId: number | null = null;
+
     const handleScroll = () => {
       const absoluteTop = cachedAbsoluteTopRef.current;
       const totalHeight = cachedTotalHeightRef.current;
@@ -107,37 +109,45 @@ export default function Footer() {
       if (top > window.innerHeight || top + totalHeight < 0) {
         return;
       }
-      
-      // Calculate normalized overall scroll progress p (0.0 to 1.0)
-      const scrollRange = totalHeight - window.innerHeight;
-      if (scrollRange <= 0) return;
-      
-      let p = -top / scrollRange;
-      p = Math.max(0, Math.min(1, p));
-      
-      // Calculate individual elements' parallax translations based on the scroll progress 'p'
-      // Layer 1: Deep background image (slowest motion)
-      if (bgImgRef.current) {
-        const bgY = (p - 0.5) * -40; // 40px travel range
-        bgImgRef.current.style.transform = `scale(1.08) translate3d(0, ${bgY}px, 0)`;
-      }
-      
-      // Layer 2: Midground name text "MIFTAHUL" (medium motion)
-      if (textRef.current) {
-        const isMobile = window.innerWidth < 768;
-        const textTravel = isMobile ? 40 : 120;
-        const textY = (p - 0.5) * -textTravel; // Scaled down on mobile to prevent collisions
-        const scaleY = 1.4; // Keep designed aspect ratio structure
-        textRef.current.style.transform = `translate3d(0, ${textY}px, 0) scaleY(${scaleY})`;
-      }
-      
-      // Layer 3: Foreground photo card (fastest motion)
-      if (photoRef.current) {
-        const isMobile = window.innerWidth < 768;
-        const travelY = isMobile ? 80 : 260; // Safe tight motion window on mobile devices
-        const photoY = (p - 0.5) * -travelY; 
-        photoRef.current.style.transform = `translate3d(0, ${photoY}px, 0)`;
-      }
+
+      // RAF guard: only update DOM once per animation frame
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const top2 = cachedAbsoluteTopRef.current - window.scrollY;
+        const totalHeight2 = cachedTotalHeightRef.current;
+        
+        // Calculate normalized overall scroll progress p (0.0 to 1.0)
+        const scrollRange = totalHeight2 - window.innerHeight;
+        if (scrollRange <= 0) return;
+        
+        let p = -top2 / scrollRange;
+        p = Math.max(0, Math.min(1, p));
+        
+        // Calculate individual elements' parallax translations based on the scroll progress 'p'
+        // Layer 1: Deep background image (slowest motion)
+        if (bgImgRef.current) {
+          const bgY = (p - 0.5) * -40; // 40px travel range
+          bgImgRef.current.style.transform = `scale(1.08) translate3d(0, ${bgY}px, 0)`;
+        }
+        
+        // Layer 2: Midground name text "MIFTAHUL" (medium motion)
+        if (textRef.current) {
+          const isMobile = window.innerWidth < 768;
+          const textTravel = isMobile ? 40 : 120;
+          const textY = (p - 0.5) * -textTravel;
+          const scaleY = 1.4;
+          textRef.current.style.transform = `translate3d(0, ${textY}px, 0) scaleY(${scaleY})`;
+        }
+        
+        // Layer 3: Foreground photo card (fastest motion)
+        if (photoRef.current) {
+          const isMobile = window.innerWidth < 768;
+          const travelY = isMobile ? 80 : 260;
+          const photoY = (p - 0.5) * -travelY; 
+          photoRef.current.style.transform = `translate3d(0, ${photoY}px, 0)`;
+        }
+      });
     };
     
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -149,6 +159,7 @@ export default function Footer() {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', updateCache);
       clearTimeout(timeoutId);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, []);
 
