@@ -66,50 +66,6 @@ export default function Services() {
     };
   }, []);
 
-  // Auto-scrolling drift effect
-  useEffect(() => {
-    if (!isInView) return;
-
-    let animFrameId: number;
-    let isRunning = true;
-    
-    const tick = () => {
-      if (!isRunning || !isInteractingRef.current === false) {
-        // Only drift if not interacting
-      }
-      if (!isInteractingRef.current && containerRef.current) {
-        const currentX = x.get();
-        const minX = constraints.left;
-        const maxX = 0;
-        
-        if (minX < 0 && currentX <= maxX) {
-          const speed = 0.25;
-          let nextX = currentX + directionRef.current * speed;
-          
-          if (nextX <= minX) {
-            nextX = minX;
-            directionRef.current = 1;
-          } else if (nextX >= maxX) {
-            nextX = maxX;
-            directionRef.current = -1;
-          }
-          
-          x.set(nextX);
-        }
-      }
-      // Only schedule next frame if still running and in view
-      if (isRunning) {
-        animFrameId = requestAnimationFrame(tick);
-      }
-    };
-    
-    animFrameId = requestAnimationFrame(tick);
-    return () => {
-      isRunning = false;
-      cancelAnimationFrame(animFrameId);
-    };
-  }, [x, constraints, isInView]);
-
   // Elegant progress-bar transformation based on cards-container scroll value
   const progressBarX = useTransform(
     x,
@@ -131,40 +87,52 @@ export default function Services() {
     const timeoutId = setTimeout(updateConstraints, 100);
     window.addEventListener('resize', updateConstraints);
     
-    // Card Intro Animation with real physics (Framer hook integration) mapping to ScrollTrigger
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let introTween: gsap.core.Tween | null = null;
-    if (!prefersReducedMotion && containerRef.current) {
-      // Start container far right for right-to-left intro. No opacity fade, cards are fully firm and present.
-      const proxy = { x: window.innerWidth * 1.5 };
-      x.set(proxy.x);
-      
-      introTween = gsap.to(proxy, {
-        x: 0,
-        duration: 1.3, // Increased speed for realistic inertia and sudden stop simulation
-        ease: 'power3.out', // Snaps fast out but gracefully decelerates, causing physics spring to catch intense inertia
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top 10%', // Triggers exactly when 90% of the section is visible in top of UI
-          once: true
-        },
-        onUpdate: () => {
-          x.set(proxy.x); // Fast X updates push heavy velocity right-to-left, causing natural tilt & bounce on halt
-        }
-      });
-    }
-
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('resize', updateConstraints);
-      if (introTween) {
-        introTween.kill();
-        if (introTween.scrollTrigger) {
-          introTween.scrollTrigger.kill();
-        }
+    };
+  }, []);
+
+  // Synchronized Vertical-to-Horizontal Pinning ScrollTrigger
+  useEffect(() => {
+    if (constraints.left >= 0) return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Use a proxy object for smooth interpolation with GSAP
+    const proxy = { value: x.get() };
+    
+    const scrollTween = gsap.to(proxy, {
+      value: constraints.left,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: sectionRef.current,
+        pin: true,
+        start: 'top top',
+        // The pinning duration is proportional to the width of the cards
+        end: () => `+=${Math.max(1200, Math.abs(constraints.left) * 1.2)}`,
+        scrub: 0.6, // Luxurious tactile response with a small catch-up delay for premium feel
+        invalidateOnRefresh: true,
+        onUpdate: () => {
+          // If the user is currently drag-interacting, we bypass ScrollTrigger updates to prevent fights!
+          if (!isInteractingRef.current) {
+            x.set(proxy.value);
+          } else {
+            // Keep the scroll proxy synchronized with user drag position
+            proxy.value = x.get();
+          }
+        },
+      },
+    });
+
+    return () => {
+      scrollTween.kill();
+      if (scrollTween.scrollTrigger) {
+        scrollTween.scrollTrigger.kill(true);
       }
     };
-  }, [x]);
+  }, [constraints.left, x]);
 
   return (
     <section id="services" ref={sectionRef} className="hanging-services-section">
@@ -179,13 +147,17 @@ export default function Services() {
       <style>{`
         .hanging-services-section {
             background: var(--color-eerie);
-            padding: 120px 0 120px;
+            padding: 60px 0;
             position: relative;
             overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         .hanging-services-section .section-header {
-            max-width: 1400px;
-            margin: 0 auto 60px;
+            width: 100%;
+            margin: 0 0 30px 0;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
