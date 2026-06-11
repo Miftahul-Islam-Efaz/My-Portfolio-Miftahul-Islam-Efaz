@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { Github, Linkedin, Briefcase, Mail } from 'lucide-react';
+import { Github, Linkedin, Briefcase, Mail, Instagram, Twitter, Facebook } from 'lucide-react';
 import { supabase, DatabaseVideoSettings } from '../lib/supabase';
 
 export default function Contact() {
@@ -186,13 +186,20 @@ export default function Contact() {
     }
   }, [isVisible, hasAnimated]);
 
+  const getOptimizedVideoUrl = (url: string) => {
+    if (url && url.includes('cloudinary.com') && !url.includes('q_auto')) {
+      return url.replace('/video/upload/', '/video/upload/q_auto,f_auto/');
+    }
+    return url;
+  };
+
   return (
     <section id="contact" ref={sectionRef} className="relative w-full px-[clamp(1.5rem,5vw,4rem)] py-24 md:py-32 overflow-hidden flex flex-col justify-center bg-transparent">
       {/* Dynamic Background Video from Supabase - uses key to force reload index on video source updates */}
       <video
-        key={settings.video_url}
+        key={getOptimizedVideoUrl(settings.video_url)}
         ref={videoRef}
-        src={settings.video_url}
+        src={getOptimizedVideoUrl(settings.video_url)}
         className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none transition-opacity duration-700"
         style={{ opacity: settings.video_opacity }}
         loop={settings.loop_video}
@@ -342,10 +349,61 @@ export default function Contact() {
               <p>Dhaka, Bangladesh</p>
             </div>
 
-            <div className="flex gap-6 mb-12">
-              <a href="#" className="text-[var(--color-pearl)]/70 hover:text-[var(--color-pearl)] transition-colors hover:scale-110 transform"><Github size={24} /></a>
-              <a href="#" className="text-[var(--color-pearl)]/70 hover:text-[var(--color-pearl)] transition-colors hover:scale-110 transform"><Linkedin size={24} /></a>
-              <a href="#" className="text-[var(--color-pearl)]/70 hover:text-[var(--color-pearl)] transition-colors hover:scale-110 transform"><Briefcase size={24} /></a>
+            <div className="flex gap-6 mb-12 flex-wrap">
+              <a 
+                href="https://github.com/Miftahul-Islam-Efaz" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[var(--color-pearl)]/70 hover:text-white transition-colors hover:scale-110 transform"
+                title="GitHub"
+              >
+                <Github size={24} />
+              </a>
+              <a 
+                href="https://www.linkedin.com/in/miftahul-islam-efaz-a91373284/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[var(--color-pearl)]/70 hover:text-[#0A66C2] transition-colors hover:scale-110 transform"
+                title="LinkedIn"
+              >
+                <Linkedin size={24} />
+              </a>
+              <a 
+                href="https://www.instagram.com/miftahul_islam_efaz/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[var(--color-pearl)]/70 hover:text-[#E1306C] transition-colors hover:scale-110 transform"
+                title="Instagram"
+              >
+                <Instagram size={24} />
+              </a>
+              <a 
+                href="https://www.facebook.com/miftahul.islam.efaz" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[var(--color-pearl)]/70 hover:text-[#1877F2] transition-colors hover:scale-110 transform"
+                title="Facebook"
+              >
+                <Facebook size={24} />
+              </a>
+              <a 
+                href="https://x.com/Miftahul_Islam9" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[var(--color-pearl)]/70 hover:text-[#1DA1F2] transition-colors hover:scale-110 transform"
+                title="Twitter"
+              >
+                <Twitter size={24} />
+              </a>
+              <a 
+                href="https://www.miftahulislamefaz.xyz/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[var(--color-pearl)]/70 hover:text-[#b54a4a] transition-colors hover:scale-110 transform"
+                title="Website"
+              >
+                <Briefcase size={24} />
+              </a>
             </div>
 
 

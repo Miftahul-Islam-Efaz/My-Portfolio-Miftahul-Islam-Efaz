@@ -151,7 +151,6 @@ export default function Navigation() {
   const overlayMenuItems = [
     { label: 'SKILLS', target: '#skills' },
     { label: 'OUTCOMES', target: '#outcomes' },
-    { label: 'ACHIEVEMENTS', target: '#achievements' },
     { label: 'SERVICES', target: '#services' },
     { label: 'TESTIMONIALS', target: '#testimonials' },
     { label: 'CONTACT', target: '#contact' }
@@ -160,7 +159,6 @@ export default function Navigation() {
   const SLASH_COLORS = [
     '#38bdf8', // SKILLS: Teal/Blue
     '#a855f7', // OUTCOMES: Purple
-    '#f43f5e', // ACHIEVEMENTS: Rose Crimson
     '#eab308', // SERVICES: Yellow/Gold
     '#10b981', // TESTIMONIALS: Emerald Green
     '#b54a4a', // CONTACT: Red

@@ -27,6 +27,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Tussilago';
+  src: url('../Fonts/Tussilago-Lt.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Azonix';
+  src: url('../Fonts/Azonix.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", Georgia, serif;
@@ -35,6 +51,8 @@
   --font-agoma: "Agoma", sans-serif;
   --font-michroma: "Michroma", sans-serif;
   --font-backstreet: "Backstreet", sans-serif;
+  --font-tussilago: "Tussilago", sans-serif;
+  --font-azonix: "Azonix", sans-serif;
 }
 
 :root {

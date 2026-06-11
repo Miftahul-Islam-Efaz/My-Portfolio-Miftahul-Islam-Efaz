@@ -293,13 +293,14 @@ const Hero = React.memo(function Hero({
       />
 
       {/* LEFT COLUMN */}
-      <div className="w-full md:w-1/2 flex flex-col text-white max-w-[480px] md:max-w-none">
+      <div className="w-full md:w-[60%] lg:w-[55%] flex flex-col text-white max-w-[480px] md:max-w-none">
         
         <h2 
           ref={nameRef}
-          className="font-michroma text-[clamp(1.75rem,7vw,3.5rem)] md:text-[clamp(2.5rem,5vw,5rem)] font-normal leading-[1.2] md:leading-[1.1] mb-6 cursor-default opacity-0 mix-blend-difference text-white relative z-10"
+          className="font-azonix uppercase text-[clamp(1.75rem,7vw,3.5rem)] md:text-[clamp(2.5rem,5vw,5rem)] font-normal leading-[1.2] md:leading-[1.1] mb-6 cursor-default opacity-0 mix-blend-difference text-white relative z-10"
         >
-          Miftahul Islam<br />Efaz
+          <span className="whitespace-nowrap">Miftahul Islam</span><br />
+          <span className="whitespace-nowrap">Efaz</span>
         </h2>
         
         <div 

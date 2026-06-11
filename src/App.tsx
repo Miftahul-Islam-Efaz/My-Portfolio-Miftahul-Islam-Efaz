@@ -14,7 +14,7 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import TornTransition from './components/ui/torn-transition';
 import WebsiteProjectsShowcase from './components/WebsiteProjectsShowcase';
-import AchievementsSection from './components/AchievementsSection';
+
 import GlitchSectionTransition from './components/ui/GlitchSectionTransition';
 import FaviconAnimator from './components/FaviconAnimator';
 import AskLLMPopup from './components/AskLLMPopup';
@@ -139,7 +139,7 @@ export default function App() {
             isStarted={introComplete}
           />
           <WebsiteProjectsShowcase />
-          <AchievementsSection />
+
           <Services />
           <Testimonials />
         </main>

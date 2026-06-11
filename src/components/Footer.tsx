@@ -8,34 +8,34 @@ const socials = [
     icon: Instagram,
     url: 'https://www.instagram.com/miftahul_islam_efaz/',
     handle: '@miftahul_islam_efaz',
-    colorClass: 'text-[#1A1A1A]/80 hover:text-pink-600',
+    colorClass: 'hover:text-[#E1306C]',
   },
   {
     name: 'GitHub',
     icon: Github,
     url: 'https://github.com/Miftahul-Islam-Efaz',
     handle: 'Miftahul-Islam-Efaz',
-    colorClass: 'text-[#1A1A1A]/80 hover:text-neutral-950',
+    colorClass: 'hover:text-[#000000]',
   },
   {
     name: 'Facebook',
     icon: Facebook,
     url: 'https://www.facebook.com/miftahul.islam.efaz',
     handle: 'miftahul.islam.efaz',
-    colorClass: 'text-[#1A1A1A]/80 hover:text-blue-600',
+    colorClass: 'hover:text-[#1877F2]',
   },
   {
     name: 'Twitter',
     icon: Twitter,
     url: 'https://x.com/Miftahul_Islam9',
-    colorClass: 'text-[#1A1A1A]/80 hover:text-sky-500',
+    colorClass: 'hover:text-[#1DA1F2]',
     handle: '@Miftahul_Islam9',
   },
   {
     name: 'LinkedIn',
     icon: Linkedin,
     url: 'https://www.linkedin.com/in/miftahul-islam-efaz-a91373284/',
-    colorClass: 'text-[#1A1A1A]/80 hover:text-blue-700',
+    colorClass: 'hover:text-[#0A66C2]',
     handle: 'miftahul-islam',
   }
 ];
@@ -99,6 +99,7 @@ export default function Footer() {
     let rafId: number | null = null;
 
     const handleScroll = () => {
+      if (window.innerWidth < 768) return;
       const absoluteTop = cachedAbsoluteTopRef.current;
       const totalHeight = cachedTotalHeightRef.current;
       if (totalHeight <= 0) return;
@@ -143,9 +144,16 @@ export default function Footer() {
         // Layer 3: Foreground photo card (fastest motion)
         if (photoRef.current) {
           const isMobile = window.innerWidth < 768;
-          const travelY = isMobile ? 80 : 260;
-          const photoY = (p - 0.5) * -travelY; 
-          photoRef.current.style.transform = `translate3d(0, ${photoY}px, 0)`;
+          if (isMobile) {
+            const travelY = 80;
+            const photoY = (p - 0.5) * -travelY; 
+            photoRef.current.style.transform = `translate3d(0, ${photoY}px, 0)`;
+          } else {
+            // Pinned to bottom, scrolling up dynamically so that at p=1 (the very bottom of page) it has exactly 0px offset (touches the bottom line exactly).
+            const travelY = 160; 
+            const photoY = (1 - p) * travelY;
+            photoRef.current.style.transform = `translate3d(0, ${photoY}px, 0)`;
+          }
         }
       });
     };
@@ -209,7 +217,7 @@ export default function Footer() {
             >
               <div className="w-full h-full grayscale overflow-hidden bg-stone-200">
                 <img 
-                  src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1775244322/upscaled-2x-1775244293295_el2gi1.png" 
+                  src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_300,h_375,c_fill,q_auto,f_auto/v1775244322/upscaled-2x-1775244293295_el2gi1.png" 
                   alt="Miftahul Efaz" 
                   className="w-full h-full object-cover object-top"
                   decoding="async"
@@ -312,9 +320,10 @@ export default function Footer() {
       </div>
 
       {/* ========================================================== */}
-      {/* DESKTOP-ONLY INTERACTIVE PARALLAX DESIGN (md:flex)         */}
+      {/* DESKTOP-ONLY WRAPPER WITH INTEGRATED IMAGE BACKGROUND      */}
       {/* ========================================================== */}
-      <div className="hidden md:flex relative w-full h-[80vh] md:h-screen overflow-hidden items-center justify-center">
+      <div className="hidden md:flex relative w-full h-[80vh] md:h-screen overflow-hidden select-none">
+        
         {/* Background Image behind everything in the section */}
         <img 
           ref={bgImgRef}
@@ -326,111 +335,67 @@ export default function Footer() {
           style={{ willChange: 'transform' }}
         />
 
-        {/* Huge Name Text */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-          <h1 
-            ref={textRef}
-            className="font-display font-black text-[#1A1A1A] uppercase leading-none text-center whitespace-nowrap" 
-            style={{ 
-              fontSize: 'clamp(3rem, 18vw, 25rem)', 
-              transformOrigin: 'center',
-              letterSpacing: '-0.02em',
-              willChange: 'transform'
-            }}
+        {/* Parallax Content Area */}
+        <div className="relative w-full h-full flex items-end justify-center z-10">
+          {/* Huge Name Text */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
+            <h1 
+              ref={textRef}
+              className="font-display font-black text-[#1A1A1A] uppercase leading-none text-center whitespace-nowrap" 
+              style={{ 
+                fontSize: 'clamp(3rem, 18vw, 25rem)', 
+                transformOrigin: 'center',
+                letterSpacing: '-0.02em',
+                willChange: 'transform'
+              }}
+            >
+              MIFTAHUL
+            </h1>
+          </div>
+
+          {/* Image Container */}
+          <div 
+            ref={photoRef}
+            className="group relative w-[80%] sm:w-[60%] md:w-[40%] lg:w-[30%] aspect-[4/5] bg-[#E8E7E2] rounded-t-[2rem] md:rounded-t-[3rem] rounded-b-none overflow-hidden z-20 shadow-2xl transition-transform duration-700 ease-out hover:scale-[1.03] select-none cursor-pointer mb-0"
+            style={{ willChange: 'transform' }}
           >
-            MIFTAHUL
-          </h1>
-        </div>
-
-        {/* Image Container */}
-        <div 
-          ref={photoRef}
-          className="group relative w-[80%] sm:w-[60%] md:w-[40%] lg:w-[30%] aspect-[4/5] bg-[#E8E7E2] rounded-[2rem] md:rounded-[3rem] overflow-hidden z-20 shadow-2xl mt-[45vh] transition-transform duration-700 ease-out hover:scale-[1.03] select-none cursor-pointer"
-          style={{ willChange: 'transform' }}
-        >
-          {/* Main grayscale background image (kept static and perfectly sharp) */}
-          <div className="w-full h-full grayscale overflow-hidden relative">
-            <img 
-              src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1775244322/upscaled-2x-1775244293295_el2gi1.png" 
-              alt="Miftahul Islam Efaz" 
-              className="w-full h-full object-cover object-top filter contrast-[1.02]"
-              referrerPolicy="no-referrer"
-              decoding="async"
-            />
-            
-            {/* Elegant high-precision glass frame border */}
-            <div className="absolute inset-0 border border-white/10 group-hover:border-white/30 rounded-[2rem] md:rounded-[3rem] transition-colors duration-700 pointer-events-none z-40" />
+            {/* Main grayscale background image (kept static and perfectly sharp) */}
+            <div className="w-full h-full grayscale overflow-hidden relative">
+              <img 
+                src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1775244322/upscaled-2x-1775244293295_el2gi1.png" 
+                alt="Miftahul Islam Efaz" 
+                className="w-full h-full object-cover object-top filter contrast-[1.02]"
+                referrerPolicy="no-referrer"
+                decoding="async"
+              />
+              
+              {/* Elegant high-precision glass frame border with bottom curves removed */}
+              <div className="absolute inset-0 border border-white/10 group-hover:border-white/30 rounded-t-[2rem] md:rounded-t-[3rem] rounded-b-none transition-colors duration-700 pointer-events-none z-40" />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* MEGA SOCIAL LINKS BOARD (DESKTOP) */}
-      <div className="hidden md:flex relative z-20 w-full px-[clamp(1.5rem,5vw,4rem)] pb-12 flex-col items-center justify-center -mt-6">
-        <div className="w-full max-w-6xl bg-white/[0.03] backdrop-blur-[4px] border border-black/5 hover:border-black/10 rounded-3xl p-8 lg:p-10 flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-500 shadow-sm">
-          <div className="flex flex-col text-left max-w-xs select-none">
-            <span className="font-mono text-[9px] tracking-[0.25em] text-[#1A1A1A]/40 uppercase font-black mb-1">[ CHANNELS // OVERVIEW ]</span>
-            <h4 className="font-display font-bold text-xl text-[#1A1A1A] leading-tight mb-2">Connect Across Platforms</h4>
-            <p className="font-sans text-xs text-neutral-500 font-light leading-relaxed">
-              Find my thoughts, repositories, updates, and case studies across major digital social streams.
-            </p>
+        {/* DESKTOP-ONLY FOOTER BOTTOM --> POSITIONED ABSOLUTE TO MINIMIZE GAP */}
+        <div className="absolute bottom-10 left-0 w-full z-20 px-[clamp(1.5rem,5vw,4rem)] flex flex-col md:flex-row justify-between items-end gap-8">
+          <div className="flex flex-col items-center md:items-start gap-2 text-left z-20">
+            <span className="font-display text-2xl font-bold text-[#1A1A1A] uppercase tracking-widest">EFAZ</span>
+            <span className="font-mono text-xs text-[#1A1A1A]/60 uppercase tracking-widest">Automation Specialist</span>
           </div>
-          
-          <div className="flex gap-6 lg:gap-8 items-center justify-center flex-wrap">
-            {socials.map((soc) => {
-              const Icon = soc.icon;
-              return (
-                <motion.a
-                  key={soc.name}
-                  href={soc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={{ y: -6, scale: 1.05 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="group relative flex flex-col items-center justify-center text-center p-4 bg-white/40 hover:bg-white/80 rounded-2xl border border-black/[0.04] transition-colors duration-300 min-w-[100px] w-24 aspect-square shadow-[0_2px_10px_rgba(0,0,0,0.01)]"
-                >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center border border-[#1A1A1A]/5 shadow-inner transition-all duration-300 ${soc.colorClass}`}>
-                    <Icon size={26} strokeWidth={1.5} className="transition-transform duration-500 group-hover:scale-110" />
-                  </div>
-                  <span className="font-display text-[10px] font-bold text-neutral-800 tracking-wide mt-2">{soc.name}</span>
-                </motion.a>
-              );
-            })}
+
+          <div className="flex flex-col items-center md:items-end gap-4 text-right z-20">
+            <div className="font-mono text-[10px] text-[#1A1A1A]/50 uppercase tracking-widest mt-1">
+              <a 
+                href="https://www.miftahulislamefaz.xyz/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-[#b54a4a] transition-all duration-300 cursor-pointer font-bold"
+              >
+                © 2026 Miftahul Islam Efaz
+              </a>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* DESKTOP-ONLY FOOTER BOTTOM --> */}
-      <div className="hidden md:flex relative z-20 w-full px-[clamp(1.5rem,5vw,4rem)] py-12 flex-col md:flex-row justify-between items-center gap-8 border-t border-[#1A1A1A]/10">
-        <div className="flex flex-col items-center md:items-start gap-2 text-left">
-          <span className="font-display text-2xl font-bold text-[#1A1A1A] uppercase tracking-widest">EFAZ</span>
-          <span className="font-mono text-xs text-[#1A1A1A]/60 uppercase tracking-widest">Automation Specialist</span>
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-8">
-          {['Skills', 'Services', 'Outcomes', 'Contact'].map((item) => (
-            <a 
-              key={item} 
-              href={`#${item.toLowerCase()}`}
-              onClick={(e) => handleFooterLinkClick(e, item.toLowerCase())}
-              className="font-mono text-xs text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors uppercase tracking-wider font-semibold"
-            >
-              {item}
-            </a>
-          ))}
-        </div>
-        
-        <div className="flex flex-col items-center md:items-end gap-2 text-right">
-          <div className="font-mono text-[10px] text-[#1A1A1A]/50 uppercase tracking-widest">
-            <a 
-              href="https://www.miftahulislamefaz.xyz/" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="hover:text-[#b54a4a] transition-all duration-300 cursor-pointer font-bold"
-            >
-              © 2026 Miftahul Islam Efaz
-            </a>
-          </div>
-        </div>
       </div>
     </footer>
   );

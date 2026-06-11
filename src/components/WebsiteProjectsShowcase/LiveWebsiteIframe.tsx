@@ -25,13 +25,14 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
     }
   }, [shouldLoad, hasLoadedOnce]);
 
-  // High performance dimensions tracking: replace ResizeObserver with static window resize listeners and activation triggers
+  // High performance dimensions tracking using layout offset dimensions to render scale-independent iframe portlet views
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          setDimensions({ width: rect.width, height: rect.height });
+        const width = containerRef.current.offsetWidth;
+        const height = containerRef.current.offsetHeight;
+        if (width > 0 && height > 0) {
+          setDimensions({ width, height });
         }
       }
     };
@@ -50,9 +51,10 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
     if (shouldLoad) {
       const updateDimensions = () => {
         if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) {
-            setDimensions({ width: rect.width, height: rect.height });
+          const width = containerRef.current.offsetWidth;
+          const height = containerRef.current.offsetHeight;
+          if (width > 0 && height > 0) {
+            setDimensions({ width, height });
           }
         }
       };
@@ -63,6 +65,8 @@ export default function LiveWebsiteIframe({ url, index, activeIndex }: LiveWebsi
   }, [shouldLoad]);
 
   const virtualWidth = 1280;
+  // Because offsetWidth represents the layout size before any CSS transforms/scales are applied,
+  // we do not need to account for parent scale factors here. It will scale uniformly across all mobile viewports!
   const scale = dimensions.width / virtualWidth;
   // Compute virtual height dynamically so that when scaled, it matches the physical height exactly
   const virtualHeight = scale > 0 ? dimensions.height / scale : 720;

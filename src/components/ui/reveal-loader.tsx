@@ -1,10 +1,5 @@
 "use client";
-import React, { useState, useRef } from "react";
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { cn } from "../../lib/utils";
-
-gsap.registerPlugin(useGSAP);
+import React, { useState, useEffect, useRef } from 'react';
 
 interface RevealLoaderProps {
   onComplete?: () => void;
@@ -13,225 +8,315 @@ interface RevealLoaderProps {
   isStarted?: boolean;
 }
 
+const GREETINGS = [
+  'Hello', 'হ্যালো', 'Bonjour', 'Hola',
+  'Ciao', 'こんにちは', 'Hallo', '안녕',
+  'Olá', 'مرحبا', 'Hej', 'Namaste'
+];
+
 const RevealLoader = ({
   onComplete,
   onExitStart,
   onExitComplete,
   isStarted = true,
 }: RevealLoaderProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const nameRef = useRef<HTMLDivElement>(null);
-  const barRef = useRef<HTMLDivElement>(null);
-  const percentSpanRef = useRef<HTMLSpanElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
-  
   const [isDone, setIsDone] = useState(false);
-  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [greetingText, setGreetingText] = useState(GREETINGS[0]);
+  const [counterValue, setCounterValue] = useState(0);
+  
+  const [greetingLeaving, setGreetingLeaving] = useState(false);
+  const [nameRevealed, setNameRevealed] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
-  // Load the signature custom font before starting animations
-  React.useEffect(() => {
-    if (typeof document !== "undefined" && document.fonts) {
-      document.fonts.load("1em Backstreet")
-        .then(() => setFontsLoaded(true))
-        .catch((err) => {
-          console.warn("Backstreet font load failed, starting fallback:", err);
-          setFontsLoaded(true);
-        });
-    } else {
-      setFontsLoaded(true);
-    }
-  }, []);
+  const curvePathRef = useRef<SVGPathElement>(null);
+  const exitStartedRef = useRef(false);
 
-  // High performance, 60fps loader sequence
-  useGSAP(() => {
-    if (!isStarted || !fontsLoaded) return;
-    if (!nameRef.current || !barRef.current || !contentRef.current) return;
+  // Act I: Multilingual greetings cycling
+  useEffect(() => {
+    if (!isStarted || isExiting) return;
 
-    const charsDom = nameRef.current.querySelectorAll(".char-span");
+    let index = 0;
+    const interval = setInterval(() => {
+      index = (index + 1) % GREETINGS.length;
+      setGreetingText(GREETINGS[index]);
+    }, 220);
 
-    // Initial scattered state for letters (gorgeous wave-like scattering)
-    gsap.set(charsDom, {
-      opacity: 0,
-      scale: 0.65,
-      x: (i) => Math.cos(i * 1.6) * 75,
-      y: (i) => Math.sin(i * 1.3) * 50,
-      rotation: (i) => Math.sin(i * 2.1) * 35,
-      force3D: true,
-    });
+    return () => clearInterval(interval);
+  }, [isStarted, isExiting]);
 
-    // Initial scale for progress bar to avoid reflows
-    gsap.set(barRef.current, {
-      scaleX: 0,
-      transformOrigin: "left center",
-    });
+  // Act I: Eased counter animation with organic stalls
+  useEffect(() => {
+    if (!isStarted) return;
 
-    const obj = { val: 0 };
-    const tl = gsap.timeline();
+    let currentProgress = 0;
+    let timeoutId: NodeJS.Timeout;
 
-    // 1. Smoothly animate progress percentage from 0 to 100 with an elegant deceleration
-    tl.to(obj, {
-      val: 100,
-      duration: 2.0,
-      ease: "power2.out",
-      onUpdate: () => {
-        const currentProgress = Math.round(obj.val);
-        if (percentSpanRef.current) {
-          const currentText = percentSpanRef.current.textContent;
-          const nextText = String(currentProgress);
-          if (currentText !== nextText) {
-            percentSpanRef.current.textContent = nextText;
-          }
-        }
+    const stepCounter = () => {
+      if (currentProgress >= 100) {
+        // Trigger Act II: greetings and counter fade out
+        setGreetingLeaving(true);
+        
+        // Show the name after greetings slide away
+        setTimeout(() => {
+          setNameRevealed(true);
+        }, 350);
+
+        // Delay 1500ms after name reveal, then trigger Act III (curtain wipe)
+        setTimeout(() => {
+          triggerWipe();
+        }, 350 + 1500);
+        return;
       }
-    }, 0);
 
-    // Smoothly scale the ambient glow
-    if (glowRef.current) {
-      tl.to(glowRef.current, {
-        scale: 1.285,
-        duration: 2.0,
-        ease: "power2.out",
-        force3D: true
-      }, 0);
-    }
+      const remaining = 100 - currentProgress;
+      // organic increments: bigger jumps early, hesitation near the end
+      const jump = Math.max(1, Math.round(Math.random() * (remaining > 20 ? 9 : 3)));
+      currentProgress = Math.min(100, currentProgress + jump);
+      setCounterValue(currentProgress);
 
-    // Change colors slightly towards the very end (starting at 95% progress)
-    tl.to(charsDom, {
-      color: "#FFFFFF",
-      duration: 0.2,
-      ease: "none",
-      force3D: true
-    }, 1.85);
+      const delay = 40 + Math.random() * (remaining < 15 ? 160 : 80);
+      timeoutId = setTimeout(stepCounter, delay);
+    };
 
-    // 2. Animate the progress bar line cleanly in perfect sync using scaleX
-    tl.to(barRef.current, {
-      scaleX: 1,
-      duration: 2.0,
-      ease: "power2.out",
-      force3D: true,
-    }, 0);
+    timeoutId = setTimeout(stepCounter, 500);
+    return () => clearTimeout(timeoutId);
+  }, [isStarted]);
 
-    // 3. Stagger-assemble the letters into place beautifully and with buttery 60fps fluidity
-    tl.to(charsDom, {
-      opacity: 1,
-      scale: 1,
-      x: 0,
-      y: 0,
-      rotation: 0,
-      duration: 1.5,
-      ease: "power3.out",
-      force3D: true,
-      stagger: {
-        each: 0.04,
-        from: "start",
+  // Act III: Trailing curve wipe-up animation
+  const triggerWipe = () => {
+    if (exitStartedRef.current) return;
+    exitStartedRef.current = true;
+
+    setIsExiting(true);
+    if (onExitStart) onExitStart();
+    if (onComplete) onComplete();
+
+    // Animate SVG path curve: Q50,bulge to Q50,0
+    const start = performance.now();
+    const duration = 1100; // 1.1s (must match transition duration in CSS)
+
+    const frame = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      // bulge peaks mid-wipe: sin curve 0 -> 10 -> 0
+      const bulge = Math.sin(t * Math.PI) * 10;
+      if (curvePathRef.current) {
+        curvePathRef.current.setAttribute(
+          'd',
+          `M0,0 L100,0 L100,0 Q50,${bulge.toFixed(2)} 0,0 Z`
+        );
       }
-    }, 0.15);
-
-    // 4. Curtain Pull up exit transition
-    tl.to(containerRef.current, {
-      yPercent: -100,
-      duration: 1.0,
-      ease: "power4.inOut",
-      force3D: true,
-      onStart: () => {
-        if (onExitStart) onExitStart();
-        if (onComplete) onComplete();
-      },
-      onComplete: () => {
-        setIsDone(true);
-        if (onExitComplete) onExitComplete();
+      if (t < 1) {
+        requestAnimationFrame(frame);
       }
-    }, "+=0.1");
+    };
+    requestAnimationFrame(frame);
 
-  }, { scope: containerRef, dependencies: [isStarted, fontsLoaded] });
-
-  const nameChars = "Miftahul Islam Efaz".split("");
+    // Call onExitComplete after transition ends
+    setTimeout(() => {
+      setIsDone(true);
+      if (onExitComplete) onExitComplete();
+    }, duration);
+  };
 
   if (isDone) return null;
 
   return (
     <>
       <style>{`
-        .text-glow-silver {
-          text-shadow: 0 0 20px rgba(255, 255, 255, 0.15), 0 0 40px rgba(220, 220, 230, 0.08);
+        :root {
+          --c-black: #030202;
+          --c-warm-white: #f5efe4;
+          --c-warm-white-dim: rgba(245, 239, 228, 0.45);
+          --c-silver: #c7c7cd;
+          --ease-expo: cubic-bezier(0.87, 0, 0.13, 1);
+          --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .opener-container {
+          position: fixed;
+          inset: 0;
+          z-index: 99999;
+          transition: transform 1.1s var(--ease-expo);
+          pointer-events: auto;
+        }
+
+        .opener-container.exiting {
+          transform: translateY(-112%);
+        }
+
+        .opener-panel {
+          position: absolute;
+          inset: 0;
+          background: var(--c-black);
+          overflow: hidden;
+        }
+
+        .opener-curve {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          width: 100%;
+          height: 12vh;
+          display: block;
+        }
+
+        .opener-meta {
+          position: absolute;
+          top: 2rem;
+          font-size: 0.7rem;
+          font-weight: 400;
+          letter-spacing: 0.22em;
+          color: var(--c-warm-white-dim);
+          opacity: 0;
+          animation: metaFadeIn 0.9s var(--ease-out-expo) 0.4s forwards;
+        }
+
+        .opener-meta.left { left: 2rem; }
+        .opener-meta.right { right: 2rem; }
+
+        @keyframes metaFadeIn {
+          to { opacity: 1; }
+        }
+
+        .opener-greeting {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          display: flex;
+          align-items: center;
+          gap: 0.9rem;
+          opacity: 0;
+          animation: metaFadeIn 0.5s ease-out 0.3s forwards;
+          transition: opacity 0.35s ease, filter 0.35s ease;
+        }
+
+        .opener-greeting.leaving {
+          opacity: 0 !important;
+          filter: blur(6px);
+        }
+
+        .opener-dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          background: var(--c-warm-white);
+          flex-shrink: 0;
+        }
+
+        .opener-word {
+          font-size: clamp(1.4rem, 2.6vw, 2.2rem);
+          font-weight: 400;
+          color: var(--c-warm-white);
+        }
+
+        .opener-name {
+          position: absolute;
+          left: 2rem;
+          right: 2rem;
+          bottom: 2rem;
+          display: flex;
+          flex-direction: column;
+          visibility: hidden;
+        }
+
+        .opener-name.revealed {
+          visibility: visible;
+        }
+
+        .opener-name .name-line {
+          display: block;
+          overflow: hidden;
+        }
+
+        .opener-name .name-line-inner {
+          display: block;
+          font-size: clamp(2.6rem, 11.5vw, 11rem);
+          font-weight: 600;
+          line-height: 0.96;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: var(--c-warm-white);
+          transform: translateY(110%);
+        }
+
+        .opener-name .name-line-inner em {
+          font-style: italic;
+          font-weight: 400;
+          color: var(--c-silver);
+        }
+
+        .opener-name.revealed .name-line-inner {
+          animation: nameLineUp 1.1s var(--ease-expo) forwards;
+        }
+
+        .opener-name.revealed .name-line:nth-child(1) .name-line-inner {
+          animation-delay: 0s;
+        }
+
+        .opener-name.revealed .name-line:nth-child(2) .name-line-inner {
+          animation-delay: 0.12s;
+        }
+
+        @keyframes nameLineUp {
+          to { transform: translateY(0); }
+        }
+
+        .opener-count {
+          position: absolute;
+          right: 2rem;
+          bottom: 2rem;
+          font-size: clamp(4rem, 14vw, 13rem);
+          font-weight: 300;
+          line-height: 0.8;
+          letter-spacing: -0.03em;
+          color: var(--c-warm-white);
+          opacity: 0;
+          font-variant-numeric: tabular-nums;
+          animation: metaFadeIn 0.6s ease-out 0.3s forwards;
+          transition: opacity 0.5s ease, transform 0.5s var(--ease-out-expo);
+        }
+
+        .opener-count.leaving {
+          opacity: 0 !important;
+          transform: translateY(-20px);
         }
       `}</style>
 
-      <div 
-        ref={containerRef}
-        className="fixed top-0 left-0 w-full h-[120vh] z-[99998] select-none overflow-visible will-change-transform"
-        style={{ pointerEvents: "auto" }}
-      >
-        {/* Curved SVG curtain background */}
-        <svg 
-          className="absolute inset-0 w-full h-full pointer-events-none fill-[#0a0a0a]"
-          viewBox="0 0 100 120" 
-          preserveAspectRatio="none"
-        >
-          <path d="M 0 0 L 100 0 L 100 100 Q 50 115 0 100 Z" />
-        </svg>
+      <div className={`opener-container ${isExiting ? 'exiting' : ''}`}>
+        <div className="opener-panel">
+          {/* Corner Metadata */}
+          <div className="opener-meta left">© 2026</div>
+          <div className="opener-meta right">PORTFOLIO</div>
 
-        {/* Content Layer (perfectly centered on screen in the first 100vh) */}
-        <div 
-          ref={contentRef} 
-          className="absolute top-0 left-0 w-full h-[100vh] flex flex-col items-center justify-center z-10"
-        >
-          
-          {/* Soft, Luxurious Ambient Glow behind the cursive layout */}
-          <div 
-            ref={glowRef}
-            className="absolute w-[60vw] h-[60vw] rounded-full pointer-events-none z-0 will-change-transform transform-gpu" 
-            style={{
-              background: "radial-gradient(circle, rgba(235,235,245,0.06) 0%, rgba(235,235,245,0.02) 40%, rgba(255,255,255,0) 70%)",
-              top: "20%",
-              left: "20%",
-              transform: "scale(1)",
-            }}
-          />
-
-          {/* Centered Name Signature */}
-          <div 
-            ref={nameRef} 
-            className="flex flex-row justify-center items-center flex-wrap px-8 text-center select-none max-w-full relative z-20 font-backstreet text-[clamp(2.4rem,7vw,5.2rem)] font-normal text-white text-glow-silver leading-[1.1]"
-          >
-            {nameChars.map((char, index) => {
-              if (char === " ") {
-                return <span key={index} className="w-[0.24em]" />;
-              }
-              return (
-                <span
-                  key={index}
-                  className="char-span inline-block select-none text-gray-200 will-change-[transform,opacity] transform-gpu"
-                >
-                  {char}
-                </span>
-              );
-            })}
+          {/* Cycling Greetings */}
+          <div className={`opener-greeting ${greetingLeaving ? 'leaving' : ''}`}>
+            <span className="opener-dot" />
+            <span className="opener-word">{greetingText}</span>
           </div>
 
-          {/* Progress Tracker Slider Section */}
-          <div className="absolute bottom-[16%] flex flex-col items-center z-30 w-[180px] md:w-[240px]">
-            
-            {/* Tracking line container */}
-            <div className="w-full h-[2.5px] bg-white/10 rounded-full relative overflow-hidden">
-              <div 
-                ref={barRef}
-                className="absolute left-0 top-0 w-full h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.65)] will-change-transform transform-gpu"
-                style={{ transform: "scaleX(0)", transformOrigin: "left center" }}
-              />
-            </div>
-
-            {/* Centered Percentage count beneath the line */}
-            <div className="font-sans text-[18px] font-semibold text-white/90 tracking-widest flex items-baseline gap-0.5 select-none mt-3.5 pl-2">
-              <span ref={percentSpanRef} className="text-[22px] font-bold leading-none select-none">0</span>
-              <span className="text-[11px] text-white/50 select-none">%</span>
-            </div>
-
+          {/* The Name (Line by Line Masked Slide-up) */}
+          <div className={`opener-name ${nameRevealed ? 'revealed' : ''}`} aria-label="Miftahul Islam Efaz">
+            <span className="name-line">
+              <span className="name-line-inner">MIFTAHUL</span>
+            </span>
+            <span className="name-line">
+              <span className="name-line-inner">
+                ISLAM <em>EFAZ</em>
+              </span>
+            </span>
           </div>
 
+          {/* Huge Counter */}
+          <div className={`opener-count ${greetingLeaving ? 'leaving' : ''}`}>
+            {counterValue}
+          </div>
         </div>
 
+        {/* The Curved Edge Trail */}
+        <svg className="opener-curve" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+          <path ref={curvePathRef} d="M0,0 L100,0 L100,0 Q50,0 0,0 Z" fill="#030202" />
+        </svg>
       </div>
     </>
   );
