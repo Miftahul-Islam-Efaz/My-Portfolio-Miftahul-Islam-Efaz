@@ -1,5 +1,9 @@
 import React, { useRef, useLayoutEffect, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 // --- 1. THE SHADER MATERIAL ---
 const vertexShader = `
@@ -68,6 +72,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const progressRef = useRef(0);
   const inViewRef = useRef(true);
+  const renderFrameRef = useRef<(() => void) | null>(null);
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
@@ -112,6 +117,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     updateCache();
     const timeoutId = setTimeout(updateCache, 200);
     window.addEventListener('resize', updateCache);
+    ScrollTrigger.addEventListener('refresh', updateCache);
 
     const resizeObserver = new ResizeObserver(() => {
       updateCache();
@@ -166,6 +172,9 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
           transitionP = 1;
         }
         progressRef.current = transitionP;
+        if (renderFrameRef.current) {
+          renderFrameRef.current();
+        }
 
         // 3. SCROLL FOOTER
         if (p >= footerStart) {
@@ -205,6 +214,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', updateCache);
+      ScrollTrigger.removeEventListener('refresh', updateCache);
       clearTimeout(timeoutId);
       if (rafId !== null) cancelAnimationFrame(rafId);
       observer.disconnect();
@@ -212,7 +222,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     };
   }, []);
 
-  // --- 3. PURE THREE.JS INITIALIZATION ---
+  // --- 3. PURE THREE.JS INITIALIZATION (ON-DEMAND RENDERING) ---
   useEffect(() => {
     if (isMobile) return;
     if (!canvasRef.current) return;
@@ -237,11 +247,14 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     const plane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
     scene.add(plane);
 
-    let lastProgress = -1;
     let width = innerWidth;
     let height = innerHeight;
-    let animationFrameId: number | null = null;
-    let isLooping = false;
+
+    const renderFrame = () => {
+      material.uniforms.u_progress.value = progressRef.current;
+      renderer.render(scene, camera);
+    };
+    renderFrameRef.current = renderFrame;
 
     const resize = () => {
       width = innerWidth;
@@ -249,53 +262,22 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
       renderer.setSize(width, height);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0)); // Cap at 1.0 for performance
       material.uniforms.u_resolution.value.set(width, height);
-      lastProgress = -1; // Force re-render
+      renderFrame();
     };
     
     window.addEventListener('resize', resize);
     resize();
-
-    const render = () => {
-      if (!inViewRef.current) {
-        isLooping = false;
-        animationFrameId = null;
-        return;
-      }
-      
-      const currentProgress = progressRef.current;
-      
-      // Only render if progress or window size changed
-      if (currentProgress !== lastProgress) {
-        material.uniforms.u_progress.value = currentProgress;
-        renderer.render(scene, camera);
-        lastProgress = currentProgress;
-      }
-      
-      animationFrameId = requestAnimationFrame(render);
-    };
-    
-    const resumeRender = () => {
-      if (!isLooping && inViewRef.current) {
-        isLooping = true;
-        render();
-      }
-    };
-
-    window.addEventListener('scroll', resumeRender, { passive: true });
-    window.addEventListener('resize', resumeRender);
-    resumeRender();
+    renderFrame();
 
     // Cleanup WebGL context on unmount
     return () => {
       window.removeEventListener('resize', resize);
-      window.removeEventListener('scroll', resumeRender);
-      window.removeEventListener('resize', resumeRender);
-      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+      renderFrameRef.current = null;
       renderer.dispose();
       material.dispose();
       plane.geometry.dispose();
     };
-  }, []);
+  }, [isMobile]);
 
   if (isMobile) {
     return (
@@ -314,8 +296,8 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
   }
 
   return (
-    <div ref={containerRef} className="relative w-full" style={{ height: '500vh' }}>
-      <div className="sticky top-0 left-0 w-full h-[100dvh] md:h-screen overflow-hidden">
+    <div ref={containerRef} className="relative w-full z-30" style={{ height: '500vh' }}>
+      <div className="sticky top-0 left-0 w-full h-[100dvh] md:h-screen overflow-hidden z-30">
         
         {/* FIXED BACKGROUND LAYER (Raw Three.js Canvas) */}
         <canvas 

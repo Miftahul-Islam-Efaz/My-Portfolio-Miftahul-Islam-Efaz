@@ -19,6 +19,16 @@ export default function Services() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const x = useMotionValue(0);
+
+  useEffect(() => {
+    if (isMobile) {
+      x.set(0);
+    } else {
+      x.set(Math.min(1000, window.innerWidth * 0.75));
+    }
+  }, [isMobile, x]);
+
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       setIsInView(entry.isIntersecting);
@@ -33,8 +43,6 @@ export default function Services() {
 
     return () => observer.disconnect();
   }, []);
-
-  const x = useMotionValue(0);
   const xVelocity = useVelocity(x);
   
   // Tuned spring parameters for responsive and realistic swing (stiffness: 80, damping: 18, mass: 0.8)
@@ -70,7 +78,8 @@ export default function Services() {
   const progressBarX = useTransform(
     x,
     [constraints.left === 0 ? -1200 : constraints.left, 0],
-    [128, 0]
+    [128, 0],
+    { clamp: true }
   );
 
   useEffect(() => {
@@ -95,44 +104,83 @@ export default function Services() {
 
   // Synchronized Vertical-to-Horizontal Pinning ScrollTrigger
   useEffect(() => {
+    if (isMobile) {
+      x.set(0);
+      return;
+    }
     if (constraints.left >= 0) return;
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
-    // Use a proxy object for smooth interpolation with GSAP
-    const proxy = { value: x.get() };
-    
-    const scrollTween = gsap.to(proxy, {
-      value: constraints.left,
-      ease: 'none',
+    // Start with the cards slid out offscreen right for a dramatic introduction
+    const startVal = Math.max(window.innerWidth, 1200);
+    x.set(startVal);
+
+    // Proxy object for GSAP timeline scrubbing
+    const proxy = { value: startVal };
+
+    const tl = gsap.timeline({
       scrollTrigger: {
         trigger: sectionRef.current,
         pin: true,
         start: 'top top',
-        // The pinning duration is proportional to the width of the cards
-        end: () => `+=${Math.max(1200, Math.abs(constraints.left) * 1.2)}`,
-        scrub: 0.6, // Luxurious tactile response with a small catch-up delay for premium feel
+        // Pinning duration accounts for the slide-in segment + the full horizontal track navigation
+        end: () => `+=${Math.max(1600, Math.abs(constraints.left) * 1.5 + 600)}`,
+        scrub: 0.6, // Savor the organic inertia catch-up
         invalidateOnRefresh: true,
         onUpdate: () => {
-          // If the user is currently drag-interacting, we bypass ScrollTrigger updates to prevent fights!
-          if (!isInteractingRef.current) {
-            x.set(proxy.value);
-          } else {
-            // Keep the scroll proxy synchronized with user drag position
+          // If the viewer drags the cards, we pause ScrollTrigger locks to prevent conflicting offsets
+          if (isInteractingRef.current) {
             proxy.value = x.get();
           }
-        },
-      },
+        }
+      }
+    });
+
+    // 1. Sliding entrance animation (slide from far right to the baseline aligned layout)
+    tl.to(proxy, {
+      value: 0,
+      duration: 1.2,
+      ease: 'power2.out',
+      onUpdate: () => {
+        if (!isInteractingRef.current) {
+          x.set(proxy.value);
+        }
+      }
+    });
+
+    // 2. Clear focus pause (holds at raw position before beginning horizontal tracking)
+    tl.to(proxy, {
+      value: 0,
+      duration: 0.4,
+      ease: 'none',
+      onUpdate: () => {
+        if (!isInteractingRef.current) {
+          x.set(proxy.value);
+        }
+      }
+    });
+
+    // 3. Fully-scrubbed horizontal scroll path
+    tl.to(proxy, {
+      value: constraints.left,
+      duration: 2.8,
+      ease: 'none',
+      onUpdate: () => {
+        if (!isInteractingRef.current) {
+          x.set(proxy.value);
+        }
+      }
     });
 
     return () => {
-      scrollTween.kill();
-      if (scrollTween.scrollTrigger) {
-        scrollTween.scrollTrigger.kill(true);
+      tl.kill();
+      if (tl.scrollTrigger) {
+        tl.scrollTrigger.kill(true);
       }
     };
-  }, [constraints.left, x]);
+  }, [constraints.left, x, isMobile]);
 
   return (
     <section id="services" ref={sectionRef} className="hanging-services-section">
