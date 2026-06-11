@@ -69,20 +69,30 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
   const containerRef = useRef<HTMLDivElement>(null);
   const topLayerRef = useRef<HTMLDivElement>(null);
   const bottomLayerRef = useRef<HTMLDivElement>(null);
+  const topContentWrapperRef = useRef<HTMLDivElement>(null);
+  const bottomContentWrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const progressRef = useRef(0);
   const inViewRef = useRef(true);
   const renderFrameRef = useRef<(() => void) | null>(null);
 
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
   useLayoutEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth <= 768);
     };
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    // Recalculate and resize ScrollTrigger/Lenis when transitioning layouts
+    ScrollTrigger.refresh();
+    if (typeof window !== 'undefined' && (window as any).lenis) {
+      (window as any).lenis.resize();
+    }
+  }, [isMobile]);
 
   // --- 2. SCROLL SYNC LOGIC ---
   useLayoutEffect(() => {
@@ -106,12 +116,12 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     let cachedBottomScrollable = 0;
 
     const updateCache = () => {
-      if (!containerRef.current || !topLayerRef.current || !bottomLayerRef.current) return;
+      if (!containerRef.current || !topContentWrapperRef.current || !bottomContentWrapperRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       cachedContainerTop = window.scrollY + rect.top;
       cachedHeight = rect.height;
-      cachedTopScrollable = topLayerRef.current.scrollHeight - window.innerHeight;
-      cachedBottomScrollable = bottomLayerRef.current.scrollHeight - window.innerHeight;
+      cachedTopScrollable = topContentWrapperRef.current.scrollHeight - window.innerHeight;
+      cachedBottomScrollable = bottomContentWrapperRef.current.scrollHeight - window.innerHeight;
     };
 
     updateCache();
@@ -122,8 +132,8 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
     const resizeObserver = new ResizeObserver(() => {
       updateCache();
     });
-    if (topLayerRef.current) resizeObserver.observe(topLayerRef.current);
-    if (bottomLayerRef.current) resizeObserver.observe(bottomLayerRef.current);
+    if (topContentWrapperRef.current) resizeObserver.observe(topContentWrapperRef.current);
+    if (bottomContentWrapperRef.current) resizeObserver.observe(bottomContentWrapperRef.current);
 
     let rafId: number | null = null;
 
@@ -134,7 +144,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
 
       rafId = requestAnimationFrame(() => {
         rafId = null;
-        if (!containerRef.current || !topLayerRef.current || !bottomLayerRef.current) return;
+        if (!containerRef.current || !topContentWrapperRef.current || !bottomContentWrapperRef.current || !topLayerRef.current || !bottomLayerRef.current) return;
         
         const scrollY = window.scrollY;
         const rectTop = cachedContainerTop - scrollY;
@@ -155,13 +165,16 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
         const transitionEnd = 0.7;
         const footerStart = 0.6;
 
-        // 1. SCROLL CONTACT
+        // 1. SCROLL CONTACT (uses hardware-accelerated transforms instead of reflow-heavy scrollTop)
         if (p <= contactEnd) {
           if (cachedTopScrollable > 0) {
-            topLayerRef.current.scrollTop = (p / contactEnd) * cachedTopScrollable;
+            const scrollTop = (p / contactEnd) * cachedTopScrollable;
+            topContentWrapperRef.current.style.transform = `translate3d(0, ${-scrollTop}px, 0)`;
           }
         } else {
-          if (cachedTopScrollable > 0) topLayerRef.current.scrollTop = cachedTopScrollable;
+          if (cachedTopScrollable > 0) {
+            topContentWrapperRef.current.style.transform = `translate3d(0, ${-cachedTopScrollable}px, 0)`;
+          }
         }
 
         // 2. TRANSITION (The Burn)
@@ -176,13 +189,14 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
           renderFrameRef.current();
         }
 
-        // 3. SCROLL FOOTER
+        // 3. SCROLL FOOTER (uses hardware-accelerated transforms instead of reflow-heavy scrollTop)
         if (p >= footerStart) {
           if (cachedBottomScrollable > 0) {
-            bottomLayerRef.current.scrollTop = ((p - footerStart) / (1.0 - footerStart)) * cachedBottomScrollable;
+            const scrollTop = ((p - footerStart) / (1.0 - footerStart)) * cachedBottomScrollable;
+            bottomContentWrapperRef.current.style.transform = `translate3d(0, ${-scrollTop}px, 0)`;
           }
         } else {
-          bottomLayerRef.current.scrollTop = 0;
+          bottomContentWrapperRef.current.style.transform = 'translate3d(0, 0, 0)';
         }
 
         // Parallax and Fade for Top Section (moves up and fades out FASTER)
@@ -220,7 +234,7 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
       observer.disconnect();
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [isMobile]);
 
   // --- 3. PURE THREE.JS INITIALIZATION (ON-DEMAND RENDERING) ---
   useEffect(() => {
@@ -308,17 +322,21 @@ export default function TornTransition({ topContent, bottomContent }: { topConte
         {/* TOP LAYER (Dark Contact Section) */}
         <div 
           ref={topLayerRef} 
-          className="absolute inset-0 z-20 w-full h-full text-white overflow-hidden md:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="absolute inset-0 z-20 w-full h-full text-white overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {topContent}
+          <div ref={topContentWrapperRef} className="w-full will-change-transform">
+            {topContent}
+          </div>
         </div>
 
         {/* BOTTOM LAYER (Light About/Portrait Section) */}
         <div 
           ref={bottomLayerRef} 
-          className="absolute inset-0 z-20 w-full h-full opacity-0 text-black overflow-hidden md:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="absolute inset-0 z-20 w-full h-full opacity-0 text-black overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {bottomContent}
+          <div ref={bottomContentWrapperRef} className="w-full will-change-transform">
+            {bottomContent}
+          </div>
         </div>
 
       </div>

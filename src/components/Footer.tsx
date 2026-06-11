@@ -45,6 +45,8 @@ export default function Footer() {
   const photoRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLHeadingElement>(null);
   const bgImgRef = useRef<HTMLImageElement>(null);
+  const mobileTextRef = useRef<HTMLDivElement>(null);
+  const mobilePhotoRef = useRef<HTMLDivElement>(null);
   const cachedAbsoluteTopRef = useRef(0);
   const cachedTotalHeightRef = useRef(0);
 
@@ -86,20 +88,65 @@ export default function Footer() {
   useEffect(() => {
     const updateCache = () => {
       if (!sectionRef.current) return;
-      const parentTransition = sectionRef.current.closest('[style*="500vh"]');
-      if (!parentTransition) return;
-      const rect = parentTransition.getBoundingClientRect();
-      cachedAbsoluteTopRef.current = rect.top + window.scrollY;
-      cachedTotalHeightRef.current = rect.height;
+      const isMobile = window.innerWidth < 768;
+      
+      if (isMobile) {
+        const rect = sectionRef.current.getBoundingClientRect();
+        cachedAbsoluteTopRef.current = rect.top + window.scrollY;
+        cachedTotalHeightRef.current = rect.height;
+      } else {
+        const parentTransition = sectionRef.current.closest('[style*="500vh"]');
+        if (!parentTransition) return;
+        const rect = parentTransition.getBoundingClientRect();
+        cachedAbsoluteTopRef.current = rect.top + window.scrollY;
+        cachedTotalHeightRef.current = rect.height;
+      }
     };
 
     updateCache();
-    const timeoutId = setTimeout(updateCache, 150);
+    // Run multiple cache updates to account for dynamic asset layout shifts
+    const t1 = setTimeout(updateCache, 100);
+    const t2 = setTimeout(updateCache, 500);
+    const t3 = setTimeout(updateCache, 1500);
+    const t4 = setTimeout(updateCache, 3000);
 
     let rafId: number | null = null;
 
     const handleScroll = () => {
-      if (window.innerWidth < 768) return;
+      const isMobile = window.innerWidth < 768;
+      
+      if (isMobile) {
+        const absoluteTop = cachedAbsoluteTopRef.current;
+        const totalHeight = cachedTotalHeightRef.current;
+        if (totalHeight <= 0) return;
+
+        const top = absoluteTop - window.scrollY;
+        const viewportHeight = window.innerHeight;
+        
+        // Performance guard: skip calculations if footer is completely offscreen
+        if (top > viewportHeight || top + totalHeight < 0) return;
+
+        if (rafId !== null) return;
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          const currentTop = cachedAbsoluteTopRef.current - window.scrollY;
+          const totalDistance = totalHeight + window.innerHeight;
+          const currentDistance = window.innerHeight - currentTop;
+          const p = Math.max(0, Math.min(1, currentDistance / totalDistance));
+
+          if (mobileTextRef.current) {
+            const textY = (p - 0.5) * -50;
+            mobileTextRef.current.style.transform = `translate3d(0, ${textY}px, 0)`;
+          }
+          if (mobilePhotoRef.current) {
+            const photoY = (p - 0.5) * 50;
+            mobilePhotoRef.current.style.transform = `translate3d(0, ${photoY}px, 0)`;
+          }
+        });
+        return;
+      }
+
+      // Desktop Parallax
       const absoluteTop = cachedAbsoluteTopRef.current;
       const totalHeight = cachedTotalHeightRef.current;
       if (totalHeight <= 0) return;
@@ -125,35 +172,27 @@ export default function Footer() {
         let p = -top2 / scrollRange;
         p = Math.max(0, Math.min(1, p));
         
-        // Calculate individual elements' parallax translations based on the scroll progress 'p'
-        // Layer 1: Deep background image (slowest motion)
+        // Calculate footer-specific progress fp (0.0 to 1.0)
+        const fp = Math.max(0, Math.min(1, (p - 0.6) / 0.4));
+
+        // Layer 1: Deep background image (slowest motion, settles at 0px)
         if (bgImgRef.current) {
-          const bgY = (p - 0.5) * -40; // 40px travel range
-          bgImgRef.current.style.transform = `scale(1.08) translate3d(0, ${bgY}px, 0)`;
+          const bgY = (1 - p) * 60; // 60px travel range
+          bgImgRef.current.style.transform = `scale(1.1) translate3d(0, ${bgY}px, 0)`;
         }
         
-        // Layer 2: Midground name text "MIFTAHUL" (medium motion)
+        // Layer 2: Midground name text "MIFTAHUL" (settles at 0px vertical center)
         if (textRef.current) {
-          const isMobile = window.innerWidth < 768;
-          const textTravel = isMobile ? 40 : 120;
-          const textY = (p - 0.5) * -textTravel;
+          const textY = (1 - p) * 120; // Starts shifted down by 120px, settles at 0px
           const scaleY = 1.4;
           textRef.current.style.transform = `translate3d(0, ${textY}px, 0) scaleY(${scaleY})`;
         }
         
-        // Layer 3: Foreground photo card (fastest motion)
+        // Layer 3: Foreground photo card (settles at 0px touching the bottom)
         if (photoRef.current) {
-          const isMobile = window.innerWidth < 768;
-          if (isMobile) {
-            const travelY = 80;
-            const photoY = (p - 0.5) * -travelY; 
-            photoRef.current.style.transform = `translate3d(0, ${photoY}px, 0)`;
-          } else {
-            // Pinned to bottom, scrolling up dynamically so that at p=1 (the very bottom of page) it has exactly 0px offset (touches the bottom line exactly).
-            const travelY = 160; 
-            const photoY = (1 - p) * travelY;
-            photoRef.current.style.transform = `translate3d(0, ${photoY}px, 0)`;
-          }
+          const travelY = 240; // Starts shifted down by 240px, settles at 0px
+          const photoY = (1 - p) * travelY;
+          photoRef.current.style.transform = `translate3d(0, ${photoY}px, 0)`;
         }
       });
     };
@@ -166,7 +205,10 @@ export default function Footer() {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', updateCache);
-      clearTimeout(timeoutId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, []);
@@ -193,7 +235,7 @@ export default function Footer() {
         <div className="grid grid-cols-12 gap-y-5 gap-x-3 relative items-start">
           
           {/* Left Column (7 cols): Title stacking */}
-          <div className="col-span-7 flex flex-col justify-start text-left">
+          <div ref={mobileTextRef} className="col-span-7 flex flex-col justify-start text-left" style={{ willChange: 'transform' }}>
             <h2 className="font-display font-light text-[2.8rem] xs:text-[3.2rem] leading-[0.85] tracking-tighter uppercase text-neutral-900 select-text">
               MIFTAHUL
             </h2>
@@ -211,7 +253,7 @@ export default function Footer() {
           </div>
 
           {/* Right Column (5 cols): Grayscale portrait with heavy brutalist borders */}
-          <div className="col-span-5 flex flex-col justify-center items-end">
+          <div ref={mobilePhotoRef} className="col-span-5 flex flex-col justify-center items-end" style={{ willChange: 'transform' }}>
             <div 
               className="w-full aspect-[4/5] bg-[#E8E7E2] border border-[#1A1A1A] shadow-[4px_4px_0px_#1A1A1A] p-1 overflow-hidden"
             >
@@ -338,7 +380,7 @@ export default function Footer() {
         {/* Parallax Content Area */}
         <div className="relative w-full h-full flex items-end justify-center z-10">
           {/* Huge Name Text */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
+          <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
             <h1 
               ref={textRef}
               className="font-display font-black text-[#1A1A1A] uppercase leading-none text-center whitespace-nowrap" 
@@ -356,7 +398,7 @@ export default function Footer() {
           {/* Image Container */}
           <div 
             ref={photoRef}
-            className="group relative w-[80%] sm:w-[60%] md:w-[40%] lg:w-[30%] aspect-[4/5] bg-[#E8E7E2] rounded-t-[2rem] md:rounded-t-[3rem] rounded-b-none overflow-hidden z-20 shadow-2xl transition-transform duration-700 ease-out hover:scale-[1.03] select-none cursor-pointer mb-0"
+            className="group relative h-[78vh] aspect-[4/5] bg-[#E8E7E2] rounded-t-[2rem] md:rounded-t-[3rem] rounded-b-none overflow-hidden z-20 shadow-2xl transition-transform duration-700 ease-out hover:scale-[1.02] select-none cursor-pointer mb-0"
             style={{ willChange: 'transform' }}
           >
             {/* Main grayscale background image (kept static and perfectly sharp) */}

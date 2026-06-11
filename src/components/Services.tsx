@@ -10,7 +10,15 @@ export default function Services() {
   const sectionRef = useRef<HTMLElement>(null);
   const [constraints, setConstraints] = useState({ left: 0, right: 0 });
   const [isInView, setIsInView] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+
+  useEffect(() => {
+    // Refresh ScrollTrigger and Lenis when isMobile changes
+    ScrollTrigger.refresh();
+    if (typeof window !== 'undefined' && (window as any).lenis) {
+      (window as any).lenis.resize();
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     setIsMobile(window.innerWidth <= 768);
@@ -120,65 +128,64 @@ export default function Services() {
     // Proxy object for GSAP timeline scrubbing
     const proxy = { value: startVal };
 
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: sectionRef.current,
-        pin: true,
-        start: 'top top',
-        // Pinning duration accounts for the slide-in segment + the full horizontal track navigation
-        end: () => `+=${Math.max(1600, Math.abs(constraints.left) * 1.5 + 600)}`,
-        scrub: 0.6, // Savor the organic inertia catch-up
-        invalidateOnRefresh: true,
-        onUpdate: () => {
-          // If the viewer drags the cards, we pause ScrollTrigger locks to prevent conflicting offsets
-          if (isInteractingRef.current) {
-            proxy.value = x.get();
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          pin: true,
+          start: 'top top',
+          // Pinning duration accounts for the slide-in segment + the full horizontal track navigation
+          end: () => `+=${Math.max(1600, Math.abs(constraints.left) * 1.5 + 600)}`,
+          scrub: 0.6, // Savor the organic inertia catch-up
+          invalidateOnRefresh: true,
+          onUpdate: () => {
+            // If the viewer drags the cards, we pause ScrollTrigger locks to prevent conflicting offsets
+            if (isInteractingRef.current) {
+              proxy.value = x.get();
+            }
           }
         }
-      }
-    });
+      });
 
-    // 1. Sliding entrance animation (slide from far right to the baseline aligned layout)
-    tl.to(proxy, {
-      value: 0,
-      duration: 1.2,
-      ease: 'power2.out',
-      onUpdate: () => {
-        if (!isInteractingRef.current) {
-          x.set(proxy.value);
+      // 1. Sliding entrance animation (slide from far right to the baseline aligned layout)
+      tl.to(proxy, {
+        value: 0,
+        duration: 1.2,
+        ease: 'power2.out',
+        onUpdate: () => {
+          if (!isInteractingRef.current) {
+            x.set(proxy.value);
+          }
         }
-      }
-    });
+      });
 
-    // 2. Clear focus pause (holds at raw position before beginning horizontal tracking)
-    tl.to(proxy, {
-      value: 0,
-      duration: 0.4,
-      ease: 'none',
-      onUpdate: () => {
-        if (!isInteractingRef.current) {
-          x.set(proxy.value);
+      // 2. Clear focus pause (holds at raw position before beginning horizontal tracking)
+      tl.to(proxy, {
+        value: 0,
+        duration: 0.4,
+        ease: 'none',
+        onUpdate: () => {
+          if (!isInteractingRef.current) {
+            x.set(proxy.value);
+          }
         }
-      }
-    });
+      });
 
-    // 3. Fully-scrubbed horizontal scroll path
-    tl.to(proxy, {
-      value: constraints.left,
-      duration: 2.8,
-      ease: 'none',
-      onUpdate: () => {
-        if (!isInteractingRef.current) {
-          x.set(proxy.value);
+      // 3. Fully-scrubbed horizontal scroll path
+      tl.to(proxy, {
+        value: constraints.left,
+        duration: 2.8,
+        ease: 'none',
+        onUpdate: () => {
+          if (!isInteractingRef.current) {
+            x.set(proxy.value);
+          }
         }
-      }
-    });
+      });
+    }, sectionRef);
 
     return () => {
-      tl.kill();
-      if (tl.scrollTrigger) {
-        tl.scrollTrigger.kill(true);
-      }
+      ctx.revert();
     };
   }, [constraints.left, x, isMobile]);
 

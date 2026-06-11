@@ -29,15 +29,66 @@ export default function App() {
 
   useEffect(() => {
     const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+    if (isMobileDevice) {
+      // Enable standard scroll triggers on mobile
+      const handleNativeScroll = () => {
+        ScrollTrigger.update();
+      };
+      window.addEventListener('scroll', handleNativeScroll, { passive: true });
+
+      const revealTimeout = setTimeout(() => {
+        const revealElements = document.querySelectorAll('[data-reveal]');
+        revealElements.forEach((el) => {
+          const type = el.getAttribute('data-reveal');
+          const delay = el.getAttribute('style')?.includes('--delay') 
+            ? parseFloat((el as HTMLElement).style.getPropertyValue('--delay')) 
+            : 0;
+
+          let fromVars: gsap.TweenVars = {};
+          let toVars: gsap.TweenVars = {
+            opacity: 1,
+            duration: 0.7,
+            delay: delay,
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: el,
+              start: 'top 88%',
+              once: true,
+            }
+          };
+
+          if (type === 'fade-up') {
+            fromVars = { y: 25, opacity: 0 };
+            toVars.y = 0;
+          } else if (type === 'fade-left') {
+            fromVars = { x: -30, opacity: 0 };
+            toVars.x = 0;
+            toVars.duration = 0.6;
+          } else if (type === 'clip-up') {
+            fromVars = { clipPath: 'inset(100% 0 0 0)' };
+            toVars.clipPath = 'inset(0 0 0 0)';
+          }
+
+          gsap.fromTo(el, fromVars, toVars);
+        });
+      }, 100);
+
+      return () => {
+        clearTimeout(revealTimeout);
+        window.removeEventListener('scroll', handleNativeScroll);
+      };
+    }
+
     const lenis = new Lenis({
-      duration: isMobileDevice ? 1.2 : 0.9,
+      duration: 0.9,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 0.9,
-      touchMultiplier: isMobileDevice ? 0.8 : 1.8,
-      syncTouch: isMobileDevice ? true : false,
+      touchMultiplier: 1.8,
+      syncTouch: false,
     });
 
     lenisRef.current = lenis;
@@ -56,7 +107,6 @@ export default function App() {
     gsap.ticker.lagSmoothing(0);
 
     // Defer global scroll reveals to not block critical-path rendering
-    // Use a short timeout so the initial paint can happen first
     const revealTimeout = setTimeout(() => {
       const revealElements = document.querySelectorAll('[data-reveal]');
       revealElements.forEach((el) => {
@@ -74,7 +124,7 @@ export default function App() {
           scrollTrigger: {
             trigger: el,
             start: 'top 88%',
-            once: true, // Fire only once — no re-animation on scroll-back
+            once: true,
           }
         };
 
@@ -110,6 +160,13 @@ export default function App() {
         ScrollTrigger.refresh();
       } else {
         lenisRef.current.stop();
+      }
+    } else {
+      if (introExiting) {
+        document.body.style.overflow = '';
+        ScrollTrigger.refresh();
+      } else {
+        document.body.style.overflow = 'hidden';
       }
     }
   }, [introExiting]);
