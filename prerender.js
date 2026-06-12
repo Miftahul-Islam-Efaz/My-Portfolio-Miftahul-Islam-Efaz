@@ -84,6 +84,87 @@ const STATIC_PROJECTS = [
   }
 ];
 
+const DEFAULT_LLM_CONTENT = `# Miftahul Islam Efaz - Portfolio Text Representation & LLM-Friendly Index
+> For LLM crawlers, AI assistants, and search agents. This document details the visual, interactive, and structural hierarchy of Miftahul Islam Efaz's portfolio website.
+
+## Overview
+Miftahul Islam Efaz is a Creative Frontend Engineer, Developer, and Technical Architect.
+The portfolio is designed as an immersive, highly visual, motion-heavy showcase utilizing React, Tailwind CSS, GSAP, Lenis Smooth Scroll, Three.js (WebGL), and framer-motion. It displays full-stack projects, creative achievements, interactive service cards, and real-time client work.
+
+---
+
+## 1. Loader & Entry sequence
+- **SoundGate Component**: An audio confirmation dialog overlay. The user is prompted to enable or decline sound to support the highly atmospheric site experience.
+- **RevealLoader Component**: A typographic preloader rendering raw creative terms ("CREATIVITY", "CRAFT", "ENGINEERING", "INNOVATION") that expand and wipe up, building anticipation before cleanly revealing the site container.
+- **FaviconAnimator**: A script-driven reactive favicon switcher that cycles through glowing neon micro-indicators in the browser tab based on site loading states.
+
+## 2. Navigation Module
+- **Desktop Sticky Header**: Sleek floating glassmorphism strip. Contains:
+  - Branded logo: "MIFTAHUL ISLAM EFAZ" with micro-animations.
+  - Anchor Links: [ PROJECTS ], [ MILESTONES ], [ SERVICES ], [ CONTACT ].
+- **GooeyNav (Mobile Morphing Menu)**: A custom SVG filter liquid-gooey floating bubble that reacts elastically upon touch, morphing into a full-screen circular navigation overlay with tactile feedback.
+
+## 3. Hero Section (The Cinematic Intro)
+- **Visuals**: A deep atmospheric design with organic concrete gradients, floating noise grids, and slow-moving biophilic vectors.
+- **Hook Lines**:
+  - Main Display Typography: "CRAFTING DIGITAL SANCTUARIES" paired with "HIGH-PERFORMANCE FRONTEND ARCHITECTURE".
+  - Subtext: "Honoring clean geometries, pixel-perfect layouts, and advanced motion engineering to elevate modern digital properties."
+  - Animated Items: A multi-axis parallax floating concrete disk and high-contrast typography overlays reacting to scroll velocity.
+
+## 4. Skill Showcase (The 3D Space)
+- **Visuals**: A WebGL-driven 3D scene displaying a glossy organic floating helix/blob structures ("portfolio_2nd_section_updated.glb") inside a canvas holding glowing particle nodes.
+- **Key Core Competencies**:
+  - Creative Developer: Advanced GSAP, Canvas APIs, Shader effects, ScrollTrigger.
+  - Frontend Architect: React 18, Vite, Tailwind CSS, TypeScript, Performance optimization.
+  - Technical Design: Figma layout systems, interactive wireframe prototypes, micro-interactions, responsive typography.
+
+## 5. Website Projects Showcase
+A curated collection of pixel-perfect live web projects, each housed within magnetic container slides with custom glow shadows. The project entries synchronize automatically with Supabase CRM or PostgreSQL databases:
+1. **Osmin's Landscaping**: Atlanta-focused premium family greenscaping portal. Built with React and organic video integrations.
+2. **Bela Vista Nature Resort**: Minimal slow-living nature escape on Saint Martin island overlooking the Bay of Bengal, featuring rustic beach cottages.
+3. **Rene Architect Studio**: Chittagong-based practicing biophilic geo architecture, capturing sustainable concrete structures and eco geometries.
+4. **Ceramic Enthusiasts**: Premium automotive detailing studio in Houston, with a strict one-car-at-a-time focus on liquid PPF shields.
+5. **Family Services Cleaning**: Pet-safe residential hygiene systems using biodegradable botanical non-toxic formulas.
+6. **Pencil Link Outsourcing**: Cohesive SaaS engine and growth unit providing AI agent workflows and outbound sales lead generation.
+
+## 6. Core Services
+Detailed breakdown of creative and technical offerings:
+- **Creative Frontend Engineering**: WebGL, Three.js 3D development, GSAP interactive scrolling, and immersive micro-animations.
+- **Vibe Coding & Prototyping**: Ultra-fast ideation, layout execution, and high-performance React stack deployment.
+- **Automated Workflow Systems**: Advanced n8n workflow logics, webhook connections, and system automation.
+- **Enterprise Backend Core**: Node.js/TypeScript core engineering, PostgreSQL/Supabase database design, and high-security REST APIs.
+- **Generative AI Systems**: AI Agents, LLM prompt tuning, custom Model Context Protocol (MCP) servers, and context injection.
+
+## 7. Client Testimonials
+Direct client feedback verifying project execution speed, layout precision, and communication:
+- **Zeyad (Medicine Specialist)**: "An exceptional experience. They exceeded expectations with professionalism, great communication, and attention to detail."
+- **John Doe (Content Marketing)**: "Radiant made undercutting all of our competitors an absolute breeze."
+
+## 8. Contact & Conversion Gateway
+A dedicated portal to initiate projects and connect:
+- **Primary Channels**: Email to webigns@gmail.com, direct telephone, or physical consultation in Dhaka, Bangladesh.
+- **Form System**: Dynamic validation using database-backed feedback schemas to log client requests immediately.`;
+
+async function fetchLLMContent() {
+  try {
+    const res = await fetch(\`\${supabaseUrl}/rest/v1/llms_content?select=content&id=eq.default\`, {
+      headers: {
+        'apikey': supabaseAnonKey,
+        'authorization': \`Bearer \${supabaseAnonKey}\`,
+        'accept': 'application/vnd.pgrst.object+json'
+      }
+    });
+    if (!res.ok) throw new Error(\`HTTP error \${res.status}\`);
+    const data = await res.json();
+    if (data && data.content) {
+      return data.content;
+    }
+  } catch (err) {
+    console.warn('Supabase fetch for llms.txt failed during prerender, using fallback content:', err.message);
+  }
+  return DEFAULT_LLM_CONTENT;
+}
+
 async function fetchProjects() {
   try {
     const res = await fetch(`${supabaseUrl}/rest/v1/projects?select=*&order=sort_order.asc`, {
@@ -237,6 +318,21 @@ async function prerender() {
 
   fs.writeFileSync(htmlPath, html, 'utf8');
   console.log('Successfully pre-rendered static HTML skeleton inside dist/index.html!');
+
+  // Generate static llms.txt file to bypass serverless cold starts & database timeouts
+  console.log('Starting static llms.txt generation step...');
+  try {
+    const llmContent = await fetchLLMContent();
+    const publicLlmPath = path.join(__dirname, 'public', 'llms.txt');
+    const distLlmPath = path.join(__dirname, 'dist', 'llms.txt');
+    
+    // Write to both public/ (source control) and dist/ (immediate deployment build)
+    fs.writeFileSync(publicLlmPath, llmContent, 'utf8');
+    fs.writeFileSync(distLlmPath, llmContent, 'utf8');
+    console.log('Successfully generated static llms.txt in public/ and dist/ folders!');
+  } catch (err) {
+    console.error('Failed to write static llms.txt during pre-render:', err.message);
+  }
 }
 
 prerender();
