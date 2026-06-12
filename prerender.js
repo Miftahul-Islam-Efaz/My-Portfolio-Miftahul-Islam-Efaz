@@ -147,14 +147,14 @@ A dedicated portal to initiate projects and connect:
 
 async function fetchLLMContent() {
   try {
-    const res = await fetch(\`\${supabaseUrl}/rest/v1/llms_content?select=content&id=eq.default\`, {
+    const res = await fetch(`${supabaseUrl}/rest/v1/llms_content?select=content&id=eq.default`, {
       headers: {
         'apikey': supabaseAnonKey,
-        'authorization': \`Bearer \${supabaseAnonKey}\`,
+        'authorization': `Bearer ${supabaseAnonKey}`,
         'accept': 'application/vnd.pgrst.object+json'
       }
     });
-    if (!res.ok) throw new Error(\`HTTP error \${res.status}\`);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
     if (data && data.content) {
       return data.content;
