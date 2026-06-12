@@ -127,7 +127,7 @@ async function prerender() {
   // Generate the static HTML representation of the portfolio sections
   const preRenderedHTML = `
     <!-- Pre-rendered Static HTML Skeleton for SEO, Crawlers and non-JS clients -->
-    <div class="static-site-skeleton">
+    <div class="static-site-skeleton" style="display: none;">
       <!-- Navigation -->
       <nav style="display:none;">
         <a href="#skills">Skills</a>
