@@ -1,13 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import TestimonialCards from './ui/testimonial';
+import { supabase } from '../lib/supabase';
 
 export default function Testimonials() {
+  const [testimonialsBg, setTestimonialsBg] = useState('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780328872/testimonials_bg_an2upi.png');
+
+  useEffect(() => {
+    async function loadBackground() {
+      try {
+        const { data, error } = await supabase
+          .from('section_backgrounds')
+          .select('image_url')
+          .eq('id', 'testimonials')
+          .single();
+        if (data && !error) {
+          setTestimonialsBg(data.image_url);
+        }
+      } catch (err) {
+        console.error("Failed to load testimonials background:", err);
+      }
+    }
+    loadBackground();
+  }, []);
+
   return (
     <section id="testimonials" className="relative w-full bg-[var(--color-eerie)] border-t border-[rgba(255,255,255,0.05)] py-32 overflow-hidden transform-gpu">
       {/* Background Image */}
       <img 
         loading="lazy"
-        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780328872/testimonials_bg_an2upi.png"
+        src={testimonialsBg}
         alt="Testimonials Background"
         className="absolute inset-0 w-full h-full object-cover z-0 select-none pointer-events-none transform-gpu will-change-transform"
         referrerPolicy="no-referrer"

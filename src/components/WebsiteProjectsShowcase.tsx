@@ -19,6 +19,38 @@ export default function WebsiteProjectsShowcase() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const [outcomesImages, setOutcomesImages] = useState({
+    bg: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231556/Background_wpwatv.jpg',
+    character: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231578/my_image_hthdxq.png',
+    bezel: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780235422/ChatGPT_Image_May_31_2026_07_37_49_PM_fsjkar.png'
+  });
+
+  useEffect(() => {
+    async function loadOutcomesImages() {
+      try {
+        const { data, error } = await supabase
+          .from('outcomes_images')
+          .select('id, image_url');
+        if (data && !error) {
+          const fetched = {
+            bg: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231556/Background_wpwatv.jpg',
+            character: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231578/my_image_hthdxq.png',
+            bezel: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780235422/ChatGPT_Image_May_31_2026_07_37_49_PM_fsjkar.png'
+          };
+          data.forEach((item: any) => {
+            if (item.id === 'bg' || item.id === 'character' || item.id === 'bezel') {
+              fetched[item.id as 'bg' | 'character' | 'bezel'] = item.image_url;
+            }
+          });
+          setOutcomesImages(fetched);
+        }
+      } catch (err) {
+        console.error("Failed to load outcomes images:", err);
+      }
+    }
+    loadOutcomesImages();
+  }, []);
   const [isMuted, setIsMuted] = useState(() => {
     try {
       return localStorage.getItem('audio_atmosphere') !== 'enabled';
@@ -306,7 +338,7 @@ export default function WebsiteProjectsShowcase() {
           className="absolute inset-0 w-full h-[120%] -top-[10%] select-none z-0 transform-gpu"
         >
           <img 
-            src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231556/Background_wpwatv.jpg" 
+            src={outcomesImages.bg} 
             alt="Textured Background"
             className="w-full h-full object-cover opacity-50 md:filter md:contrast-[1.12] md:brightness-[0.7] md:saturate-[0.8]"
             referrerPolicy="no-referrer"
@@ -329,7 +361,7 @@ export default function WebsiteProjectsShowcase() {
         >
           <div className="w-full h-full flex items-center justify-center scale-[1.35] sm:scale-100 origin-center transition-transform duration-300">
             <img 
-              src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780231578/my_image_hthdxq.png" 
+              src={outcomesImages.character} 
               alt="Miftahul Islam"
               className="w-full h-full max-w-[1240px] max-h-[85vh] object-contain md:filter md:drop-shadow-[0_28px_55px_rgba(0,0,0,0.92)] md:contrast-[1.04]"
               referrerPolicy="no-referrer"
@@ -413,7 +445,7 @@ export default function WebsiteProjectsShowcase() {
             {/* G. CHASSIS CONTAINER OVERLAY (BEZEL FRAMING ON TOP to mask iframe overflow beautifully) */}
             <div className="absolute inset-0 w-full h-full pointer-events-none select-none z-30">
               <img 
-                src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780235422/ChatGPT_Image_May_31_2026_07_37_49_PM_fsjkar.png" 
+                src={outcomesImages.bezel} 
                 alt="Floating Predator Tablet chassis border"
                 className="w-full h-full object-fill md:filter md:drop-shadow-[0_25px_50px_rgba(0,0,0,0.85)]"
               />

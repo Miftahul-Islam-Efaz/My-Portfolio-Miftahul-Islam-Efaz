@@ -2,8 +2,22 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useVelocity, useSpring, useTransform } from 'motion/react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { supabase } from '../lib/supabase';
 
 gsap.registerPlugin(ScrollTrigger);
+
+interface ServiceCardData {
+  title: string;
+  image_url: string;
+}
+
+const DEFAULT_CARDS_DATA: Record<string, ServiceCardData> = {
+  figma: { title: 'CRAFT', image_url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780339447/Card1_rgdcyn.png' },
+  dev: { title: 'RENDER', image_url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780763649/card2_vqgco6.png' },
+  auto: { title: 'SYNC', image_url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780340033/card3_nobkmx.png' },
+  backend: { title: 'CORE', image_url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780764050/card4_daktqg.png' },
+  gen: { title: 'GEN', image_url: 'https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780763780/card5_udnbhw.png' }
+};
 
 export default function Services() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -11,6 +25,48 @@ export default function Services() {
   const [constraints, setConstraints] = useState({ left: 0, right: 0 });
   const [isInView, setIsInView] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+  const [cardsData, setCardsData] = useState<Record<string, ServiceCardData>>(DEFAULT_CARDS_DATA);
+  const [servicesBg, setServicesBg] = useState('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780328743/services_bg_dftwtt.png');
+
+  useEffect(() => {
+    async function loadCardsData() {
+      try {
+        const { data, error } = await supabase
+          .from('service_cards')
+          .select('id, title, image_url');
+        if (data && !error) {
+          const fetchedData: Record<string, ServiceCardData> = { ...DEFAULT_CARDS_DATA };
+          data.forEach((item: any) => {
+            if (item.id && item.image_url && item.title) {
+              fetchedData[item.id] = {
+                title: item.title,
+                image_url: item.image_url
+              };
+            }
+          });
+          setCardsData(fetchedData);
+        }
+      } catch (err) {
+        console.error("Failed to load service card data:", err);
+      }
+    }
+    async function loadBackground() {
+      try {
+        const { data, error } = await supabase
+          .from('section_backgrounds')
+          .select('image_url')
+          .eq('id', 'services')
+          .single();
+        if (data && !error) {
+          setServicesBg(data.image_url);
+        }
+      } catch (err) {
+        console.error("Failed to load services background:", err);
+      }
+    }
+    loadCardsData();
+    loadBackground();
+  }, []);
 
   useEffect(() => {
     // Refresh ScrollTrigger and Lenis when isMobile changes
@@ -194,7 +250,7 @@ export default function Services() {
       {/* Background Image */}
       <img 
         loading="lazy"
-        src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780328743/services_bg_dftwtt.png"
+        src={servicesBg}
         alt="Services Background"
         className="absolute inset-0 w-full h-full object-cover z-0 select-none pointer-events-none transform-gpu will-change-transform"
         referrerPolicy="no-referrer"
@@ -553,7 +609,10 @@ export default function Services() {
           <div className="card-slot">
             <motion.div className="card-wrapper" data-service="figma" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative" />
+                <div 
+                  className="service-card relative" 
+                  style={{ '--card-bg-img': `url('${cardsData.figma.image_url}')` } as React.CSSProperties}
+                />
               </div>
               <motion.div 
                 className="card-rod-left"
@@ -562,7 +621,7 @@ export default function Services() {
               <div className="attachment-pad">
                 {/* Visual Eyelet Hole perfectly centered in the pad */}
                 <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                <span className="relative z-10">CRAFT</span>
+                <span className="relative z-10">{cardsData.figma.title}</span>
               </div>
             </motion.div>
           </div>
@@ -571,7 +630,10 @@ export default function Services() {
           <div className="card-slot">
             <motion.div className="card-wrapper" data-service="dev" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative" />
+                <div 
+                  className="service-card relative" 
+                  style={{ '--card-bg-img': `url('${cardsData.dev.image_url}')` } as React.CSSProperties}
+                />
               </div>
               <motion.div 
                 className="card-rod-left"
@@ -580,7 +642,7 @@ export default function Services() {
               <div className="attachment-pad">
                 {/* Visual Eyelet Hole perfectly centered in the pad */}
                 <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                <span className="relative z-10">RENDER</span>
+                <span className="relative z-10">{cardsData.dev.title}</span>
               </div>
             </motion.div>
           </div>
@@ -589,7 +651,10 @@ export default function Services() {
           <div className="card-slot">
             <motion.div className="card-wrapper" data-service="auto" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative font-sans" />
+                <div 
+                  className="service-card relative font-sans" 
+                  style={{ '--card-bg-img': `url('${cardsData.auto.image_url}')` } as React.CSSProperties}
+                />
               </div>
               <motion.div 
                 className="card-rod-left"
@@ -598,7 +663,7 @@ export default function Services() {
               <div className="attachment-pad">
                 {/* Visual Eyelet Hole perfectly centered in the pad */}
                 <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                <span className="relative z-10">SYNC</span>
+                <span className="relative z-10">{cardsData.auto.title}</span>
               </div>
             </motion.div>
           </div>
@@ -607,7 +672,10 @@ export default function Services() {
           <div className="card-slot">
             <motion.div className="card-wrapper" data-service="backend" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative font-sans" />
+                <div 
+                  className="service-card relative font-sans" 
+                  style={{ '--card-bg-img': `url('${cardsData.backend.image_url}')` } as React.CSSProperties}
+                />
               </div>
               <motion.div 
                 className="card-rod-left"
@@ -616,7 +684,7 @@ export default function Services() {
               <div className="attachment-pad">
                 {/* Visual Eyelet Hole perfectly centered in the pad */}
                 <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                <span className="relative z-10">CORE</span>
+                <span className="relative z-10">{cardsData.backend.title}</span>
               </div>
             </motion.div>
           </div>
@@ -625,7 +693,10 @@ export default function Services() {
           <div className="card-slot">
             <motion.div className="card-wrapper" data-service="gen" style={{ rotate: isMobile ? 0 : skew, transformOrigin: '50% 80px' }}>
               <div className="card-container">
-                <div className="service-card relative font-sans" />
+                <div 
+                  className="service-card relative font-sans" 
+                  style={{ '--card-bg-img': `url('${cardsData.gen.image_url}')` } as React.CSSProperties}
+                />
               </div>
               <motion.div 
                 className="card-rod-left"
@@ -634,7 +705,7 @@ export default function Services() {
               <div className="attachment-pad">
                 {/* Visual Eyelet Hole perfectly centered in the pad */}
                 <div className="absolute top-[40px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full bg-[#0F0B0A] shadow-[inset_0_3px_5px_rgba(0,0,0,0.9)] border border-white/5 z-20 pointer-events-none" />
-                <span className="relative z-10">GEN</span>
+                <span className="relative z-10">{cardsData.gen.title}</span>
               </div>
             </motion.div>
           </div>

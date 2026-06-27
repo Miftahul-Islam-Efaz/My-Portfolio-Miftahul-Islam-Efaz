@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { Github, Linkedin, Twitter, Instagram, Facebook } from 'lucide-react';
 import { AnimatedDock } from './ui/animated-dock';
 import SplitType from 'split-type';
 import { motion, useScroll, useTransform } from 'motion/react';
+import { supabase, DatabaseVideoSettings } from '../lib/supabase';
 
 const Hero = React.memo(function Hero({ 
   isStarted = false,
@@ -15,6 +16,38 @@ const Hero = React.memo(function Hero({
   const nameRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize customizable settings from Supabase database schema
+  const [settings, setSettings] = useState<DatabaseVideoSettings>({
+    id: 'hero_section',
+    video_url: 'https://res.cloudinary.com/dr2tc3dyk/video/upload/q_auto,f_auto/v1780723250/hero_section_video_q01df4.mp4',
+    video_opacity: 1.0,
+    multiply_overlay_opacity: 0.0,
+    gradient_overlay_opacity_from: 0.0,
+    gradient_overlay_opacity_to: 0.0,
+    muted: true,
+    loop_video: true
+  });
+
+  // Fetch customizable settings from Supabase database schema
+  useEffect(() => {
+    async function loadVideoSettings() {
+      try {
+        const { data, error } = await supabase
+          .from('video_settings')
+          .select('*')
+          .eq('id', 'hero_section')
+          .single();
+        if (data && !error) {
+          setSettings(data as DatabaseVideoSettings);
+        }
+      } catch (err) {
+        console.warn('Supabase video settings lookup bypassed or not yet configured. Applying robust layout fallbacks:', err);
+      }
+    }
+    loadVideoSettings();
+  }, []);
+
 
   const taglines = [
     "Entrepreneur. Vibe-Coder. AI Orchestrator.",
@@ -273,6 +306,13 @@ const Hero = React.memo(function Hero({
     }, 300);
   };
 
+  const getOptimizedVideoUrl = (url: string) => {
+    if (url && url.includes('cloudinary.com') && !url.includes('q_auto')) {
+      return url.replace('/video/upload/', '/video/upload/q_auto,f_auto/');
+    }
+    return url;
+  };
+
   return (
     <section 
       id="hero-section"
@@ -283,14 +323,27 @@ const Hero = React.memo(function Hero({
       {/* Native background video - optimized with Cloudinary auto-format/auto-quality and poster fallback */}
       <video
         ref={videoRef}
-        src="https://res.cloudinary.com/dr2tc3dyk/video/upload/q_auto,f_auto/v1780723250/hero_section_video_q01df4.mp4"
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0"
-        loop
-        muted
+        key={getOptimizedVideoUrl(settings.video_url)}
+        src={getOptimizedVideoUrl(settings.video_url)}
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0 transition-opacity duration-700"
+        style={{ opacity: settings.video_opacity }}
+        loop={settings.loop_video}
+        muted={settings.muted}
         playsInline
         preload="auto"
-        poster="https://res.cloudinary.com/dr2tc3dyk/video/upload/v1780723250/hero_section_video_q01df4.jpg"
       />
+      {/* Cinematic dark overlays configured through dynamic Supabase database properties */}
+      <div 
+        className="absolute inset-0 bg-[#0F0B0A] z-0 pointer-events-none mix-blend-multiply transition-opacity duration-700" 
+        style={{ opacity: settings.multiply_overlay_opacity }}
+      />
+      <div 
+        className="absolute inset-0 z-0 pointer-events-none" 
+        style={{
+          background: `linear-gradient(to top, rgba(15, 11, 10, ${settings.gradient_overlay_opacity_from}) 0%, rgba(15, 11, 10, 0) 50%, rgba(15, 11, 10, ${settings.gradient_overlay_opacity_to}) 100%)`
+        }}
+      />
+
 
       {/* LEFT COLUMN */}
       <div className="w-full md:w-[60%] lg:w-[55%] flex flex-col text-white max-w-[480px] md:max-w-none">

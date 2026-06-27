@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Github, Linkedin, Briefcase, Instagram, Facebook, Twitter } from 'lucide-react';
 import { motion } from 'motion/react';
+import { supabase } from '../lib/supabase';
 
 const socials = [
   {
@@ -41,6 +42,9 @@ const socials = [
 ];
 
 export default function Footer() {
+  const [footerPortrait, setFooterPortrait] = useState('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1775244322/upscaled-2x-1775244293295_el2gi1.png');
+  const [footerBg, setFooterBg] = useState('https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780304474/18e04446-e19a-47c3-b540-8326c490e735_uvrzlw.png');
+
   const sectionRef = useRef<HTMLDivElement>(null);
   const photoRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLHeadingElement>(null);
@@ -213,6 +217,27 @@ export default function Footer() {
     };
   }, []);
 
+  useEffect(() => {
+    async function fetchFooterImages() {
+      try {
+        const { data, error } = await supabase
+          .from('section_backgrounds')
+          .select('id, image_url')
+          .in('id', ['footer_portrait', 'footer_bg']);
+        
+        if (!error && data) {
+          const portraitRow = data.find(r => r.id === 'footer_portrait');
+          const bgRow = data.find(r => r.id === 'footer_bg');
+          if (portraitRow) setFooterPortrait(portraitRow.image_url);
+          if (bgRow) setFooterBg(bgRow.image_url);
+        }
+      } catch (err) {
+        console.error('Error loading footer images:', err);
+      }
+    }
+    fetchFooterImages();
+  }, []);
+
   return (
     <footer id="footer" ref={sectionRef} className="relative w-full flex flex-col z-20 bg-transparent">
 
@@ -259,7 +284,7 @@ export default function Footer() {
             >
               <div className="w-full h-full grayscale overflow-hidden bg-stone-200">
                 <img 
-                  src="https://res.cloudinary.com/dr2tc3dyk/image/upload/w_300,h_375,c_fill,q_auto,f_auto/v1775244322/upscaled-2x-1775244293295_el2gi1.png" 
+                  src={footerPortrait} 
                   alt="Miftahul Efaz" 
                   className="w-full h-full object-cover object-top"
                   decoding="async"
@@ -369,7 +394,7 @@ export default function Footer() {
         {/* Background Image behind everything in the section */}
         <img 
           ref={bgImgRef}
-          src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1780304474/18e04446-e19a-47c3-b540-8326c490e735_uvrzlw.png"
+          src={footerBg}
           alt="Visual Background"
           className="absolute inset-0 w-full h-full object-cover z-0"
           referrerPolicy="no-referrer"
@@ -404,7 +429,7 @@ export default function Footer() {
             {/* Main grayscale background image (kept static and perfectly sharp) */}
             <div className="w-full h-full grayscale overflow-hidden relative">
               <img 
-                src="https://res.cloudinary.com/dr2tc3dyk/image/upload/v1775244322/upscaled-2x-1775244293295_el2gi1.png" 
+                src={footerPortrait} 
                 alt="Miftahul Islam Efaz" 
                 className="w-full h-full object-cover object-top filter contrast-[1.02]"
                 referrerPolicy="no-referrer"
