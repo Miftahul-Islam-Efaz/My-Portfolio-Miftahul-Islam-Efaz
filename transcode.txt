@@ -1,0 +1,141 @@
+ffmpeg version 8.1.1-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (Rev13, Built by MSYS2 project)
+  configuration: --enable-gpl --enable-version3 --enable-static --disable-w32threads --disable-autodetect --enable-cairo --enable-fontconfig --enable-iconv --enable-gnutls --enable-lcms2 --enable-libxml2 --enable-gmp --enable-bzlib --enable-lzma --enable-libsnappy --enable-zlib --enable-librist --enable-libsrt --enable-libssh --enable-libzmq --enable-avisynth --enable-libbluray --enable-libcaca --enable-libdvdnav --enable-libdvdread --enable-sdl2 --enable-libaribb24 --enable-libaribcaption --enable-libdav1d --enable-libdavs2 --enable-libopenjpeg --enable-libquirc --enable-libuavs3d --enable-libxevd --enable-libzvbi --enable-liboapv --enable-libqrencode --enable-librav1e --enable-libsvtav1 --enable-libvvenc --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxeve --enable-libxvid --enable-libaom --enable-libjxl --enable-libsvtjpegxs --enable-libvpx --enable-mediafoundation --enable-libass --enable-frei0r --enable-libfreetype --enable-libfribidi --enable-libharfbuzz --enable-liblensfun --enable-libvidstab --enable-libvmaf --enable-libzimg --enable-amf --enable-cuda-llvm --enable-cuvid --enable-dxva2 --enable-d3d11va --enable-d3d12va --enable-ffnvcodec --enable-libvpl --enable-nvdec --enable-nvenc --enable-vaapi --enable-libshaderc --enable-vulkan --enable-libplacebo --enable-opencl --enable-libcdio --enable-openal --enable-libgme --enable-libmodplug --enable-libopenmpt --enable-libopencore-amrwb --enable-libmp3lame --enable-libshine --enable-libtheora --enable-libtwolame --enable-libvo-amrwbenc --enable-libcodec2 --enable-libilbc --enable-libgsm --enable-liblc3 --enable-libopencore-amrnb --enable-libopus --enable-libspeex --enable-libvorbis --enable-ladspa --enable-libbs2b --enable-libflite --enable-libmysofa --enable-librubberband --enable-libsoxr --enable-chromaprint --enable-whisper
+  libavutil      60. 26.101 / 60. 26.101
+  libavcodec     62. 28.101 / 62. 28.101
+  libavformat    62. 12.101 / 62. 12.101
+  libavdevice    62.  3.101 / 62.  3.101
+  libavfilter    11. 14.101 / 11. 14.101
+  libswscale      9.  5.101 /  9.  5.101
+  libswresample   6.  3.101 /  6.  3.101
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'public\video\Hero-section-new-video.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2hvc1mp41
+    Hw              : 1
+    LvMetaInfo      : {"data":{"adsTemplateId":"","appVersion":"19.2.0","businessComponentId":"","businessTemplateId":"","capabilityName":"color_correct,normal_capabilities,image_enhance,motion_interpolation","commercial_params":{},"draftInfo":{"colorCorrectCnt":1,"normalSpeed
+    aigc_info       : {"aigc_label_type":0,"source_info":""}
+    bitrate         : 10000000
+    maxrate         : 30000000
+    te_is_reencode  : 1
+    encoder         : Lavf57.71.100
+  Duration: 00:00:04.13, start: 0.000000, bitrate: 8145 kb/s
+  Stream #0:0[0x1](und): Video: hevc (Main) (hvc1 / 0x31637668), yuv420p(tv, bt709), 1280x720, 8126 kb/s, 30 fps, 30 tbr, 1000k tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, stereo, fltp, 2 kb/s (default)
+    Metadata:
+      handler_name    : SoundHandler
+Stream mapping:
+  Stream #0:0 -> #0:0 (hevc (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[libx264 @ 000002277e720000] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+[libx264 @ 000002277e720000] profile High, level 3.1, 4:2:0, 8-bit
+[libx264 @ 000002277e720000] 264 - core 165 r3223 0480cb0 - H.264/MPEG-4 AVC codec - Copyleft 2003-2025 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=12 lookahead_threads=2 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=25 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'public\video\hero-new-720.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2hvc1mp41
+    Hw              : 1
+    LvMetaInfo      : {"data":{"adsTemplateId":"","appVersion":"19.2.0","businessComponentId":"","businessTemplateId":"","capabilityName":"color_correct,normal_capabilities,image_enhance,motion_interpolation","commercial_params":{},"draftInfo":{"colorCorrectCnt":1,"normalSpeed
+    aigc_info       : {"aigc_label_type":0,"source_info":""}
+    bitrate         : 10000000
+    maxrate         : 30000000
+    te_is_reencode  : 1
+    encoder         : Lavf62.12.101
+  Stream #0:0(und): Video: h264 (avc1 / 0x31637661), yuv420p(tv, bt709, progressive), 1280x720, q=2-31, 30 fps, 15360 tbn (default)
+    Metadata:
+      encoder         : Lavc62.28.101 libx264
+      handler_name    : VideoHandler
+    Side data:
+      CPB properties: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
+frame=   17 fps=0.0 q=29.0 size=       0KiB time=00:00:00.50 bitrate=   0.8kbits/s speed=0.98x elapsed=0:00:00.51    frame=   41 fps= 39 q=29.0 size=       0KiB time=00:00:01.30 bitrate=   0.3kbits/s speed=1.25x elapsed=0:00:01.03    frame=   74 fps= 47 q=29.0 size=     256KiB time=00:00:02.40 bitrate= 874.0kbits/s speed=1.53x elapsed=0:00:01.56    frame=  110 fps= 53 q=29.0 size=     256KiB time=00:00:03.60 bitrate= 582.6kbits/s speed=1.73x elapsed=0:00:02.07    [mp4 @ 000002277e70fb00] Starting second pass: moving the moov atom to the beginning of the file
+[out#0/mp4 @ 000002277e6f5300] video:477KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.483829%
+frame=  124 fps= 56 q=-1.0 Lsize=     479KiB time=00:00:04.06 bitrate= 964.6kbits/s speed=1.83x elapsed=0:00:02.21    
+[libx264 @ 000002277e720000] frame I:1     Avg QP:20.21  size: 25692
+[libx264 @ 000002277e720000] frame P:33    Avg QP:21.64  size: 10631
+[libx264 @ 000002277e720000] frame B:90    Avg QP:23.97  size:  1231
+[libx264 @ 000002277e720000] consecutive B-frames:  2.4%  1.6%  2.4% 93.5%
+[libx264 @ 000002277e720000] mb I  I16..4: 21.6% 65.0% 13.4%
+[libx264 @ 000002277e720000] mb P  I16..4:  4.4%  5.7%  0.3%  P16..4: 39.3% 10.5%  5.4%  0.0%  0.0%    skip:34.4%
+[libx264 @ 000002277e720000] mb B  I16..4:  0.1%  0.1%  0.0%  B16..8: 22.2%  0.4%  0.0%  direct: 0.9%  skip:76.4%  L0:40.5% L1:57.7% BI: 1.9%
+[libx264 @ 000002277e720000] 8x8 transform intra:57.0% inter:84.3%
+[libx264 @ 000002277e720000] coded y,uvDC,uvAC intra: 23.1% 54.2% 10.1% inter: 5.4% 10.6% 0.2%
+[libx264 @ 000002277e720000] i16 v,h,dc,p: 53% 15% 12% 20%
+[libx264 @ 000002277e720000] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 25% 14% 44%  1%  4%  3%  6%  2%  1%
+[libx264 @ 000002277e720000] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 58% 10% 14%  2%  4%  4%  3%  3%  1%
+[libx264 @ 000002277e720000] i8c dc,h,v,p: 55% 14% 25%  6%
+[libx264 @ 000002277e720000] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 000002277e720000] ref P L0: 72.1%  5.3% 19.0%  3.6%
+[libx264 @ 000002277e720000] ref B L0: 91.2%  7.4%  1.4%
+[libx264 @ 000002277e720000] ref B L1: 97.2%  2.8%
+[libx264 @ 000002277e720000] kb/s:943.15
+ffmpeg version 8.1.1-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (Rev13, Built by MSYS2 project)
+  configuration: --enable-gpl --enable-version3 --enable-static --disable-w32threads --disable-autodetect --enable-cairo --enable-fontconfig --enable-iconv --enable-gnutls --enable-lcms2 --enable-libxml2 --enable-gmp --enable-bzlib --enable-lzma --enable-libsnappy --enable-zlib --enable-librist --enable-libsrt --enable-libssh --enable-libzmq --enable-avisynth --enable-libbluray --enable-libcaca --enable-libdvdnav --enable-libdvdread --enable-sdl2 --enable-libaribb24 --enable-libaribcaption --enable-libdav1d --enable-libdavs2 --enable-libopenjpeg --enable-libquirc --enable-libuavs3d --enable-libxevd --enable-libzvbi --enable-liboapv --enable-libqrencode --enable-librav1e --enable-libsvtav1 --enable-libvvenc --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxeve --enable-libxvid --enable-libaom --enable-libjxl --enable-libsvtjpegxs --enable-libvpx --enable-mediafoundation --enable-libass --enable-frei0r --enable-libfreetype --enable-libfribidi --enable-libharfbuzz --enable-liblensfun --enable-libvidstab --enable-libvmaf --enable-libzimg --enable-amf --enable-cuda-llvm --enable-cuvid --enable-dxva2 --enable-d3d11va --enable-d3d12va --enable-ffnvcodec --enable-libvpl --enable-nvdec --enable-nvenc --enable-vaapi --enable-libshaderc --enable-vulkan --enable-libplacebo --enable-opencl --enable-libcdio --enable-openal --enable-libgme --enable-libmodplug --enable-libopenmpt --enable-libopencore-amrwb --enable-libmp3lame --enable-libshine --enable-libtheora --enable-libtwolame --enable-libvo-amrwbenc --enable-libcodec2 --enable-libilbc --enable-libgsm --enable-liblc3 --enable-libopencore-amrnb --enable-libopus --enable-libspeex --enable-libvorbis --enable-ladspa --enable-libbs2b --enable-libflite --enable-libmysofa --enable-librubberband --enable-libsoxr --enable-chromaprint --enable-whisper
+  libavutil      60. 26.101 / 60. 26.101
+  libavcodec     62. 28.101 / 62. 28.101
+  libavformat    62. 12.101 / 62. 12.101
+  libavdevice    62.  3.101 / 62.  3.101
+  libavfilter    11. 14.101 / 11. 14.101
+  libswscale      9.  5.101 /  9.  5.101
+  libswresample   6.  3.101 /  6.  3.101
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'public\video\Hero-section-new-video.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2hvc1mp41
+    Hw              : 1
+    LvMetaInfo      : {"data":{"adsTemplateId":"","appVersion":"19.2.0","businessComponentId":"","businessTemplateId":"","capabilityName":"color_correct,normal_capabilities,image_enhance,motion_interpolation","commercial_params":{},"draftInfo":{"colorCorrectCnt":1,"normalSpeed
+    aigc_info       : {"aigc_label_type":0,"source_info":""}
+    bitrate         : 10000000
+    maxrate         : 30000000
+    te_is_reencode  : 1
+    encoder         : Lavf57.71.100
+  Duration: 00:00:04.13, start: 0.000000, bitrate: 8145 kb/s
+  Stream #0:0[0x1](und): Video: hevc (Main) (hvc1 / 0x31637668), yuv420p(tv, bt709), 1280x720, 8126 kb/s, 30 fps, 30 tbr, 1000k tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, stereo, fltp, 2 kb/s (default)
+    Metadata:
+      handler_name    : SoundHandler
+Stream mapping:
+  Stream #0:0 -> #0:0 (hevc (native) -> mjpeg (native))
+Press [q] to stop, [?] for help
+Output #0, image2, to 'public\video\hero-new-poster.jpg':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2hvc1mp41
+    Hw              : 1
+    LvMetaInfo      : {"data":{"adsTemplateId":"","appVersion":"19.2.0","businessComponentId":"","businessTemplateId":"","capabilityName":"color_correct,normal_capabilities,image_enhance,motion_interpolation","commercial_params":{},"draftInfo":{"colorCorrectCnt":1,"normalSpeed
+    aigc_info       : {"aigc_label_type":0,"source_info":""}
+    bitrate         : 10000000
+    maxrate         : 30000000
+    te_is_reencode  : 1
+    encoder         : Lavf62.12.101
+  Stream #0:0(und): Video: mjpeg, yuv420p(pc, bt709, progressive), 1280x720, q=2-31, 200 kb/s, 30 fps, 30 tbn (default)
+    Metadata:
+      encoder         : Lavc62.28.101 mjpeg
+      handler_name    : VideoHandler
+    Side data:
+      CPB properties: bitrate max/min/avg: 0/0/200000 buffer size: 0 vbv_delay: N/A
+[out#0/image2 @ 0000026a173959c0] video:46KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+frame=    1 fps=0.0 q=3.0 Lsize=N/A time=00:00:00.03 bitrate=N/A speed=0.363x elapsed=0:00:00.09    
+ Volume in drive D is New Volume
+ Volume Serial Number is B64E-825A
+
+ Directory of d:\website\nextjs-site\public\video
+
+08/20/2026  07:14 PM    <DIR>          .
+08/20/2026  07:14 PM    <DIR>          ..
+08/19/2026  11:53 PM         7,697,902 hero-boomerang-1080.mp4
+08/19/2026  11:53 PM         2,702,536 hero-boomerang-720.mp4
+08/20/2026  07:14 PM           490,343 hero-new-720.mp4
+08/20/2026  07:14 PM            46,978 hero-new-poster.jpg
+08/19/2026  11:53 PM            86,755 hero-poster.jpg
+08/20/2026  07:08 PM         4,208,253 Hero-section-new-video.mp4
+               6 File(s)     15,232,767 bytes
+               2 Dir(s)  82,023,567,360 bytes free

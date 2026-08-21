@@ -1,0 +1,99 @@
+/* Local font faces. Files live in /public/Fonts. */
+
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-light.woff2") format("woff2"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-light-italic.woff2") format("woff2"); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-regular-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-medium-italic.woff2") format("woff2"); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-bold-italic.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-black.woff2") format("woff2"); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/Fonts/satoshi/satoshi-black-italic.woff2") format("woff2"); font-weight: 900; font-style: italic; font-display: swap; }
+
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-light.woff2") format("woff2"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-light-italic.woff2") format("woff2"); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-regular-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-medium-italic.woff2") format("woff2"); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-bold-italic.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-extrabold.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Bespoke Serif"; src: url("/Fonts/bespoke-serif/bespoke-serif-extrabold-italic.woff2") format("woff2"); font-weight: 800; font-style: italic; font-display: swap; }
+
+@font-face { font-family: "Cabinet Grotesk"; src: url("/Fonts/cabinet-grotesk/cabinet-grotesk-thin.woff2") format("woff2"); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: "Cabinet Grotesk"; src: url("/Fonts/cabinet-grotesk/cabinet-grotesk-extralight.woff2") format("woff2"); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: "Cabinet Grotesk"; src: url("/Fonts/cabinet-grotesk/cabinet-grotesk-light.woff2") format("woff2"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Cabinet Grotesk"; src: url("/Fonts/cabinet-grotesk/cabinet-grotesk-regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Cabinet Grotesk"; src: url("/Fonts/cabinet-grotesk/cabinet-grotesk-medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Cabinet Grotesk"; src: url("/Fonts/cabinet-grotesk/cabinet-grotesk-bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Cabinet Grotesk"; src: url("/Fonts/cabinet-grotesk/cabinet-grotesk-extrabold.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Cabinet Grotesk"; src: url("/Fonts/cabinet-grotesk/cabinet-grotesk-black.woff2") format("woff2"); font-weight: 900; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "Tanker"; src: url("/Fonts/tanker/tanker-regular.otf") format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "PixelatedElegance"; src: url("/Fonts/PixelatedEleganceRegular-ovawB.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "BrittanySignature"; src: url("/Fonts/BrittanySignature.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+
+/* ---------------------------------------------------------------------------
+ * Type Archive families
+ * ---------------------------------------------------------------------------
+ * Pulled from https://type-archive.miftahulislamefaz.xyz by download-fonts.ps1,
+ * which reads the /api/fonts JSON rather than hardcoding CDN URLs (those carry
+ * per-upload UUIDs and would rot).
+ *
+ * Boreck ships a single Bold (700) file, so anything set in it should be asked
+ * for at 700. Requesting 400 makes the browser synthesise a lighter weight,
+ * which on a display serif smears the stroke contrast that makes it worth using.
+ */
+
+@font-face { font-family: "Boreck"; src: url("/Fonts/boreck/boreckdisplay-bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "Amarant"; src: url("/Fonts/amarant/amarante-regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
+/* ARK_ES ships as two distinct designs - Solid and Dense - at four weights
+ * each. They are declared as separate families on purpose: merging them would
+ * put two different faces on the same weight slot, and the later declaration
+ * would silently win. */
+@font-face { font-family: "ARK_ES Solid"; src: url("/Fonts/ark-es/ark-es-solidlight.woff") format("woff"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "ARK_ES Solid"; src: url("/Fonts/ark-es/ark-es-solidregular.woff") format("woff"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "ARK_ES Solid"; src: url("/Fonts/ark-es/ark-es-solidmedium.woff") format("woff"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "ARK_ES Solid"; src: url("/Fonts/ark-es/ark-es-solidbold.woff") format("woff"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "ARK_ES Dense"; src: url("/Fonts/ark-es/ark-es-denselight.woff") format("woff"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "ARK_ES Dense"; src: url("/Fonts/ark-es/ark-es-denseregular.woff") format("woff"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "ARK_ES Dense"; src: url("/Fonts/ark-es/ark-es-densemedium.woff") format("woff"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "ARK_ES Dense"; src: url("/Fonts/ark-es/ark-es-densebold.woff") format("woff"); font-weight: 700; font-style: normal; font-display: swap; }
+
+/* woff2 first, woff second: browsers take the first format they support, and
+ * the woff2 here is ~15% smaller. */
+@font-face { font-family: "Comico"; src: url("/Fonts/comico/comico-regular.woff2") format("woff2"), url("/Fonts/comico/comico-regular.woff") format("woff"); font-weight: 400; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "Kola"; src: url("/Fonts/kola/kola-regular.woff2") format("woff2"), url("/Fonts/kola/kola-regular.woff") format("woff"); font-weight: 400; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "Monare"; src: url("/Fonts/monare/monare.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
+/* The archive holds two Peace Sans uploads at the same weight
+ * (peace-sans-webfont.woff2 and peace-sans.woff2). Only one can occupy the
+ * slot; the webfont build is used as it is the more complete of the two. */
+@font-face { font-family: "Peace Sans"; src: url("/Fonts/peace-sans/peace-sans-webfont.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
+:root {
+	--font-body: "Satoshi", ui-sans-serif, system-ui, sans-serif;
+	--font-sans: "Satoshi", ui-sans-serif, system-ui, sans-serif;
+	--font-display: "Bespoke Serif", ui-serif, Georgia, serif;
+	--font-heading: "Cabinet Grotesk", ui-sans-serif, system-ui, sans-serif;
+	--font-accent: "Tanker", "Cabinet Grotesk", sans-serif;
+	--font-pixel: "PixelatedElegance", ui-monospace, monospace;
+	--font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+	/* Type Archive families. --font-hero-display is what the hero headline uses;
+	 * the rest are registered and ready but not yet applied anywhere. */
+	--font-hero-display: "Boreck", "Bespoke Serif", ui-serif, Georgia, serif;
+	--font-amarant: "Amarant", ui-serif, Georgia, serif;
+	--font-ark-es: "ARK_ES Solid", ui-monospace, monospace;
+	--font-ark-es-dense: "ARK_ES Dense", ui-monospace, monospace;
+	--font-comico: "Comico", ui-sans-serif, system-ui, sans-serif;
+	--font-kola: "Kola", ui-sans-serif, system-ui, sans-serif;
+	--font-monare: "Monare", ui-sans-serif, system-ui, sans-serif;
+	--font-peace-sans: "Peace Sans", ui-sans-serif, system-ui, sans-serif;
+}

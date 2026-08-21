@@ -1,0 +1,461 @@
+===============================================================================
+PORTFOLIO WEBSITE - WORKING CONTEXT (NEXT.JS)
+Miftahul Islam Efaz | portfolio | Next.js 15 + React 19
+Last updated: 20 Aug 2026
+===============================================================================
+
+PURPOSE OF THIS FILE
+--------------------
+Attach this at the start of a fresh chat so the assistant has full project
+context without re-discovering it. It replaces the older React/Vite context
+file - that project is now the REFERENCE SOURCE ONLY, not the live codebase.
+
+
+===============================================================================
+1. PROJECT LOCATIONS
+===============================================================================
+
+ACTIVE PROJECT (edit here):
+  D:\website\nextjs-site
+
+REFERENCE SOURCE (read-only, original React + Vite app):
+  F:\Website Projects\portfolio-website-miftahul-islam
+
+LIVE SITE (the original, for visual comparison):
+  https://www.miftahulislamefaz.xyz/
+
+AI STUDIO MIGRATION (Next.js copy, all 45 files landed successfully):
+  https://aistudio.google.com/apps/a829860d-1c0e-41cb-8a32-d0efb50a7f01
+  Project: gen-lang-client-0223241581 | App name: "Portfolio Project"
+
+IMPORTANT RULE: When rebuilding or fixing a feature, ALWAYS read the real file
+from the F: drive reference and adapt it minimally. Never re-author a component
+from notes or memory - it will drift from the original design.
+
+
+===============================================================================
+2. STACK
+===============================================================================
+
+Next.js 15.5.x (App Router, Webpack)   React 19    TypeScript 5.8 (strict)
+Tailwind CSS 4.1 (@theme, via @tailwindcss/postcss - NO tailwind.config.js)
+GSAP 3.14 + ScrollTrigger    Lenis 1.3 (smooth scroll)    Framer Motion 12
+Three.js 0.183 (WebGL dither carousel)    split-type 0.3
+
+lucide-react is PINNED to 0.446.0 - newer versions removed the brand icons
+(Github, Linkedin, Twitter, Instagram, Facebook) and the build breaks.
+Only ui/animated-dock.tsx uses it, and that file is dead code, so the
+dependency can be removed entirely if those two files are deleted.
+
+Supabase was intentionally DROPPED. Video settings are hardcoded in
+src/config/media.ts and src/components/hero/heroData.ts.
+
+Scripts: dev | build | start | lint (which runs `tsc --noEmit`)
+Path alias: @/* -> ./src/*
+next.config.ts: reactStrictMode: false (deliberate - double-mounting broke
+  the Lenis/ScrollTrigger setup). images.remotePatterns allows
+  res.cloudinary.com and images.unsplash.com.
+
+
+===============================================================================
+3. FILE STRUCTURE (45 source files)
+===============================================================================
+
+src/app/
+  layout.tsx        Root layout. Renders <SmoothScrollProvider /> as a SIBLING
+                    of {children}, NOT a wrapper - it takes no children and
+                    returns null. Wrapping it blanks the whole page.
+  page.tsx          Returns <HomeShell />. Nothing else.
+  globals.css       Tailwind @theme tokens + base styles.
+
+src/components/
+  HomeShell.tsx     Client orchestrator. Owns intro state and section order:
+                      RevealLoader (if !hasIntroPlayed)
+                      -> Navigation -> Hero -> WebsiteProjectsShowcase
+                      -> PixelDissolveTransition
+                    Toggles lenis.start()/stop() on intro exit.
+  Navigation.tsx    Biggest file (~403 lines). Logo, WORK link, hamburger,
+                    fullscreen overlay menu, UTC clock, rotating phrases,
+                    48-block grid transition.
+  Hero.tsx          Markup only - all logic lives in hooks.
+  SmoothScrollProvider.tsx  Headless. Owns Lenis, the gsap.ticker bridge and
+                            the global [data-reveal] scan. Renders nothing.
+  WebsiteProjectsShowcase.tsx  Work section wrapper (id="projects").
+
+src/components/hero/
+  heroData.ts               HERO_CONFIG: name, taglines, buttons, socials.
+  heroStyles.ts             TAGLINE_CLASS constant.
+  HeroBackgroundVideo.tsx   Maps HERO_VIDEO.sources to <source> tags.
+  HeroActionButton.tsx      "View My Work" - splits label into per-character
+                            <span class="loader-letter"> (so the full string
+                            never appears contiguously in the HTML).
+  HeroLiquidGlassButton.tsx "Get In Touch"
+  HeroScrollIndicator.tsx   SCROLL cue
+  HeroSocialDock.tsx        DEAD CODE - nothing imports it.
+
+src/components/ui/
+  reveal-loader.tsx           Intro animation (greetings -> name -> wipe).
+  PixelDissolveTransition.tsx Work -> next-section transition.
+  animated-dock.tsx           DEAD CODE - only HeroSocialDock imports it.
+
+src/components/work/
+  types.ts             WorkProject type
+  workTheme.ts         WORK_THEME palette
+  workProjectsData.ts  The 8 projects
+  WorkIntroHeader.tsx  Intro copy + portrait + signature SVG
+  DitherCarousel.tsx   React wrapper around the WebGL engine; owns the
+                       ScrollTrigger pin and the visibility observer.
+  dither/engine.ts     Thin TS facade over the gl/ layer.
+  dither/gl/           scene.js (largest), scroll.js, post.js, trail.js,
+                       cardbuffer.js, config.js, color.js, gui.js
+  dither/gl/shaders/   composite.js, card.js, dither.js, trail.js
+
+  NOTE: gl/scroll.js is REQUIRED - scene.js line 4 imports
+  { createScrollController } from "./scroll.js". Omitting it gives
+  "Module not found: Can't resolve './scroll.js'".
+
+src/hooks/
+  useHeroIntroAnimation.ts  GSAP entry timeline + tagline rotator.
+  useVideoPlayback.ts       Play/pause gated on IntersectionObserver +
+                            document.visibilityState. Replaced ~150 lines of
+                            reverse-seek code (the old lag source).
+
+src/lib/
+  scroll.ts         getLenis() + scrollToSelector() with native fallback.
+  utils.ts          cn() helper
+  videoSettings.ts  DatabaseVideoSettings type (legacy Supabase shape)
+
+src/config/
+  media.ts          HERO_VIDEO (sources + poster) - THE ONLY PLACE video
+                    paths are defined. Header documents the ffmpeg pipeline.
+
+src/styles/
+  fonts.css  hero-theme.css  work-theme.css  reveal-loader.css
+
+public/
+  Fonts/    CAPITAL F - fonts.css requests /Fonts/satoshi/... and Linux
+            hosting is case-sensitive. Subfolders: satoshi, bespoke-serif,
+            cabinet-grotesk, tanker. A redundant nested public/Fonts/Fonts/
+            duplicate exists and should be deleted.
+  video/    hero-boomerang-1080.mp4 (7.7MB), hero-boomerang-720.mp4 (2.7MB),
+            hero-poster.jpg (87KB)
+
+media-src/  NOT SERVED. Build artifacts: hero-source.mp4 (45.7MB original),
+            hero-fwd.mp4, hero-rev.mp4, ffmpeg logs.
+
+
+===============================================================================
+4. PAGE COMPOSITION (top to bottom)
+===============================================================================
+
+1. RevealLoader   Intro overlay. Greetings cycle -> name reveal -> curved wipe.
+2. Hero           id="hero-section". Boomerang video background, name,
+                  rotating tagline, two buttons, SCROLL cue.
+3. Work           id="projects". WorkIntroHeader, then a 75vh spacer, then the
+                  pinned DitherCarousel (8 projects).
+4. PixelDissolveTransition   The outgoing transition after Work.
+
+There is deliberately NO SECTION AFTER WORK. Testimonials were excluded by
+request. The transition out of Work was kept.
+
+
+===============================================================================
+5. HERO VIDEO - THE BOOMERANG PIPELINE
+===============================================================================
+
+The original 4K60 24Mbps clip caused heavy scroll lag (decoding competed with
+Lenis, GSAP and WebGL for the main thread). It was replaced by a TRUE
+PALINDROME file that plays forward forever with the native `loop` attribute
+and never seeks.
+
+Source: 3840x2160, 60fps, 900 frames, 15s, 24.4 Mbps, h264+aac, 45.7 MB
+Output: 1920x1080, 30fps, 899 frames, 29.97s, 2.05 Mbps, no audio, 7.7 MB
+
+  1. ffmpeg -i hero-source.mp4 -an -vf "scale=1920:-2,fps=30" -c:v libx264
+       -crf 24 -preset medium -g 30 -keyint_min 30 -sc_threshold 0
+       -pix_fmt yuv420p -movflags +faststart hero-fwd.mp4
+  2. ffmpeg -i hero-fwd.mp4 -an -vf "reverse,trim=start_frame=1,
+       setpts=PTS-STARTPTS" ... hero-rev.mp4
+  3. ffmpeg -f concat -safe 0 -i list.txt -c copy -movflags +faststart
+       hero-boomerang-1080.mp4
+
+Scale BEFORE reversing (the reverse filter buffers frames in RAM).
+trim=start_frame=1 drops the duplicated turnaround frame so the loop doesn't
+hitch. 720p variant: -vf "scale=1280:-2" -crf 26. Poster: -frames:v 1 -q:v 4.
+
+ffmpeg 8.1.1 is at:
+  C:\Users\Laptop Click\AppData\Local\Microsoft\WinGet\Packages\
+  Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\
+  ffmpeg-8.1.1-full_build\bin\ffmpeg.exe
+
+NEVER point HERO_VIDEO at the raw Dropbox 4K original - it reintroduces the
+lag and won't loop seamlessly.
+
+
+===============================================================================
+6. PERFORMANCE - WHAT WAS TUNED AND WHY
+===============================================================================
+
+All of these were deliberate fixes for user-reported scroll lag. Do not
+revert without a reason:
+
+* Hero video: 4K60 -> pre-baked 1080p30 boomerang, audio stripped.
+* useVideoPlayback: pauses when off-screen or tab hidden.
+* dither/gl/scene.js: renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5))
+  - was 2. ~44% less pixel work across the post, trail and cardbuffer passes.
+  Safe because dithering destroys fine detail anyway.
+* DitherCarousel WAKE_MARGIN: '50% 0px 50% 0px' - was '100% ...', which woke
+  the GL loop a full viewport early, i.e. during the intro section, which is
+  exactly where the lag was felt.
+* Portrait image: Cloudinary w_640,q_auto,f_auto + width/height +
+  loading="lazy" + decoding="async". It was previously a full-size PNG
+  rendered into a 320px box.
+* Engine already had antialias: false and powerPreference: "high-performance".
+
+ALWAYS benchmark with `npm run build && npm start`. Dev mode is not
+representative - it recompiles on navigation and inflates jank.
+
+Next lever if jank ever returns: the DitherCarousel ScrollTrigger pin
+(pinType: 'transform', anticipatePin: 1, refreshPriority: 1).
+
+
+===============================================================================
+7. KNOWN NON-ISSUES (do not "fix" these)
+===============================================================================
+
+HYDRATION ERROR: "A tree hydrated but some attributes of the server rendered
+HTML didn't match..." pointing at layout.tsx <body>.
+CAUSE: The Bitdefender browser extension injects bis_status="ok",
+bis_frame_id="...", bis_skin_checked="1" and __processed_<uuid>__="true"
+onto elements before React hydrates. `bis_` = Bitdefender Internet Security.
+It is NOT a code bug. Confirm by loading in incognito with extensions
+disabled. Dev-overlay only; never appears in production.
+(This was misdiagnosed twice as a RevealLoader inline-<style> problem. It
+was the extension all along.)
+
+INTRO REPLAYS ON EVERY RELOAD: intentional and faithful to the original -
+RevealLoader clears sessionStorage 'intro_played' on mount. Can be made
+once-per-session on request.
+
+gsap.registerPlugin(ScrollTrigger) is called in both SmoothScrollProvider
+and HomeShell. Idempotent and harmless.
+
+
+===============================================================================
+8. DESIGN TOKENS
+===============================================================================
+
+Fonts: Satoshi (sans), Bespoke Serif (serif/display), Cabinet Grotesk
+(heading), IBM Plex Mono, PixelatedElegance (pixel), Tanker (accent),
+BrittanySignature (the "Efaz" signature SVG). Azonix was NOT ported.
+
+Core colors:
+  background #050505   surface #26282D   primary #F5F1E8
+  accent #b56c4b       text #D8D4C8      border #38393F
+  pearl #F5F1E8  mist #D8D4C8  taupe #8A8279  charcoal #2A2725  eerie #050505
+
+WORK_THEME:
+  bgVoid #0C0B0A   bgPanel #131110   borderHair #262220
+  accent #EDE6D6   accentSoft #F5F1E8   ember #C7502A   emberSoft #E0673A
+  textHi #F2EDE3   textMid #8A8279   textLow #5C554E
+  (the work section's own background is pure #000000)
+
+html.mode-inverted swaps pearl/eerie/charcoal/mist for the menu-open state.
+
+
+===============================================================================
+9. KEY CONSTANTS
+===============================================================================
+
+Lenis: duration 0.9, easing t => Math.min(1, 1.001 - Math.pow(2, -10*t)),
+  smoothWheel true, wheelMultiplier 0.9, touchMultiplier 1.8, syncTouch false.
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add(t => lenis.raf(t*1000)); gsap.ticker.lagSmoothing(0);
+  Starts stopped. Mobile (<=768px) uses native scroll instead.
+
+[data-reveal] variants (scan deferred 100ms, all start 'top 88%', once,
+power2.out): fade-up {y:25,opacity:0} 0.7s | fade-left {x:-30,opacity:0} 0.6s
+| clip-up inset(100% 0 0 0) -> inset(0 0 0 0) 0.9s. Delay from --delay.
+
+Carousel: SCROLL_PER_CARD 0.9, DIRECTION -1, BLUR_LEVELS 4, DRIFT_DELAY 2500,
+  ENTRY_WAIT_LIMIT 5000, CELL 26, BAND 0.42, TRAVEL 1.5, FULL_AT 0.92.
+  ScrollTrigger: start 'top top', end '+=' innerHeight*0.9*count, pin: stage,
+  pinType 'transform', anticipatePin 1, invalidateOnRefresh, refreshPriority 1.
+
+RevealLoader: WIPE_DURATION_MS 1100, GREETING_INTERVAL_MS 220,
+  NAME_REVEAL_DELAY_MS 350, NAME_HOLD_MS 1500, z-index 99999.
+  GREETINGS: Hello, Bengali, Bonjour, Hola, Ciao, Japanese, Hallo, Korean,
+  Ola, Arabic, Hej, Namaste.
+
+Navigation: scrolled at scrollY > 50. Clock HH:MM local, 1000ms, rendered as
+  "( UTC ) {time}". Phrase toggle 4500ms. Grid 6 rows x 8 cols = 48 blocks,
+  stagger {amount: 0.4, from: "random"}, ease power2.inOut. Overlay clip
+  circle(0% -> 160% at calc(100% - 2.5rem) 2.25rem), 0.6s.
+  z-index: nav 9999, overlay 99990, grid 99998.
+  Menu items: HOME -> #hero-section (#38bdf8), WORK -> #projects (#a855f7).
+  "SKILL SHOWCASE 3D" and REPLAY_INTRO were dropped from the menu.
+
+Hero taglines (rotate: first swap 2500ms, then every 3400ms):
+  "Entrepreneur. Vibe-Coder. AI Orchestrator."
+  "Building digital products that outlast trends."
+  "Not a developer - a builder with a mission."
+  "Turning ideas into systems. Systems into legacy."
+
+Buttons: "View My Work" -> #projects | "Get In Touch ->" -> mailto:webigns@gmail.com
+
+Anchors/ids: #hero-section, #projects, #outcomes, #trigger-favicon-animator
+Window globals/events: window.lenis, window.__carousel (dev only),
+  'replay_intro', 'audio_preference_changed', sessionStorage 'intro_played',
+  documentElement.classList 'menu-open'
+
+
+===============================================================================
+10. THE 8 WORK PROJECTS (order matters)
+===============================================================================
+
+1. REUNIMOS(tm)          Full-Stack Workspace & AI Canvas | 2024-2025 | CODING
+2. Inspire Mono          2025 | https://osmins-landscaping.netlify.app/
+3. Pencil Link           2025 | https://pencillink.tech/
+4. Vector Symbols System 2023 | TOOLS
+5. Rene Architect Studio 2024 | https://rene-architect.netlify.app/
+6. Shore Icon & Teambition 2020-2022 | https://bela-vista-pied.vercel.app/
+7. Ceramic Enthusiasts   2023 | AUTOMOTIVE | https://ceramic-enthusiasts.netlify.app/
+8. Family Services Cleaning 2023 | ECO BIOPHILICS |
+                         https://clean-home-power-washing.netlify.app/
+
+Images are Unsplash: https://images.unsplash.com/<id>?auto=format&fit=crop&w=1200&q=80
+Each project has a base image, a hover image, and an "XXXX X YYYY Y" coord label.
+
+Portrait: https://res.cloudinary.com/dr2tc3dyk/image/upload/w_640,q_auto,f_auto/v1780231578/my_image_hthdxq.png
+
+
+===============================================================================
+11. WHAT WAS DELIBERATELY EXCLUDED FROM THE NEXT.JS PORT
+===============================================================================
+
+Not ported: Testimonials (by request), CustomCursor, FaviconAnimator
+(#trigger-favicon-animator click is a no-op), VibeCheckPopup, StackedLogos
+(.stacked-logos CSS + keyframes), Azonix font, ProfessionalService JSON-LD,
+Supabase, public/dither/* (~10MB) and portfolio_2nd_section_eiyd6w.glb (9.7MB).
+
+RevealLoader WAS restored. Only fonts.css was re-authored rather than copied
+(after a file-corruption incident); everything else is verbatim from F:.
+
+Dead code retained: HeroSocialDock.tsx + ui/animated-dock.tsx.
+
+
+===============================================================================
+12. ENVIRONMENT / TOOLING QUIRKS (VS Code MCP bridge)
+===============================================================================
+
+These cost real debugging time. Read before running commands.
+
+* NEVER parallelize bridge calls - concurrent calls kill the tunnel. One at a
+  time, always.
+* run_terminal_command TIMEOUTS ARE LIARS. The command usually DID run.
+  Always verify state before re-running (check dev.log, probe the port).
+* Default shell is cmd, NOT PowerShell. `Get-ChildItem` fails with exitCode
+  255. Use `powershell -NoProfile -Command "..."` explicitly.
+* spawn_terminal is BROKEN here - returns an id but the terminal is dead.
+  Use a detached start instead:
+    start "nextdev" /D "D:\website\nextjs-site" cmd /c "npm run dev > dev.log 2>&1"
+* `type <file>` prints nothing / truncates on multi-file batches. Write probe
+  output to a file with Out-File -Encoding ascii, then read_file it.
+* PowerShell probes return empty stdout - always follow with read_file.
+* Complex inline PowerShell through cmd is quoting-hostile. For multi-edit
+  patches, create_file a .ps1 and run it with
+  `powershell -NoProfile -ExecutionPolicy Bypass -File`.
+* write_file can SILENTLY not persist on an already-corrupt file (returns
+  bytesWritten but disk stays NUL). Workaround: delete, then create_file,
+  then verify the byte count.
+* Always write UTF-8 WITHOUT BOM. A BOM/NUL corruption once produced
+  "Unexpected character '\0'" build failures.
+* Avoid scratch files named nul.txt (reserved Windows device name).
+* Never let compressed-URL placeholders leak into generated source.
+
+Useful commands:
+  Restart clean:
+    taskkill /F /IM node.exe >nul 2>&1 & ping -n 4 127.0.0.1 >nul &
+    rmdir /s /q .next 2>nul & start "nextdev" /D "D:\website\nextjs-site"
+    cmd /c "npm run dev > dev.log 2>&1"
+  Type check:  npx tsc --noEmit > tscheck.txt 2>&1
+  Port check:  netstat -ano | findstr LISTENING | findstr :3000
+  Text search: findstr /s /i /n /c:"pattern" *.ts *.tsx *.js
+  A corrupt .next causes a 500 with "Unexpected end of JSON input" ->
+    rmdir /s /q .next and restart.
+
+Dev server: http://localhost:3000 (LAN: http://192.168.68.105:3000)
+
+
+===============================================================================
+13. AI STUDIO MIGRATION - HOW IT WAS DONE
+===============================================================================
+
+Goal: get the local Next.js app into Google AI Studio without letting the
+model rewrite it. All 45 files landed successfully.
+
+What worked:
+1. A "passive host" first prompt. These platforms ALWAYS scaffold on turn one,
+   so aim that turn rather than trying to forbid it: have it create only
+   package.json / tsconfig.json / next.config.ts / postcss.config.mjs with
+   exact dependency pins, plus standing rules and an ACK protocol
+   ("RECEIVED: <path> (<line count> lines)").
+2. A scaffolding prompt creating an EMPTY .gitkeep in each folder. Empty
+   folders cannot persist otherwise. .gitkeep is inert - TypeScript, ESLint
+   and the router all ignore it, so there's nothing for the model to "fix".
+   Capitalisation matters: public/Fonts, not public/fonts.
+3. Files added via the File explorer's + icon, typing the FULL relative path
+   (parent folders are created implicitly), then pasting from VS Code.
+   NEVER attach code files to the chat - the model retypes and truncates them.
+4. Verify each paste by comparing the editor's line count to the local file.
+   This is the truncation detector.
+5. Drop order: leaf-first, entry points last (lib/config -> styles ->
+   gl/shaders -> gl -> hooks -> leaf components -> section components ->
+   SmoothScrollProvider, HomeShell, layout.tsx, page.tsx).
+
+Traps: do NOT click the "Fix" button or the "Add global CSS" / "Setup root
+layout" chips - errors are EXPECTED until layout.tsx and page.tsx land, and
+Fix invents files instead of repairing references.
+
+Video files are too large to paste. Either drag the binaries into
+public/video/ or host them and update src/config/media.ts - the only file
+that references video paths. Note remotePatterns in next.config.ts governs
+next/image only, not the <video> tag.
+
+
+===============================================================================
+14. WORKING RULES / PREFERENCES
+===============================================================================
+
+* Visual parity with the original React site is the top priority. When in
+  doubt, read the F: source file and copy it verbatim.
+* Code quality matters: small focused files, logic in hooks, magic numbers
+  hoisted to named constants, styles in .css files rather than inline <style>.
+* Ask before DELETING or MOVING any source/user file. Creating files is fine.
+* One bridge call at a time.
+* Verify claims with a command before asserting them. Do not declare a fix
+  without evidence - this went wrong twice (the hydration error, and a
+  reactStrictMode claim about a setting that was already correct).
+
+
+===============================================================================
+15. OPEN / OPTIONAL WORK
+===============================================================================
+
+1. Benchmark a production build (npm run build && npm start) and re-assess
+   hero -> work scroll smoothness.
+2. Dedupe the local getLenis()/LenisLike copies in HomeShell.tsx and
+   Navigation.tsx into lib/scroll.ts.
+3. Resolve now-dead video_url / loop_video in HERO_CONFIG.defaultVideoSettings
+   and decide whether lib/videoSettings.ts still earns its place.
+4. Delete the redundant nested public/Fonts/Fonts/ subtree (needs go-ahead).
+5. Clean up scratch files in the project root: dev.log, tscheck*.txt,
+   statuscheck*.txt, perfscan.txt, filecount.txt, patch-perf.ps1, _ref/, etc.
+6. Optional parity extras if ever wanted: CustomCursor, FaviconAnimator,
+   VibeCheckPopup, StackedLogos, Azonix font.
+7. Optional: make the intro play once per session instead of every reload.
+8. Optional: remove HeroSocialDock + animated-dock and drop lucide-react.
+
+===============================================================================
+END OF CONTEXT
+===============================================================================

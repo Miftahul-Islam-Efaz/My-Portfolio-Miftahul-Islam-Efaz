@@ -1,0 +1,203 @@
+@import '../styles/fonts.css';
+@import '../styles/hero-theme.css';
+@import '../styles/work-theme.css';
+@import url('https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   TYPE SYSTEM - single source of truth.
+   Bespoke Serif     -> cinematic display (hero, intro, big statements)
+   Cabinet Grotesk   -> section headings
+   Satoshi           -> body + UI
+   PixelatedElegance -> pixel micro-labels (ties into the dither work)
+   Faces are declared in ../styles/fonts.css and served from /public/Fonts.
+   ------------------------------------------------------------------ */
+
+@font-face {
+  font-family: 'PixelatedElegance';
+  src: url('/Fonts/PixelatedEleganceRegular-ovawB.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* Roles, not names. Repoint here to restyle the entire site. */
+  --font-sans: "Satoshi", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Bespoke Serif", "Playfair Display", Georgia, serif;
+  --font-heading: "Cabinet Grotesk", "Satoshi", ui-sans-serif, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-pixel: "PixelatedElegance", "IBM Plex Mono", monospace;
+  --font-michroma: "Michroma", sans-serif;
+  --font-accent: Tanker, Bespoke Serif, Georgia, serif;
+}
+
+@theme {
+  /* ------------------------------------------------------------------
+     COLOR SYSTEM - single source of truth for the entire site.
+     Declared in @theme so Tailwind v4 emits BOTH utility classes
+     (bg-background, text-primary, border-border) and CSS variables
+     (var(--color-surface)).
+     ------------------------------------------------------------------ */
+  --color-background: #050505;
+  --color-surface: #26282D;
+  --color-primary: #F5F1E8;
+  --color-accent: #b56c4b;
+  --color-text: #D8D4C8;
+  --color-border: #38393F;
+}
+
+:root {
+  --color-pearl: #F5F1E8;
+  --color-mist: #D8D4C8;
+  --color-taupe: #8A8279;
+  --color-charcoal: #2A2725;
+  --color-eerie: #050505;
+}
+
+html.mode-inverted {
+  --color-pearl: #050505;
+  --color-eerie: #F5F1E8;
+  --color-charcoal: #D8D4C8;
+  --color-mist: #2A2725;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-eerie);
+  color: var(--color-pearl);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.5s ease, color 0.5s ease;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Chrome, Safari, Edge, Opera */
+::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Hide scrollbar for Lenis */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Typography utilities */
+.font-display {
+  font-family: var(--font-serif);
+}
+
+.font-body {
+  font-family: var(--font-sans);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Custom Loader Button Animations (HeroActionButton) */
+@keyframes transform-animation {
+  0% {
+    transform: translate(-55%);
+  }
+  100% {
+    transform: translate(55%);
+  }
+}
+
+@keyframes opacity-animation {
+  0%, 100% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  65% {
+    opacity: 0;
+  }
+}
+
+@keyframes loader-letter-anim {
+  0% {
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+    text-shadow: 0 0 8px #ff4d12, 0 0 12px #ff4d12;
+    transform: scale(1.1) translateY(-2px);
+  }
+  20% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.bg-radial-vignette {
+  background: radial-gradient(circle, transparent 15%, rgba(3, 2, 2, 0.35) 55%, rgba(3, 2, 2, 0.98) 100%);
+}
+
+/* GPU Optimization: Hide canvases & background videos when the menu is active
+   to eliminate composite/blend layer bottlenecks and lock menu animations at 60fps */
+html.menu-open canvas,
+html.menu-open video {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: opacity 0.3s ease, visibility 0.3s ease !important;
+  pointer-events: none !important;
+}
+
+/* ------------------------------------------------------------------
+   GLOBAL TYPE BASELINE
+   In @layer base on purpose. Any Tailwind font-* utility on a
+   component still wins over a base layer rule, so intentional
+   per-component choices survive while plain markup inherits the
+   system.
+   ------------------------------------------------------------------ */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+
+  p, li, label, input, textarea, select, button {
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-background);
+  }
+}

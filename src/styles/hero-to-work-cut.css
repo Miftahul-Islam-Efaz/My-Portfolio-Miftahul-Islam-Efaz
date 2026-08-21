@@ -1,0 +1,288 @@
+/* ------------------------------------------------------------------
+   HERO -> WORK: "THE CUT" - the layers
+
+   A cinematic hard cut played over scroll. The hero is held on screen
+   by position: sticky and then consumed: letterboxed to an anamorphic
+   slit, flared at the closing frame, and wiped out by vertical columns
+   of black that rise on staggered delays, handing off to the work
+   section's black.
+
+   Replaces hero-to-work-seam.css, which was a decorative gradient band
+   BETWEEN the two sections. Nothing happened to the hero there, which
+   is exactly why it did not read as a transition. Do not go back to
+   painting the join - the transition has to act on the outgoing frame.
+
+   NO DIVIDER, STILL. Nothing here draws a line across the page. The
+   letterbox bars deliberately stop at a 26% slit rather than closing to
+   a hairline, and the column wipe finishes the close with a stepped
+   edge.
+
+   NO STREAK DECORATION. An earlier version hung tapered vertical light
+   streaks below the slit ("the rake"). It was rejected twice for
+   reading as drawn lines over the picture. Below the slit is BLACK.
+
+   THE NEUTRAL DEFAULT IS THE IMPORTANT PART. Every channel defaults
+   here in the stylesheet, which means:
+     - server-rendered HTML is neutral
+     - the first paint before the hook mounts is neutral
+     - reduced-motion users get a plain scrolling hero, permanently
+
+   No raw hex except the columns' black, which must be exactly the
+   #000000 the work section and the GL scene clear to - any difference
+   would show as a seam the moment the wipe meets the section.
+   ------------------------------------------------------------------ */
+
+.cut {
+  position: relative;
+  width: 100%;
+  /* Black so the wrapper matches the wipe and the work section while the
+     sticky frame is released. */
+  background-color: #000000;
+
+  /* Master outputs, all neutral. */
+  --cut-bar: 0;
+  --cut-scale: 1;
+  --cut-lift: 0px;
+  --cut-vignette: 0;
+  --cut-type-lift: 0px;
+  --cut-type-out: 1;
+  --cut-flare: 0;
+  --cut-flare-open: 0.18;
+  --cut-burn: 0;
+  --cut-curtain: 0;
+}
+
+/* The held frame.
+
+   `sticky` rather than a ScrollTrigger pin on purpose. A pin re-parents the
+   hero into a wrapper element and re-measures it, and the work section further
+   down already owns a pin whose start position is measured from the document -
+   adding a second pin above it means the two have to agree about layout at
+   refresh time. Sticky is pure CSS, needs no refresh, cannot fight the
+   carousel's pin, and survives Lenis without any integration work. */
+.cut-holder {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  /* Contains the bars, flare and wipe, and stops the dolly-back from
+     revealing anything outside the frame. */
+  overflow: hidden;
+}
+
+/* Dolly-back on the held frame. A separate element from .cut-holder because
+   `sticky` positioning and a `transform` on the same element do not mix - a
+   transform creates a containing block that changes what the stickiness is
+   measured against. */
+.cut-frame {
+  height: 100%;
+  transform: translate3d(0, var(--cut-lift), 0) scale(var(--cut-scale));
+  transform-origin: 50% 45%;
+  will-change: transform;
+}
+
+.cut-layer {
+  position: absolute;
+  inset: 0;
+  /* These layers span the whole held viewport, above an interactive section.
+     They must never intercept a pointer event. */
+  pointer-events: none;
+}
+
+/* ---------- Beat 1: the letterbox ----------
+   Two solid bars closing from top and bottom. scaleY on a fixed-height div,
+   so the close is a composited transform and never touches layout.
+
+   They stop at a 26% slit rather than meeting: closing to a hairline would
+   make the bars the subject, and would put a black line across the page at the
+   exact moment of the cut. The column wipe finishes the close. */
+
+.cut-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Matches CUT.barHeight. Kept in sync by hand - it is the one value the
+     stylesheet and the config both need, and a custom property here would be
+     read on every frame for a number that never changes. */
+  height: 37vh;
+  background-color: #000000;
+  transform: scaleY(var(--cut-bar));
+  will-change: transform;
+  pointer-events: none;
+}
+
+.cut-bar--top {
+  top: 0;
+  transform-origin: 50% 0%;
+}
+
+.cut-bar--bottom {
+  bottom: 0;
+  transform-origin: 50% 100%;
+}
+
+/* Corner falloff, so the narrowing slit reads as lit from within rather than
+   just cropped. Multiply, so it can only take light away. */
+.cut-vignette {
+  opacity: var(--cut-vignette);
+  mix-blend-mode: multiply;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 45%,
+    transparent 30%,
+    rgb(0 0 0 / 0.55) 78%,
+    rgb(0 0 0 / 0.9) 100%
+  );
+}
+
+/* ---------- Beat 2: the flare ----------
+   The cut itself. An anamorphic light leak along the closing slit: a hot core
+   with a wide horizontal streak, blooming as the bars arrive and streaking
+   wider as it dies.
+
+   Softness comes from gradient stops and a mask, NOT from a blur filter - this
+   sits directly over a playing video, and a filter here would repaint the
+   whole frame every scroll frame. */
+
+.cut-flare {
+  top: 50%;
+  height: clamp(6rem, 22vh, 16rem);
+  translate: 0 -50%;
+  opacity: var(--cut-flare);
+  transform: scaleX(var(--cut-flare-open));
+  transform-origin: 50% 50%;
+  will-change: opacity, transform;
+  mix-blend-mode: screen;
+  background:
+    /* hot core - a thin, bright blade */
+    linear-gradient(
+      to bottom,
+      transparent 44%,
+      color-mix(in srgb, var(--color-primary) 85%, transparent) 49.5%,
+      #ffffff 50%,
+      color-mix(in srgb, var(--color-primary) 85%, transparent) 50.5%,
+      transparent 56%
+    ),
+    /* warm bloom around it, carrying the hero's ember */
+    linear-gradient(
+      to bottom,
+      transparent 8%,
+      color-mix(in srgb, var(--cut-ember) 22%, transparent) 38%,
+      color-mix(in srgb, var(--cut-ember) 52%, transparent) 50%,
+      color-mix(in srgb, var(--cut-ember) 22%, transparent) 62%,
+      transparent 92%
+    );
+  /* Feathers the ends so the streak dies out horizontally instead of stopping
+     at a hard edge. -webkit- is still required in Safari. */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 22%,
+    black 78%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 22%,
+    black 78%,
+    transparent 100%
+  );
+}
+
+/* Film burn: a full-frame bloom at the peak of the flare only. Screen, so it
+   lifts the frame's highlights rather than washing it to grey. */
+.cut-burn {
+  opacity: var(--cut-burn);
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    ellipse 120% 70% at 50% 50%,
+    color-mix(in srgb, var(--color-primary) 60%, transparent) 0%,
+    color-mix(in srgb, var(--cut-ember) 30%, transparent) 45%,
+    transparent 80%
+  );
+}
+
+/* ---------- Beat 3: the staggered column wipe ----------
+   THE FRAME IS TAKEN AWAY IN VERTICAL COLUMNS.
+
+   The frame is divided into columns of pure black, and each column rises from
+   below on its OWN delay. The leading edge is therefore a STAIRCASE that
+   assembles itself across the frame rather than a straight line sweeping over
+   it. A straight edge is a wipe; a stepped edge is an edit.
+
+   Replaces a two-comb dither curtain, which was a single flat edge with teeth
+   on it - all texture, no choreography. The motion has to be per-column.
+
+   ---------------------------------------------------------------------------
+   WHY THE PER-COLUMN MATHS IS IN CSS AND NOT IN THE HOOK
+   ---------------------------------------------------------------------------
+   The hook writes ONE number, `--cut-curtain`, and every column derives its
+   own progress from it with `clamp()`. The alternative - the hook writing one
+   custom property per column - would mean sixteen style writes per scroll
+   frame instead of one. Each column already knows its own delay from an inline
+   `--d`, set once at mount, so the browser can do this arithmetic itself
+   during style resolution.
+
+   Column progress is `curtain * span - delay`, clamped to 0-1, where `span`
+   compensates so the last column still lands exactly at progress 1. See
+   CUT_COLUMN_SPAN in config/heroToWorkCut.ts.
+
+   Only `transform` is animated, so all sixteen columns are composited. */
+
+/* Plain container now: the motion belongs to the columns, so this element has
+   no background and no transform of its own. */
+.cut-curtain {
+  overflow: hidden;
+}
+
+.cut-col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* `--i` and `--d` are set per column at mount; `--cut-cols` and
+     `--cut-col-span` are set once on the wrapper. */
+  left: calc(var(--i) * 100% / var(--cut-cols));
+  /* The extra pixel overlaps the next column, so sub-pixel column widths on
+     fractional-DPI displays cannot leave hairline gaps of hero showing
+     between neighbours. */
+  width: calc(100% / var(--cut-cols) + 1px);
+  background-color: #000000;
+
+  /* This column's own progress, derived from the single master channel. */
+  --col: clamp(
+    0,
+    calc(var(--cut-curtain) * var(--cut-col-span) - var(--d)),
+    1
+  );
+
+  /* Rises from below: fully off-screen at 0, seated at 1. */
+  transform: translate3d(0, calc((1 - var(--col)) * 100%), 0);
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* ---------- The air after the cut ----------
+   A beat of black for the cut to land in, before the work section's content.
+   Height comes from CUT_AIR via the component. */
+.cut-air {
+  width: 100%;
+  height: var(--cut-air);
+}
+
+/* Motion off: the hook never mounts, so every channel stays neutral and the
+   hero simply scrolls out under a stationary, invisible layer stack. Declared
+   explicitly so the guarantee lives in the stylesheet too and cannot be lost
+   to a future refactor of the hook. */
+@media (prefers-reduced-motion: reduce) {
+  .cut-holder {
+    position: relative;
+    height: auto;
+  }
+
+  .cut-bar,
+  .cut-vignette,
+  .cut-flare,
+  .cut-burn,
+  .cut-curtain {
+    display: none;
+  }
+}

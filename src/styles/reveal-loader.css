@@ -1,0 +1,201 @@
+/*
+ * Intro reveal loader (the opening curtain).
+ *
+ * This CSS used to live in an inline <style> tag inside reveal-loader.tsx.
+ * React 19 hoists <style> elements into <head> during client render, which does
+ * not match what the server emitted inline in the body - that mismatch was the
+ * source of the "tree hydrated but some attributes ... didn't match" console
+ * error. Keeping the rules in a real stylesheet removes the hoisting entirely.
+ *
+ * Timings here are load-bearing: `.opener-container` transition duration must
+ * stay in sync with WIPE_DURATION_MS in reveal-loader.tsx, which is what
+ * schedules onExitComplete.
+ */
+
+.opener-container {
+  /* Palette comes from the @theme block in globals.css. Local aliases keep
+     this file readable, but the hex values live in one place. */
+  --c-black: var(--color-background, #050505);
+  --c-warm-white: var(--color-primary, #F5F1E8);
+  --c-warm-white-dim: color-mix(in srgb, var(--color-primary, #F5F1E8) 42%, transparent);
+  --c-accent: var(--color-accent, #b56c4b);
+  --c-text: var(--color-text, #D8D4C8);
+  --ease-expo: cubic-bezier(0.87, 0, 0.13, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Quint-out: same fast-leave/long-settle character as expo-out, but less
+     extreme, so more of the travel lands in the visible middle of the wipe
+     instead of being spent in a tail you cannot see. */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Height of the trailing wave element. The wave is centred inside it, so the
+     visible amplitude is half this value: 4.85vh, matching the 4.84% of the
+     travel axis measured off the reference capture. */
+  --wave-height: 9.7vh;
+
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  /* The reference capture measured ~560ms across a 1920px horizontal travel.
+     This curtain covers 100vh - a shorter distance - so matching that duration
+     read as a blur. 1s is the readable equivalent at this travel distance.
+     MUST stay in sync with WIPE_DURATION_MS in reveal-loader.tsx. */
+  transition: transform 1s var(--ease-out-quint);
+  pointer-events: auto;
+}
+
+.opener-container.exiting {
+  /* Clear the panel AND the wave hanging below it, so no sliver is left behind. */
+  transform: translateY(calc(-100% - var(--wave-height)));
+}
+
+.opener-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--c-black);
+  overflow: hidden;
+}
+
+.opener-curve {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: var(--wave-height);
+  display: block;
+  color: var(--c-black);
+}
+
+.opener-meta {
+  position: absolute;
+  top: 2rem;
+  font-family: var(--font-pixel);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--c-warm-white-dim);
+  opacity: 0;
+  animation: metaFadeIn 0.9s var(--ease-out-expo) 0.4s forwards;
+}
+
+.opener-meta.left { left: 2rem; }
+.opener-meta.right { right: 2rem; }
+
+@keyframes metaFadeIn {
+  to { opacity: 1; }
+}
+
+.opener-greeting {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  opacity: 0;
+  animation: metaFadeIn 0.5s ease-out 0.3s forwards;
+  transition: opacity 0.35s ease, filter 0.35s ease;
+}
+
+.opener-greeting.leaving {
+  opacity: 0 !important;
+  filter: blur(6px);
+}
+
+.opener-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--c-accent);
+  flex-shrink: 0;
+}
+
+.opener-word {
+  font-family: var(--font-sans);
+  font-size: clamp(1.4rem, 2.6vw, 2.2rem);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  color: var(--c-text);
+}
+
+.opener-name {
+  position: absolute;
+  left: 2rem;
+  right: 2rem;
+  bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  visibility: hidden;
+}
+
+.opener-name.revealed {
+  visibility: visible;
+}
+
+.opener-name .name-line {
+  display: block;
+  overflow: hidden;
+}
+
+.opener-name .name-line-inner {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: clamp(2.6rem, 11.5vw, 11rem);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  color: var(--c-warm-white);
+  transform: translateY(110%);
+}
+
+.opener-name .name-line-inner em {
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--c-accent);
+}
+
+.opener-name.revealed .name-line-inner {
+  animation: nameLineUp 1.1s var(--ease-expo) forwards;
+}
+
+.opener-name.revealed .name-line:nth-child(1) .name-line-inner {
+  animation-delay: 0s;
+}
+
+.opener-name.revealed .name-line:nth-child(2) .name-line-inner {
+  animation-delay: 0.12s;
+}
+
+@keyframes nameLineUp {
+  to { transform: translateY(0); }
+}
+
+.opener-count {
+  position: absolute;
+  right: 2rem;
+  bottom: 2rem;
+  font-family: var(--font-mono);
+  font-size: clamp(4rem, 14vw, 13rem);
+  font-weight: 400;
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  color: var(--c-warm-white);
+  opacity: 0;
+  font-variant-numeric: tabular-nums;
+  animation: metaFadeIn 0.6s ease-out 0.3s forwards;
+  transition: opacity 0.5s ease, transform 0.5s var(--ease-out-expo);
+}
+
+.opener-count.leaving {
+  opacity: 0 !important;
+  transform: translateY(-20px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opener-container {
+    transition-duration: 0.2s;
+  }
+}

@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+build/
+next-env.d.ts
+
+# Env
+.env
+.env*.local
+
+# Build artifacts / masters - NOT served, and heavy.
+# media-src holds the 45.7MB hero master and the ffmpeg intermediates.
+media-src/
+_ref/
+
+# Video intermediates. The shipped clip (hero-new-720.mp4) and its poster ARE
+# tracked - these are only the ffmpeg staging files and the HEVC master.
+public/video/hero-new-fwd.mp4
+public/video/hero-new-rev.mp4
+public/video/Hero-section-new-video.mp4
+public/video/list.txt
+
+# Scratch / probe output. Written by terminal probes because PowerShell stdout
+# comes back empty over the VS Code bridge, so results go to a file and get
+# read back. None of it is source.
+*.log
+dev.log
+tscheck*.txt
+statuscheck*.txt
+perfscan.txt
+filecount.txt
+blackscan.txt
+fontrefs.txt
+syncscan.txt
+syncscan.ps1
+gitcheck.txt
+gitfiles.txt
+cornerAvg.txt
+cornerMax.txt
+lumadata*.txt
+boomerang.bat
+boomerang.log
+download-fonts.ps1
+fontdl.log
+patch-perf.ps1
+
+# OS
+.DS_Store
+Thumbs.db

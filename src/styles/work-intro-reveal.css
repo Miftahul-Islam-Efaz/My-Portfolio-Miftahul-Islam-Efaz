@@ -1,0 +1,400 @@
+/* ==================================================================
+   WORK INTRO REVEAL - "THE DRUM"
+
+   Static half of the work intro's text reveal. Timings and distances
+   live in `src/config/workIntroReveal.ts`; the machinery lives in
+   `src/hooks/useWorkIntroReveal.ts`. This file only declares the
+   surfaces those two drive.
+
+   Imported by `src/components/work/WorkIntroHeader.tsx`, matching how
+   `hero-parallax.css` and `hero-to-work-cut.css` are imported by the
+   components that own them. Only palette-wide sheets go in globals.
+
+   TWO RULES THIS FILE OBEYS
+
+   1. EVERY DEFAULT IS THE FINISHED STATE.
+      No selector here hides anything on its own. `--frame-in`,
+      `--link-draw`, `--link-ink` and `--sig-write` all default to 1,
+      and the text has no opacity rule at all. If the JS never runs -
+      crawler, JS disabled, hook throws - the section renders complete
+      and readable. Hiding only happens under
+      `[data-reveal-state="armed"]`, an attribute ONLY the hook can
+      set, and it sets it after it has already proven motion is
+      allowed.
+
+      The trade-off to know about: a default of "finished" means an
+      element the hook FAILED to arm renders as already-animated
+      instead of failing loudly. That is exactly how the underlines
+      shipped broken once - see the note above `.wi-link::after`.
+
+      THE LENS IS THE ONE DELIBERATE EXCEPTION. Its resting state is
+      hidden, because it is a hover affordance rather than content: the
+      dithered portrait IS the finished state, and the sharp photograph
+      underneath is only ever revealed under the cursor. Nothing is
+      withheld from a reader who never hovers.
+
+   2. GSAP OWNS `transform`.
+      The hook tweens `transform` on the split CHARACTERS and on the
+      portrait images, so this file never writes `transform` on those
+      elements - it uses `translate`, `scale`, `clip-path` and
+      `mask-image` instead. Note that includes `transform-origin`,
+      which GSAP writes as part of owning `transform`: the roll's pivot
+      is set from the config, not here. Same trap already documented on
+      `.hero-parallax-layer` and `.hero-scroll-cue-wrap`: two owners
+      for one property means whichever writes last wins,
+      intermittently.
+   ================================================================== */
+
+/* ------------------------------------------------------------------
+   ARMED STATE
+
+   The hook sets `data-reveal-state="armed"` on the root the moment it
+   knows it will animate, which hides the two text blocks until their
+   split is built and their entry tween is attached (the hook then
+   fades the block itself back in, and the CHARACTERS carry the
+   motion).
+
+   Why hide the block rather than the characters: the split cannot be
+   built until webfonts have settled, or the lines break against the
+   fallback metrics - and since the perspective belongs to the line
+   box, a wrong break puts the vanishing point in the wrong place. That
+   is a real wait, and we do not want the un-split text visible during
+   it.
+   ------------------------------------------------------------------ */
+
+[data-reveal-state='armed'] [data-reveal='statement'],
+[data-reveal-state='armed'] [data-reveal='credits'] {
+  opacity: 0;
+}
+
+/* Reduced motion, and the no-JS path, both land here: nothing is ever
+   hidden, because the hook never arms. Declared explicitly so a future
+   edit cannot quietly make the copy dependent on an animation. */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal-state='armed'] [data-reveal='statement'],
+  [data-reveal-state='armed'] [data-reveal='credits'] {
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------
+   SPLIT PIECES - AND THE DRUM
+
+   Class names are passed explicitly from the hook (`linesClass`,
+   `wordsClass`, `charsClass`) rather than relying on SplitText's
+   defaults, so these selectors cannot silently stop matching after a
+   GSAP upgrade.
+
+   THE PERSPECTIVE LIVES ON THE LINE. THIS IS THE WHOLE EFFECT.
+
+   One `perspective` on the line box means every character inside it
+   rotates toward a SINGLE shared vanishing point at the centre of that
+   line. Characters away from the centre are therefore sheared by the
+   projection - they lean, and they read as smaller and set further
+   back. That shear is what makes the line look like it is wrapped
+   around a turning cylinder, and no code asks for it; it falls out of
+   the projection for free.
+
+   The tempting alternative - `transform: perspective(600px)
+   rotateX(...)` on each character - gives every character its own
+   vanishing point directly behind itself. They all then flip
+   identically, with no shear and no depth: a row of flipping tiles.
+   Do not move the perspective onto the characters.
+   ------------------------------------------------------------------ */
+
+.wi-line {
+  /* Distance from the viewer to the line's plane. Shorter = a more extreme
+     projection, so more shear and more depth on the outer characters. Much
+     below ~420px the ends of a long line distort hard enough to look like a
+     fisheye lens; much above ~900px the effect flattens out toward a plain
+     rotation and the depth disappears. */
+  --roll-perspective: 620px;
+
+  perspective: var(--roll-perspective);
+
+  /* The vanishing point sits at the line's own centre, horizontally, and a
+     little above its baseline - so the characters rotate up toward the
+     reader's eyeline rather than toward the floor. */
+  perspective-origin: 50% 40%;
+
+  /* Descender relief. Rotating characters sweep above and below the text box,
+     and this also keeps tails on g/y/p/q clear of any clipping ancestor.
+     Padding pushes the edge down and the matching negative margin removes that
+     padding from layout again, so line spacing is untouched. */
+  padding-bottom: 0.15em;
+  margin-bottom: -0.15em;
+}
+
+.wi-word {
+  /* Browsers do not render transforms on inline boxes. */
+  display: inline-block;
+
+  /* Load-bearing. The characters are grandchildren of the line (line > word >
+     char), and `perspective` only applies to a direct child's transform unless
+     the elements in between keep the 3D context alive. Without this the word
+     flattens the space and every character rotates with no projection at all -
+     the effect silently degrades to the flat version. */
+  transform-style: preserve-3d;
+}
+
+.wi-char {
+  /* Transform target, so it cannot stay an inline box. */
+  display: inline-block;
+
+  /* No `transform` or `transform-origin` here - the hook owns both. The pivot
+     comes from `roll.origin` in the config. */
+  will-change: transform;
+
+  /* The glyph passes through edge-on. Without this, some GPUs briefly render
+     the mirrored back face as it crosses vertical. */
+  backface-visibility: hidden;
+}
+
+/* The characters are only promoted while they are actually moving. Hundreds of
+   permanently promoted spans cost compositing for the rest of the session -
+   the same reason the hero reverts its split on complete. */
+.wi-settled .wi-char {
+  will-change: auto;
+}
+
+/* ------------------------------------------------------------------
+   LINK UNDERLINES
+
+   `text-decoration` cannot be animated, so the underline is a
+   pseudo-element that scales on its own axis. Geometry matches what
+   the Tailwind utilities produced before: 2px rule, 8px below the
+   text box (`underline-offset-8`).
+
+   Two channels, both driven from the credits' roll timeline:
+     --link-draw  0 -> 1  the rule drawing itself out from the left
+     --link-ink   dim -> 1  the rule resolving with its words
+
+   `--link-ink` is kept because a rule at full white under text that
+   has not arrived yet looks like a bug: the underline has to be part
+   of the line's arrival, not an overlay on top of it.
+   ------------------------------------------------------------------ */
+
+.wi-link {
+  position: relative;
+  color: #ffffff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 200ms ease;
+
+  /* Declared here so the finished state is inherited by any span the
+     split creates - including the extra ones `deepSlice` makes when a
+     link wraps across two lines. */
+  --link-draw: 1;
+  --link-ink: 1;
+}
+
+.wi-link:hover {
+  color: var(--intro-accent, #ede6d6);
+}
+
+/* NOTE FOR FUTURE EDITS: these defaults mean an unarmed span renders as a
+   finished, fully-drawn rule rather than an invisible one. That is the
+   accessible default, but it also means a broken arming path fails SILENTLY -
+   which is precisely how these underlines once shipped as static lines under
+   animating text. If a rule ever looks "already done", suspect the hook's
+   arming path, not this file. */
+.wi-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.5rem;
+  height: 2px;
+  background-color: currentColor;
+  opacity: var(--link-ink, 1);
+  /* Draws from the left, the direction the eye is already travelling. */
+  transform-origin: left center;
+  scale: var(--link-draw, 1) 1;
+}
+
+/* ------------------------------------------------------------------
+   PORTRAIT FRAME
+
+   `--frame-in` 0 -> 1 opens the mask upward. clip-path is affordable
+   here because the subject is a static image; the hero cut
+   deliberately avoided clip-path because it was over a playing video.
+   ------------------------------------------------------------------ */
+
+.wi-frame {
+  clip-path: inset(0 0 calc((1 - var(--frame-in, 1)) * 100%) 0);
+}
+
+.wi-frame-media {
+  /* No `transform` here on purpose - the hook scales these elements.
+
+     There is no longer a hover zoom on this image. It was removed when the
+     portrait became a two-layer lens, and it must not come back: scaling the
+     stack on hover would slide the sharp layer out of register with the
+     dithered one, and the lens would then reveal a slightly offset, slightly
+     larger crop of the face. Misregistration is exactly what the effect
+     cannot survive - the whole illusion is that one image is UNDER the
+     other. */
+  will-change: transform;
+}
+
+/* ------------------------------------------------------------------
+   THE PORTRAIT LENS
+
+   Two stacked images: the dithered/stippled treatment on top, the
+   sharp photograph beneath it. A soft-edged circular window follows
+   the cursor and reveals the photograph only inside that window.
+
+   HOW THE LAYERS WORK
+   The REVEAL layer (the sharp photo) sits ON TOP in paint order and is
+   masked down to the circle. That is the opposite of how it reads, and
+   it is the only way round that works: masking the dithered layer to
+   punch a hole in it would need an inverted mask, and an inverted
+   radial gradient cannot feather inwards from a moving centre without
+   a second compositing pass.
+
+   WHY A MASK RATHER THAN clip-path OR backdrop-filter
+     - `clip-path: circle()` gives a hard, aliased edge. The blurred
+       border is the effect.
+     - `backdrop-filter` would re-blur the full element every frame
+       while the cursor moves, which is a full-element repaint.
+     - `mask-image` with a radial gradient is composited, and the
+       feather costs nothing because it is just gradient stops.
+
+   Only two custom properties move: `--lens-x` and `--lens-y`, written
+   by `useIntroPortraitLens`. Everything else here is static.
+   ------------------------------------------------------------------ */
+
+.wi-lens {
+  /* Radius of the revealed window. Fluid so it stays proportional to the
+     portrait, which is itself fluid up to its max-width. Small on purpose -
+     the brief is a peephole, not a wipe. */
+  --lens-r: clamp(84px, 11vw, 132px);
+
+  /* Where the mask is still fully opaque, as a % of the radius. The gap
+     between this and 100% IS the blurred border, so 52% means roughly half
+     the window is solid and the outer half feathers away. Push it toward
+     100% for a crisp-edged spotlight; toward 0% for a soft vignette with
+     barely any solid core. */
+  --lens-solid: 52%;
+
+  /* Centred until the pointer arrives, so the very first frame after
+     `pointerenter` cannot flash the window in from the top-left corner. The
+     hook overwrites both before it ever fades the layer in. */
+  --lens-x: 50%;
+  --lens-y: 50%;
+}
+
+/* Both layers are inert to the pointer. This is load-bearing, not tidiness:
+   the hook reads `offsetX`/`offsetY` off the event, which are relative to the
+   TARGET. If an image could become the target, the coordinates would be
+   relative to that image instead of the frame - and reading them correctly
+   would mean a `getBoundingClientRect()` on every move, which forces layout on
+   a scrolling page. Keeping the frame as the only hit target makes the maths
+   free. Any element added inside this frame needs `pointer-events: none` too. */
+.wi-lens-media {
+  pointer-events: none;
+}
+
+.wi-lens-reveal {
+  position: absolute;
+  inset: 0;
+
+  /* Hidden at rest. The fade is on OPACITY rather than on the mask radius:
+     growing the radius from 0 would make the window bloom open, which looks
+     like a ripple effect, where a straight fade reads as the photograph
+     simply being there under the dither all along. */
+  opacity: 0;
+  transition: opacity 240ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  -webkit-mask-image: radial-gradient(
+    circle var(--lens-r) at var(--lens-x) var(--lens-y),
+    #000 0%,
+    #000 var(--lens-solid),
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    circle var(--lens-r) at var(--lens-x) var(--lens-y),
+    #000 0%,
+    #000 var(--lens-solid),
+    transparent 100%
+  );
+}
+
+.wi-lens.is-lens-on .wi-lens-reveal {
+  opacity: 1;
+}
+
+/* If the sharp image 404s, the frame is marked not-ready and the layer is
+   taken out entirely, so a hover cannot reveal a broken-image glyph sitting
+   inside the window. The dithered base stands alone, which is a perfectly
+   good portrait. */
+.wi-lens[data-lens-ready='false'] .wi-lens-reveal {
+  display: none;
+}
+
+/* No hover, no lens. On touch there is no cursor to follow, and a tap would
+   either do nothing or strand the window wherever it was last tapped. */
+@media (hover: none), (pointer: coarse) {
+  .wi-lens-reveal {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   SIGNATURE
+
+   `--sig-write` 0 -> 1 sweeps a hard-edged mask left to right, so the
+   strokes appear in writing order. A small feather on the leading edge
+   keeps it from looking like a sliding rectangle.
+   ------------------------------------------------------------------ */
+
+.wi-signature {
+  --sig-write: 1;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0%,
+    #000 calc(var(--sig-write) * 100%),
+    transparent calc(var(--sig-write) * 100% + 6%),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000 0%,
+    #000 calc(var(--sig-write) * 100%),
+    transparent calc(var(--sig-write) * 100% + 6%),
+    transparent 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No projection and no 3D context: the text is flat, static copy. The hook
+     also returns before arming anything, so this is belt and braces. */
+  .wi-line {
+    perspective: none;
+  }
+
+  .wi-word {
+    transform-style: flat;
+  }
+
+  .wi-char {
+    will-change: auto;
+  }
+
+  .wi-frame {
+    clip-path: none;
+  }
+
+  /* The lens is a cursor-tracked element, which is the category of motion
+     this setting is most explicitly about. The hook also bails out before
+     attaching any listener, so this is belt and braces. */
+  .wi-lens-reveal {
+    display: none;
+    transition: none;
+  }
+
+  .wi-signature {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}

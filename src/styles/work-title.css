@@ -1,0 +1,226 @@
+/* ==================================================================
+   WORK TITLE - "THE APERTURE WORD"
+
+   Static half of the work section's title transition. Timings live in
+   `src/config/workTitle.ts`; the machinery lives in
+   `src/hooks/useWorkTitle.ts`. This file only declares the surfaces
+   those two drive.
+
+   Imported by `src/components/work/WorkTitleReveal.tsx`, matching how
+   every other component-scoped sheet in this project is imported by
+   the component that owns it.
+
+   ------------------------------------------------------------------
+   REMOVED - THE EMBER BLADE. DO NOT REINTRODUCE.
+
+   There used to be a `.wt-slit` here: a hot white core with an ember
+   radial bloom, screen-blended, flaring across mid-height before the
+   letters opened. The idea was to echo the hero cut's flare so the two
+   transitions read as the same equipment.
+
+   It did not work. On a black field the bloom read as a red smear
+   sitting behind the word rather than as light passing through an
+   aperture, and it drew the eye to the glow instead of to the type -
+   the same failure as the very first "seam" attempt at this junction,
+   which decorated the gap rather than acting on the content.
+
+   The aperture alone is the effect. The word opening from its own
+   centre line is legible as an aperture without anything shining to
+   announce it. No glow, no bloom, no flare on this transition.
+   ------------------------------------------------------------------
+
+   ------------------------------------------------------------------
+   THIS FILE OWNS `transform`, UNLIKE THE TEXT REVEAL
+
+   `work-intro-reveal.css` must never write `transform`, because GSAP
+   tweens it on the split characters there. The opposite is true here:
+   the hook writes ONLY custom properties and never touches a
+   transform, so CSS is the single owner. That is the same architecture
+   as `hero-to-work-cut.css`, and it is what allows the per-letter
+   maths to live in `calc()` - one style write per frame instead of one
+   per letter.
+
+   DEFAULTS ARE THE FINISHED STATE
+   `--wt-open`, `--wt-push` and `--wt-out` all default to the resting
+   word. No JS, no motion allowed, or a thrown hook all leave the title
+   fully legible.
+   ================================================================== */
+
+.wt {
+  position: relative;
+  width: 100%;
+
+  /* Channels the hook writes. Declared here so the finished state exists
+     before - and if - any JS runs. */
+  --wt-open: 1;
+  --wt-push: 1;
+  --wt-out: 1;
+}
+
+/* ------------------------------------------------------------------
+   THE HOLDER
+
+   Sticky, NOT a ScrollTrigger pin. This is a deliberate choice: the
+   dither carousel immediately below pins itself with ScrollTrigger and
+   its own pin spacer, and stacking a second pinned element directly
+   above it would make the two dependent on `ScrollTrigger.refresh()`
+   ordering to compute their spacers correctly. Sticky is resolved by
+   the browser's own layout, so it cannot disagree with the carousel
+   about how tall anything is. Same pattern, same reasoning, as
+   `.cut-holder`.
+   ------------------------------------------------------------------ */
+
+.wt-holder {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------
+   THE WORD
+
+   The push-through lives on this wrapper rather than on the letters,
+   so the word scales as ONE object around a single origin. Scaling the
+   letters individually would make each one grow about its own centre
+   and the word would visibly spread apart as it advanced.
+   ------------------------------------------------------------------ */
+
+.wt-word {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+
+  /* BORECK, NAMED LITERALLY - NOT VIA `--font-hero-display`.
+
+     This used to read `font-family: var(--font-hero-display)`, and the title
+     rendered in Satoshi: the stack resolved to nothing, the declaration was
+     invalid at computed-value time, and the h2 simply inherited body type. The
+     tell that it was the TOKEN failing rather than the FONT failing is that a
+     missing Boreck falls back to Bespoke Serif, which is a serif - so a
+     geometric sans on screen meant the whole stack was never applied.
+
+     A section title is not worth making dependent on a custom property being
+     in scope, so the family is spelled out here. Same list the token holds. */
+  font-family: "Boreck", "Bespoke Serif", ui-serif, Georgia, serif;
+  /* Boreck ships a single Bold file. Asking for anything lighter makes the
+     browser synthesise a weight, which smears the stroke contrast that is the
+     reason to use a display face at this size. */
+  font-weight: 700;
+  font-size: clamp(3.5rem, 19vw, 18rem);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--wt-ink, #f2ede3);
+
+  transform: scale(var(--wt-push));
+  opacity: var(--wt-out);
+  will-change: transform, opacity;
+
+  /* The glyphs are decorative duplicates of the accessible name on the
+     heading itself - see the component. */
+  user-select: none;
+}
+
+/* ------------------------------------------------------------------
+   THE APERTURE
+
+   Each letter is revealed by a mask that opens off the horizontal
+   centre line: fully closed it is a zero-height band at 50%, fully
+   open it covers the glyph. So the top and bottom extremes of every
+   letterform arrive LAST, which is precisely the inverse of the hero
+   cut's letterbox bars closing toward the middle.
+
+   `--l` is this letter's own progress, derived in CSS from the single
+   `--wt-open` channel plus the letter's inline `--d` delay. Identical
+   mechanism to the cut's column wipe: the hook writes one number per
+   frame and the letters work out their own share, instead of the hook
+   writing four.
+
+   THE FEATHER HAS TO SCALE WITH THE OPENING.
+
+   It was originally a constant 3%, which meant the closed state was
+   not closed: with the band at zero the gradient still ran
+   `transparent 47% -> #000 50% -> transparent 53%`, reaching FULL
+   opacity exactly on the centre line. Every letter showed a feathered
+   hairline of itself before the aperture had started - the word was
+   faintly legible the moment the section arrived, which gave the whole
+   reveal away.
+
+   Tying the feather to `--l` collapses all four stops onto 50% when
+   closed, so there is no opaque region at all. The `opacity` gate
+   below is the belt-and-braces half of the same fix.
+   ------------------------------------------------------------------ */
+
+.wt-letter {
+  display: inline-block;
+
+  --l: clamp(0, calc(var(--wt-open) * var(--wt-span) - var(--d)), 1);
+
+  /* Half-height of the open band, as a % of the glyph box. 0 -> 50%. */
+  --band: calc(var(--l) * 50%);
+
+  /* Softness of each edge, which must vanish when the band does. */
+  --feather: calc(var(--l) * 3%);
+
+  /* Hard zero when the aperture is shut, so a sub-pixel rounding of the
+     gradient stops cannot leave a hairline of ink on screen. Multiplied up so
+     it reaches 1 almost immediately once the letter starts opening - this is a
+     gate against the closed state, NOT a fade-in, and the aperture itself
+     stays the thing doing the reveal. */
+  opacity: clamp(0, calc(var(--l) * 60), 1);
+
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent calc(50% - var(--band) - var(--feather)),
+    #000 calc(50% - var(--band)),
+    #000 calc(50% + var(--band)),
+    transparent calc(50% + var(--band) + var(--feather))
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent calc(50% - var(--band) - var(--feather)),
+    #000 calc(50% - var(--band)),
+    #000 calc(50% + var(--band)),
+    transparent calc(50% + var(--band) + var(--feather))
+  );
+
+  /* The last few pixels of rise, finishing as the aperture does. `translate`
+     rather than `transform`, so it composes with the wrapper's scale instead
+     of competing for the same property. */
+  translate: 0 calc((1 - var(--l)) * var(--wt-drift, 0px));
+
+  will-change: translate, opacity;
+}
+
+/* ------------------------------------------------------------------
+   REDUCED MOTION
+
+   The holder stops being sticky and collapses to its content, so the
+   title is an ordinary heading in the flow - no scroll-driven anything
+   and no 130vh of empty scrolling to get past it.
+   ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .wt-holder {
+    position: relative;
+    height: auto;
+    padding: 6rem 0;
+  }
+
+  .wt-word {
+    transform: none;
+    opacity: 1;
+  }
+
+  .wt-letter {
+    -webkit-mask-image: none;
+    mask-image: none;
+    translate: none;
+    /* The gate above is driven by `--l`, which nothing writes when the hook
+       bails out. Forced back to a plain visible letter. */
+    opacity: 1;
+  }
+}

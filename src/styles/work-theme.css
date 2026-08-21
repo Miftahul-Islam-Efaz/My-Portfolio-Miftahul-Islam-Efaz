@@ -1,0 +1,102 @@
+/* ------------------------------------------------------------------
+   WORK THEME
+   Scoped to #projects (the WebsiteProjectsShowcase section wrapper).
+   Cabinet Grotesk headings, Satoshi body, Tanker accents.
+   Values resolve from the @theme tokens in index.css.
+
+   Type and colour only. Nothing here touches layout, pinning, or the
+   dither canvas: the carousel geometry depends on the ScrollTrigger
+   pin and must not be perturbed by CSS.
+
+   ------------------------------------------------------------------
+   SPECIFICITY WARNING - READ BEFORE ADDING SELECTORS HERE
+
+   Every rule in this file is scoped by the #projects ID, so
+   `#projects h2` scores (1,0,1): one ID, one element. A component
+   class like `.wt-word` scores (0,1,0), and an ID outranks any number
+   of classes. That means the blanket element selectors below beat the
+   deliberate type choices of every component inside this section, and
+   they do it silently - the component's own declaration is simply
+   never used.
+
+   This cost real debugging time once already: the WORK title set
+   Boreck on `.wt-word` and rendered in Cabinet Grotesk regardless.
+   Swapping the token for a literal font stack changed nothing,
+   because the declaration being overridden was not the one on screen.
+
+   So: when a component inside #projects owns its own type, exempt it
+   here with `:not()` rather than escalating on the component side with
+   !important. Prefer adding new styling as opt-in helper classes (see
+   .work-eyebrow / .work-display below) over broadening the element
+   selectors.
+   ------------------------------------------------------------------ */
+
+#projects {
+  --work-ink: var(--color-primary);
+  --work-ink-soft: color-mix(in srgb, var(--color-text) 72%, transparent);
+  --work-ink-mute: color-mix(in srgb, var(--color-text) 46%, transparent);
+  --work-accent: var(--color-accent);
+  --work-rule: color-mix(in srgb, var(--color-primary) 14%, transparent);
+
+  font-family: var(--font-sans);
+  color: var(--color-text);
+}
+
+/* Element selectors so existing markup inherits without editing every
+   component in the section.
+
+   `.wt-word` is exempt: it is the WORK title, which is set in Boreck at
+   700 with its own letter-spacing and ink, and is masked per letter by
+   `work-title.css`. Without this exclusion the three declarations below
+   would each override it - font-family most visibly, but colour and
+   letter-spacing too. */
+#projects h1,
+#projects h2:not(.wt-word),
+#projects h3,
+#projects h4 {
+  font-family: var(--font-heading);
+  color: var(--work-ink);
+  letter-spacing: -0.01em;
+}
+
+#projects p,
+#projects li {
+  font-family: var(--font-sans);
+}
+
+/* Opt-in helpers for the work markup. */
+#projects .work-eyebrow {
+  font-family: var(--font-accent);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  color: var(--work-ink-mute);
+}
+
+#projects .work-display {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--work-ink);
+}
+
+#projects .work-accent {
+  color: var(--work-accent);
+}
+
+#projects .work-rule {
+  border-color: var(--work-rule);
+}
+
+/* Carousel label list. The active item takes the accent, the rest sit
+   back so the WebGL stage stays the focal point. */
+#projects .work-label {
+  font-family: var(--font-heading);
+  color: var(--work-ink-mute);
+  transition: color 280ms ease, opacity 280ms ease;
+}
+
+#projects .work-label[data-active=true] {
+  color: var(--work-ink);
+}

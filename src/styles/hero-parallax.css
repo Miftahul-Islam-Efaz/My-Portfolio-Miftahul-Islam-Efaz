@@ -1,0 +1,55 @@
+/* ------------------------------------------------------------------
+   HERO TYPE PARALLAX
+
+   Cursor-driven parallax on the hero's type stack, plus the type's
+   exit channels for the hero -> work cut.
+
+   Replaces hero-pointer.css. The three pointer-driven LIGHTING passes
+   that used to live there (a left-side darkening wash, a diagonal beam
+   and a warm pool on the subject) were removed on purpose: the frame as
+   shot is the frame that ships. The cursor's only job here is to move
+   the type. Do not re-introduce a hover treatment on the background.
+
+   Written by:
+     - useHeroPointerParallax : --hero-shift-x / --hero-shift-y
+     - useHeroToWorkCut       : --cut-type-lift / --cut-type-out
+
+   Neutral defaults are declared here rather than in the hooks, so the
+   server-rendered HTML, the first paint before either hook mounts, and
+   reduced-motion users all get an untransformed, fully opaque stack.
+   ------------------------------------------------------------------ */
+
+#hero-section {
+  --hero-shift-x: 0px;
+  --hero-shift-y: 0px;
+}
+
+.hero-parallax-layer {
+  /* `translate` and `scale`, NOT `transform`.
+
+     GSAP owns `transform` on these layers for the intro timeline, so writing
+     `transform` here would mean one silently wiping the other. The individual
+     transform properties are composited independently and compose with it.
+     The same trap is documented on `.hero-scroll-cue-wrap` in hero-theme.css.
+
+     The cut's lift is added to the pointer's Y so the two compose instead of
+     overriding: the cursor keeps working right up to the moment the type
+     leaves. Fallbacks make this correct when the cut is not mounted at all. */
+  translate: var(--hero-shift-x)
+    calc(var(--hero-shift-y) + var(--cut-type-lift, 0px));
+
+  /* Driven by the cut, so the type clears the frame before the letterbox bars
+     reach it - the frame empties, THEN it closes. */
+  opacity: var(--cut-type-out, 1);
+
+  will-change: translate, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-parallax-layer {
+    /* The pointer hook never mounts under reduced motion, but the cut's lift
+       is neutralised here too so this rule is a complete guarantee on its own
+       rather than depending on what the hooks decide to do. */
+    translate: none;
+  }
+}
