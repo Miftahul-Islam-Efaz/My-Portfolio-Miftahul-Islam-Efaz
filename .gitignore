@@ -6,6 +6,7 @@ node_modules/
 out/
 build/
 next-env.d.ts
+tsconfig.tsbuildinfo
 
 # Env
 .env
@@ -34,13 +35,20 @@ perfscan.txt
 filecount.txt
 blackscan.txt
 fontrefs.txt
+fontaudit.txt
 syncscan.txt
 syncscan.ps1
 gitcheck.txt
 gitfiles.txt
+gitinit.txt
+probe.txt
+cornerrun.txt
 cornerAvg.txt
 cornerMax.txt
+lumarun*.txt
 lumadata*.txt
+transcode.txt
+videolist.txt
 boomerang.bat
 boomerang.log
 download-fonts.ps1
