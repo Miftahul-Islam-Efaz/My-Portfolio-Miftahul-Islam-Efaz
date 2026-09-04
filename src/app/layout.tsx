@@ -101,6 +101,18 @@ export async function generateMetadata(): Promise<Metadata> {
 		storedImage = ""
 	}
 
+	/* Browser-tab icon, edited in the panel under Site images -> Favicon.
+	   No fallback file: with no slot value we simply emit no icon link and
+	   the browser shows its default rather than a broken fetch. Browsers
+	   fetch the URL themselves, so unlike og:image a raw Drive URL is fine
+	   here - no proxy needed. */
+	let favicon = ""
+	try {
+		favicon = await getSiteImage("favicon", "")
+	} catch {
+		favicon = ""
+	}
+
 	const image = absoluteOgImage(storedImage) || OG_FALLBACK
 
 	return {
@@ -108,6 +120,7 @@ export async function generateMetadata(): Promise<Metadata> {
 		description: identity.metaDescription,
 		metadataBase: new URL(SITE),
 		alternates: { canonical: "/" },
+		icons: favicon ? { icon: [{ url: favicon }] } : undefined,
 		/* Not a ranking factor since 2009, but assistants and scrapers still
 		   read it, and it costs one line. */
 		keywords: identity.knowsAbout,
