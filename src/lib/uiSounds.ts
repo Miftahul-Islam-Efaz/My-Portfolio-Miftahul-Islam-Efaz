@@ -30,14 +30,15 @@ function play(
 	volume: number,
 ) {
 	try {
-		if (!ref.current) {
-			const audio = new Audio(src);
+		let audio = ref.current;
+		if (!audio) {
+			audio = new Audio(src);
 			audio.preload = 'auto';
 			assign(audio);
 		}
-		ref.current.volume = volume;
-		ref.current.currentTime = 0;
-		void ref.current.play().catch(() => {});
+		audio.volume = volume;
+		audio.currentTime = 0;
+		void audio.play().catch(() => {});
 	} catch {
 		/* no audio support - stay silent */
 	}
