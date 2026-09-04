@@ -1,0 +1,56 @@
+/* THE SCREEN-READER-ONLY SUMMARY.
+ *
+ * Paired with components/seo/CrawlableAbstract.tsx - read the header there for
+ * why the section exists and why hiding it is legitimate.
+ *
+ * This is the canonical sr-only recipe, and every line of it is load-bearing:
+ *
+ *   position: absolute + 1px box   takes it out of flow so it cannot disturb
+ *                                  the WebGL canvas, the GSAP timelines or the
+ *                                  scroll length Lenis measures.
+ *   clip-path: inset(50%)          hides the painted pixels while keeping the
+ *                                  element rendered and focusable.
+ *   overflow: hidden               stops the clipped text creating scrollable
+ *                                  overflow, which on this site would show up
+ *                                  as a phantom scrollbar.
+ *   border-width: 0                a border survives the clip on some engines.
+ *
+ * DO NOT replace any of this with `display: none`, `visibility: hidden`,
+ * `opacity: 0` or `height: 0`. The first two drop the section out of the
+ * accessibility tree, which is the whole justification for it being hidden at
+ * all. The last two leave it hit-testable and it starts stealing clicks.
+ *
+ * `white-space: nowrap` is deliberately ABSENT. It appears in the usual
+ * copy-pasted sr-only snippet, where the content is a two-word label. This is
+ * multi-paragraph prose, and nowrap on prose forces some screen readers to
+ * announce it as one unbroken run.
+ */
+
+.seo-abstract {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: normal;
+	border-width: 0;
+}
+
+/* Focusable children are the one exception. If a keyboard user tabs into a
+ * link in here, it must become visible or focus vanishes into a 1px box. */
+.seo-abstract a:focus-visible {
+	position: fixed;
+	top: 1rem;
+	left: 1rem;
+	z-index: 10000;
+	width: auto;
+	height: auto;
+	padding: 0.5rem 0.85rem;
+	clip-path: none;
+	color: #050505;
+	background: #f5f1e8;
+	border-radius: 4px;
+	font-size: 0.875rem;
+}

@@ -1,0 +1,643 @@
+/* ==================================================================
+   HEADER MENU
+
+   A dark pill that swings a dropdown out from under itself, after the
+   sohub header. Geometry and timing all arrive as inline custom
+   properties from src/config/navMenu.ts - there are no magic numbers
+   in here, and no media queries either, because inline properties
+   cannot be overridden by one. Responsiveness lives in the clamps.
+
+   DOM map:
+     .navmenu                 relative - the panel's positioning anchor
+       button.navmenu__pill
+         span.navmenu__label      clipped window, fixed width
+           span.navmenu__track     the two words, stacked
+             span.navmenu__word x2
+         span.navmenu__knob       circle
+           span.navmenu__dots     rotates 90deg between states
+             span.navmenu__dot x2
+       div.navmenu__panel       absolute, right-aligned under the pill
+         a.navmenu__item
+           span.navmenu__arrow
+           span.navmenu__text
+
+   COLOUR: the reference is a dark pill on a light page. This site is
+   the other way up, so the pill and panel are built from the site's
+   own tokens instead of copied hex. --color-charcoal / --color-pearl /
+   --color-taupe all flip under html.mode-inverted, so the control
+   follows the site into its light mode without a second rule.
+   ================================================================== */
+
+.navmenu {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+
+	/* Theme hooks. Deliberately plain var()/rgb() rather than color-mix():
+	   an unsupported colour function drops the whole declaration, and it
+	   would take the knob or the chip with it rather than degrading. */
+	--nm-pill-bg: var(--color-charcoal);
+	--nm-pill-text: var(--color-pearl);
+	--nm-panel-bg: var(--color-charcoal);
+	--nm-panel-text: var(--color-pearl);
+	--nm-muted: var(--color-taupe);
+	--nm-accent: var(--color-accent);
+	--nm-hair: var(--color-border);
+	--nm-knob-bg: rgb(245 241 232 / 10%);
+	--nm-chip: rgb(245 241 232 / 9%);
+	--nm-shadow: rgb(0 0 0 / 45%);
+}
+
+/* In the site's light mode the tokens above invert on their own, but a
+   white wash over a light panel does not read - these two go dark. */
+html.mode-inverted .navmenu {
+	--nm-knob-bg: rgb(5 5 5 / 8%);
+	--nm-chip: rgb(5 5 5 / 7%);
+	--nm-shadow: rgb(0 0 0 / 18%);
+}
+
+/* ---------------------------- the pill ---------------------------- */
+
+.navmenu__pill {
+	position: relative;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--nm-pill-gap);
+	height: var(--nm-pill-h);
+	/* Tighter on the right: the knob carries its own visual padding. */
+	padding-inline: var(--nm-pill-pad) calc(var(--nm-pill-pad) * 0.34);
+	border: 1px solid var(--nm-hair);
+	border-radius: 999px;
+	background-color: var(--nm-pill-bg);
+	color: var(--nm-pill-text);
+	font-family: var(--font-sans);
+	font-size: var(--nm-pill-font);
+	font-weight: 500;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	cursor: pointer;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent;
+	/* Movement on a control is the press, nothing else. */
+	transition: transform 160ms ease;
+}
+
+.navmenu__pill:active {
+	transform: scale(0.97);
+}
+
+.navmenu__pill:focus-visible {
+	outline: 2px solid var(--nm-accent);
+	outline-offset: 3px;
+}
+
+/* The label is a fixed-width window with both words stacked inside it,
+   so MENU and CLOSE cross over each other in the same box and the pill
+   never changes width. Both are visible mid-roll, exactly as in the
+   reference. */
+.navmenu__label {
+	display: block;
+	overflow: hidden;
+	width: var(--nm-label-w);
+	height: 1em;
+	line-height: 1;
+}
+
+.navmenu__track {
+	display: flex;
+	flex-direction: column;
+	transform: translateY(0);
+	transition: transform var(--nm-swap) var(--nm-open-ease);
+}
+
+.navmenu[data-open='true'] .navmenu__track {
+	transform: translateY(-50%);
+}
+
+.navmenu__word {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 1em;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+/* The knob. Two dots, vertical when closed, rotated flat when open. */
+.navmenu__knob {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: var(--nm-knob);
+	height: var(--nm-knob);
+	border-radius: 999px;
+	background-color: var(--nm-knob-bg);
+}
+
+.navmenu__dots {
+	display: flex;
+	flex-direction: column;
+	gap: var(--nm-dot-gap);
+	transform: rotate(0deg);
+	transition: transform var(--nm-spin) var(--nm-open-ease);
+}
+
+.navmenu[data-open='true'] .navmenu__dots {
+	transform: rotate(90deg);
+}
+
+.navmenu__dot {
+	width: var(--nm-dot);
+	height: var(--nm-dot);
+	border-radius: 999px;
+	background-color: currentColor;
+}
+
+/* --------------------------- the panel ---------------------------- */
+
+.navmenu__panel {
+	position: absolute;
+	inset-block-start: calc(100% + var(--nm-panel-gap));
+	inset-inline-end: 0;
+	z-index: 1;
+	width: var(--nm-panel-w);
+	display: flex;
+	flex-direction: column;
+	padding-block: var(--nm-panel-pb);
+	padding-inline: var(--nm-panel-pi);
+	border: 1px solid var(--nm-hair);
+	border-radius: var(--nm-panel-r);
+	background-color: var(--nm-panel-bg);
+	box-shadow: 0 30px 80px -20px var(--nm-shadow);
+	transform-origin: var(--nm-origin);
+
+	/* Closed state. visibility rather than display so the panel is also
+	   out of the tab order without needing inert, and so the swing has
+	   something to animate from. */
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+}
+
+.navmenu[data-state='open'] .navmenu__panel {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+	animation: nm-swing-in var(--nm-open) var(--nm-open-ease) both;
+}
+
+/* Held visible through the exit, but already deaf to clicks. */
+.navmenu[data-state='closing'] .navmenu__panel {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: none;
+	animation: nm-swing-out var(--nm-close) var(--nm-close-ease) both;
+}
+
+/* Keyframes rather than a transition: this is an entrance, and there
+   is a mid-point overshoot to hit that a transition cannot express. */
+@keyframes nm-swing-in {
+	from {
+		opacity: 0;
+		transform: perspective(var(--nm-persp)) var(--nm-from);
+	}
+
+	60% {
+		opacity: 1;
+		transform: perspective(var(--nm-persp)) var(--nm-over);
+	}
+
+	to {
+		opacity: 1;
+		transform: perspective(var(--nm-persp)) translate3d(0, 0, 0);
+	}
+}
+
+@keyframes nm-swing-out {
+	from {
+		opacity: 1;
+		transform: perspective(var(--nm-persp)) translate3d(0, 0, 0);
+	}
+
+	to {
+		opacity: 0;
+		transform: perspective(var(--nm-persp)) var(--nm-to);
+	}
+}
+
+/* --------------------------- the items ---------------------------- */
+
+.navmenu__item {
+	position: relative;
+	display: flex;
+	align-items: center;
+	height: var(--nm-item-h);
+	padding-inline: var(--nm-item-pad);
+	border-radius: var(--nm-item-r);
+	color: var(--nm-panel-text);
+	font-family: var(--font-heading);
+	font-size: var(--nm-item-font);
+	font-weight: 400;
+	letter-spacing: -0.01em;
+	line-height: 1;
+	text-decoration: none;
+	transition:
+		background-color var(--nm-hover) ease,
+		color var(--nm-hover) ease;
+}
+
+.navmenu__item:hover,
+.navmenu__item:focus-visible {
+	background-color: var(--nm-chip);
+	outline: none;
+}
+
+/* The current page. Muted and inert, as Contact is in the reference. */
+.navmenu__item[aria-current='page'] {
+	color: var(--nm-muted);
+	pointer-events: none;
+}
+
+.navmenu__arrow {
+	position: absolute;
+	inset-inline-start: calc(var(--nm-item-pad) * 0.5);
+	display: flex;
+	align-items: center;
+	width: var(--nm-arrow);
+	height: var(--nm-arrow);
+	color: var(--nm-accent);
+	opacity: 0;
+	transform: translateX(-6px);
+	transition:
+		opacity var(--nm-hover) ease,
+		transform var(--nm-hover) ease;
+}
+
+.navmenu__arrow svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+.navmenu__item:hover .navmenu__arrow,
+.navmenu__item:focus-visible .navmenu__arrow {
+	opacity: 1;
+	transform: translateX(0);
+}
+
+.navmenu__text {
+	transition: transform var(--nm-hover) ease;
+}
+
+.navmenu__item:hover .navmenu__text,
+.navmenu__item:focus-visible .navmenu__text {
+	transform: translateX(calc(var(--nm-arrow) * 1.2));
+}
+
+/* ------------------------- reduced motion -------------------------
+   Everything stops, nothing hides: the pill, the panel and all four
+   items stay exactly where they are and stay operable. */
+@media (prefers-reduced-motion: reduce) {
+	.navmenu__pill,
+	.navmenu__track,
+	.navmenu__dots,
+	.navmenu__arrow,
+	.navmenu__text,
+	.navmenu__item {
+		transition-duration: 0.01ms !important;
+	}
+
+	.navmenu[data-state='open'] .navmenu__panel,
+	.navmenu[data-state='closing'] .navmenu__panel {
+		animation-duration: 0.01ms !important;
+	}
+}
+
+/* ---------------- the docked vault close button --------------------
+   The vault window portals its own CLOSE button in here, immediately
+   left of the pill, because both of them wanted the same top-right
+   corner and the header (z-index 9999) was painting over the window
+   (9000). See src/lib/navSlot.ts for the handoff.
+
+   Because the dock sits INSIDE .navmenu it inherits every --nm-*
+   property, so the button is sized from the same numbers as the pill
+   without repeating any of them. It reads as the reference's secondary
+   pill - an outline rather than a solid - so the menu stays the
+   loudest thing in the header.
+   ------------------------------------------------------------------ */
+
+.navmenu__dock {
+	display: flex;
+	align-items: center;
+	gap: var(--nm-pill-gap);
+	margin-inline-end: var(--nm-pill-gap);
+}
+
+/* Nothing docked: occupy nothing at all, margin included. */
+.navmenu__dock:empty {
+	display: none;
+}
+
+.navmenu__dock .vault-window__close--docked {
+	/* These four beat .vault-window__close, whose fixed positioning and
+	   fade-in entrance both assume it owns the top-right corner. */
+	position: static;
+	inset: auto;
+	z-index: auto;
+	animation: none;
+	opacity: 1;
+
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: var(--nm-pill-h);
+	padding-inline: var(--nm-pill-pad);
+	border: 1px solid var(--nm-hair);
+	border-radius: 999px;
+	background-color: transparent;
+	color: var(--nm-pill-text);
+	font-family: var(--font-sans);
+	font-size: var(--nm-pill-font);
+	font-weight: 500;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition:
+		transform 160ms ease,
+		background-color var(--nm-hover) ease;
+}
+
+.navmenu__dock .vault-window__close--docked:hover {
+	background-color: var(--nm-chip);
+}
+
+.navmenu__dock .vault-window__close--docked:active {
+	transform: scale(0.97);
+}
+
+.navmenu__dock .vault-window__close--docked:focus-visible {
+	outline: 2px solid var(--nm-accent);
+	outline-offset: 3px;
+}
+
+/* The window's outro cannot reach this button through the DOM any
+   more, so the button carries its own state and leaves on its own.
+   The duration is literal rather than var(--vw-close): that property
+   is set on the window element, which is no longer an ancestor. */
+.navmenu__dock .vault-window__close--docked[data-state='closing'] {
+	animation: nm-dock-out 260ms linear both;
+}
+
+@keyframes nm-dock-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.navmenu__dock .vault-window__close--docked {
+		transition-duration: 0.01ms !important;
+	}
+
+	.navmenu__dock .vault-window__close--docked[data-state='closing'] {
+		animation-duration: 0.01ms !important;
+	}
+}
+
+/* ------------------------- the Work submenu ------------------------
+   One menu item can carry children. Work does: it holds the door to
+   the standalone gallery, which is a destination rather than a place on
+   this page, so it does not belong in the flat four.
+
+   IT OPENS INSIDE THE PANEL, DIRECTLY UNDER ITS PARENT. It used to fly
+   out to the left, which read as a second surface escaping the menu.
+   As a disclosure it stays one object: the panel grows, Vault and
+   Contact move down, and the relationship between Work and its child is
+   stated by position rather than by a floating card.
+
+   max-height, not height:auto or a grid 0fr trick. There is exactly one
+   short child, so a generous max-height costs nothing and animates on
+   every engine; the grid-rows interpolation is newer than this site
+   supports and height:auto is not animatable at all.
+
+   HOVER IS NOT THE ONLY WAY IN. A disclosure that answers only to hover
+   is unreachable by keyboard and unusable by touch, so the parent is
+   focusable and the submenu stays open while anything inside it holds
+   focus.
+   ------------------------------------------------------------------ */
+
+.navmenu__group {
+	display: flex;
+	flex-direction: column;
+}
+
+/* Sits at the end of the parent row, after the label. Inline rather
+   than absolutely positioned so it cannot overlap a long label at a
+   narrow width. */
+.navmenu__caret {
+	margin-inline-start: auto;
+	display: flex;
+	align-items: center;
+	width: calc(var(--nm-arrow) * 0.66);
+	height: calc(var(--nm-arrow) * 0.66);
+	color: var(--nm-muted);
+	opacity: 0.5;
+	transition:
+		opacity var(--nm-hover) ease,
+		transform var(--nm-hover) ease,
+		color var(--nm-hover) ease;
+}
+
+.navmenu__caret svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+.navmenu__group[data-open='true'] .navmenu__caret {
+	opacity: 1;
+	color: var(--nm-accent);
+	transform: rotate(180deg);
+}
+
+/* The disclosure. Indented to sit under the parent's label rather than
+   its arrow, and hung off a hairline so it reads as belonging to the
+   item above it. */
+.navmenu__sub {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	margin-inline-start: calc(var(--nm-item-pad) + var(--nm-arrow) + 0.55rem);
+	padding-inline-start: 0.85rem;
+	border-inline-start: 1px solid var(--nm-hair);
+
+	max-height: 0;
+	opacity: 0;
+	overflow: hidden;
+	pointer-events: none;
+	transform: translateY(-0.35rem);
+	transition:
+		max-height var(--nm-close) var(--nm-close-ease),
+		opacity var(--nm-close) var(--nm-close-ease),
+		transform var(--nm-close) var(--nm-close-ease),
+		margin-block var(--nm-close) var(--nm-close-ease);
+}
+
+.navmenu__group[data-open='true'] .navmenu__sub {
+	/* Room for a couple of rows. Overshooting is free - the box is only
+	   as tall as its content; this is just the ceiling the animation
+	   travels to. */
+	max-height: 9rem;
+	opacity: 1;
+	pointer-events: auto;
+	transform: none;
+	margin-block: 0.15rem 0.5rem;
+	transition:
+		max-height var(--nm-open) var(--nm-open-ease),
+		opacity var(--nm-open) var(--nm-open-ease),
+		transform var(--nm-open) var(--nm-open-ease),
+		margin-block var(--nm-open) var(--nm-open-ease);
+}
+
+/* A quiet row. This is a sub-choice and must not shout as loudly as the
+   four it hangs off, so it drops the display face for the sans and a
+   fraction of the size. */
+.navmenu__subitem {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	padding: 0.55rem 0.7rem;
+	border: none;
+	border-radius: calc(var(--nm-item-r) * 0.8);
+	background: none;
+	color: var(--nm-muted);
+	font-family: var(--font-sans);
+	font-size: clamp(11px, 0.85vw, 14px);
+	font-weight: 500;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	text-align: left;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background-color var(--nm-hover) ease,
+		color var(--nm-hover) ease,
+		letter-spacing var(--nm-hover) ease;
+}
+
+.navmenu__subitem:hover,
+.navmenu__subitem:focus-visible {
+	background-color: var(--nm-chip);
+	color: var(--nm-panel-text);
+	letter-spacing: 0.16em;
+	outline: none;
+}
+
+.navmenu__subdot {
+	flex: 0 0 auto;
+	width: 4px;
+	height: 4px;
+	border-radius: 999px;
+	background-color: var(--nm-accent);
+	opacity: 0.7;
+	transition: opacity var(--nm-hover) ease;
+}
+
+.navmenu__subitem:hover .navmenu__subdot,
+.navmenu__subitem:focus-visible .navmenu__subdot {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.navmenu__sub,
+	.navmenu__group[data-open='true'] .navmenu__sub,
+	.navmenu__caret,
+	.navmenu__subitem {
+		transition-duration: 0.01ms !important;
+	}
+}
+/* ==================================================================
+   THE PHONE HEADER
+
+   Two changes, both about the same 375px of horizontal room.
+
+   THE PILL LOSES ITS WORD. On a phone this strip carries the wordmark,
+   whatever an overlay has docked, and the pill. MENU/CLOSE inside the
+   pill is the one label of those that is redundant, because the two-dot
+   knob beside it already says the same thing.
+
+   HIDDEN VISUALLY, NOT REMOVED FROM THE BUTTON. The pill's accessible
+   name comes from aria-label (NAV_MENU_COPY.aria) on the button itself
+   rather than from this span, so display:none costs a screen reader
+   nothing here. The roll keeps animating inside a box nobody sees,
+   which is one transform on one element - not worth a second state.
+
+   THE CLOSE BECOMES A MARK. Same room, same reasoning: CLOSE next to a
+   knob next to a wordmark is three labelled objects in a strip this
+   wide. Drawn from two hairlines rather than a character, because x,
+   the multiplication sign and U+2715 all land on different baselines
+   at different weights depending on which font resolves - and this
+   button inherits var(--font-sans).
+   ================================================================== */
+
+@media (max-width: 768px) {
+	.navmenu__label {
+		display: none;
+	}
+
+	.navmenu__pill {
+		gap: 0;
+		justify-content: center;
+		width: var(--nm-pill-h);
+		padding-inline: 0;
+	}
+
+	/* A tinted circle inside a tinted circle at 44px reads as a
+	   rendering fault. The pill is the surface now; the dots are the
+	   mark on it. */
+	.navmenu__knob {
+		background-color: transparent;
+	}
+
+	/* The vault's docked close. Square, and its own positioning context
+	   for the two hairlines below. */
+	.navmenu__dock .vault-window__close--docked {
+		position: relative;
+		width: var(--nm-pill-h);
+		padding-inline: 0;
+	}
+
+	.navmenu__dock .vault-window__close--docked .vault-window__close-text {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.navmenu__dock .vault-window__close--docked::before,
+	.navmenu__dock .vault-window__close--docked::after {
+		content: '';
+		position: absolute;
+		inset-block-start: 50%;
+		inset-inline-start: 50%;
+		width: 12px;
+		height: 1px;
+		background-color: currentColor;
+	}
+
+	.navmenu__dock .vault-window__close--docked::before {
+		transform: translate(-50%, -50%) rotate(45deg);
+	}
+
+	.navmenu__dock .vault-window__close--docked::after {
+		transform: translate(-50%, -50%) rotate(-45deg);
+	}
+}

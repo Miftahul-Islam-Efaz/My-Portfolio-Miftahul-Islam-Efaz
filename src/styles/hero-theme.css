@@ -191,3 +191,21 @@
     opacity: 1;
   }
 }
+
+/* INTRO WIPE PARALLAX. While the curtain travels (main.intro-wiping, set
+   by HomeShell), the page beneath settles upward over the same 1s and
+   the same ease as the wipe, so the hero moves SLOWER than the curtain
+   edge - the relative motion between the two is the parallax. One-shot,
+   transform-only, runs on the compositor. */
+@keyframes intro-wipe-parallax {
+  from { transform: translateY(5vh); }
+  to   { transform: translateY(0); }
+}
+
+main.intro-wiping {
+  animation: intro-wipe-parallax 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main.intro-wiping { animation: none; }
+}

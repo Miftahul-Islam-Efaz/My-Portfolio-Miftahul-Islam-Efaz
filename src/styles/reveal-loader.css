@@ -27,10 +27,52 @@
      instead of being spent in a tail you cannot see. */
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Height of the trailing wave element. The wave is centred inside it, so the
-     visible amplitude is half this value: 4.85vh, matching the 4.84% of the
-     travel axis measured off the reference capture. */
-  --wave-height: 9.7vh;
+  /* Height of the trailing wave element. The wave is centred inside it, so
+     the box height IS the peak-to-peak depth and the amplitude is half of it.
+
+     THIS IS A vw, AND IT MUST STAY A vw. CURVATURE IS A RATIO.
+
+     How curved the wave LOOKS is not the amplitude. It is the amplitude
+     measured against the horizontal length of one period:
+
+         steepness = peak-to-peak / (viewport width / WAVE_PERIODS)
+                   = waveHeight * WAVE_PERIODS / width
+
+     This was 16vh, a VERTICAL unit divided by a HORIZONTAL length, so the
+     ratio moved with the viewport's aspect ratio instead of holding still:
+
+         1920x1080  ->  172.8px over a 960px period  ->  0.18
+         390x844    ->  135.0px over a 195px period  ->  0.69
+
+     Nearly four times steeper on a phone. The width collapses to a fifth,
+     which crushes each period horizontally, while a vh amplitude barely
+     shrinks at all - a phone is TALLER relative to its width, so the wave
+     kept almost its full depth inside a fifth of the run. Same markup, same
+     path data, completely different curve. That is the whole bug.
+
+     In vw the width cancels out of the expression:
+
+         steepness = (k * width / 100) * WAVE_PERIODS / width
+                   = k * WAVE_PERIODS / 100
+
+     No viewport term left. The curve is now identical at every width, which
+     is what "the same wave as desktop" has to mean geometrically.
+
+     9vw is not a new look - it is the EXISTING desktop look solved for k.
+     0.18 = k * 2 / 100 gives k = 9, and on 16:9 that is numerically the same
+     rule: 9% of 1920 = 172.8px = 16% of 1080. Desktop renders pixel for
+     pixel what it did before; only non-16:9 viewports change, which is
+     precisely where it was wrong.
+
+     Consequence, and it is the intended one: the wave is genuinely shallow
+     on a phone - about 35px peak-to-peak at 390px wide. It should be. It is
+     the same 9% of the travel axis the reference capture measured. A floor
+     or a clamp here would make k viewport-dependent again and reintroduce
+     the bug at the clamp boundary, so there deliberately isn't one.
+
+     WAVE_PERIODS lives in reveal-loader.tsx and is part of this ratio. If it
+     ever changes, k has to change with it or the curvature moves. */
+  --wave-height: 9vw;
 
   position: fixed;
   inset: 0;
@@ -112,7 +154,7 @@
 }
 
 .opener-word {
-  font-family: var(--font-sans);
+  font-family: 'Comico', var(--font-sans);
   font-size: clamp(1.4rem, 2.6vw, 2.2rem);
   font-weight: 400;
   letter-spacing: -0.015em;
@@ -140,7 +182,7 @@
 
 .opener-name .name-line-inner {
   display: block;
-  font-family: var(--font-serif);
+  font-family: 'Comico', var(--font-serif);
   font-size: clamp(2.6rem, 11.5vw, 11rem);
   font-weight: 500;
   line-height: 0.9;
@@ -177,7 +219,7 @@
   position: absolute;
   right: 2rem;
   bottom: 2rem;
-  font-family: var(--font-mono);
+  font-family: 'Comico', var(--font-mono);
   font-size: clamp(4rem, 14vw, 13rem);
   font-weight: 400;
   line-height: 0.8;
@@ -198,4 +240,25 @@
   .opener-container {
     transition-duration: 0.2s;
   }
+}
+
+/* ------------------------------------------------------------------
+   THE NO-FLASH RULE
+
+   Set by the inline head script in app/layout.tsx, which runs before the
+   browser paints anything. The curtain is still in the server HTML and
+   React still mounts it for the one render before hydration removes it -
+   this rule is what stops that render from ever being seen.
+
+   display:none and not opacity/visibility, because the container is a
+   fixed, full-screen, opaque surface: anything that leaves it in the
+   layout still covers the page for those frames.
+
+   !important because .opener-container.exiting and the base rule both
+   set their own display/transform, and this has to beat them without
+   depending on where it sits in the file.
+   ------------------------------------------------------------------ */
+
+html[data-intro-skip='1'] .opener-container {
+  display: none !important;
 }

@@ -1,0 +1,447 @@
+/* ------------------------------------------------------------------
+   THE VAULT TEASER - styles
+
+   Static presentation only. Every position and transform that changes
+   over the scroll is written inline by hooks/useVaultTeaser.ts, so
+   nothing here may set `transform` or `opacity` on the animated layers
+   (.vault-teaser__haze, __glow, __hand, __folder) - the hook would
+   overwrite it on the first frame and the two would fight.
+
+   NO TRANSITIONS on those layers either, for the same reason: they are
+   updated every frame, so a transition would add a second, slower
+   interpolation on top of the spring and turn crisp motion to mush.
+   The one exception is __hand-glow, which is driven by :active rather
+   than by the hook and therefore DOES want a transition.
+
+   Colours are literal hex rather than var() because the canvas sand
+   needs the same values and a 2D context cannot resolve custom
+   properties - so config/vault.ts is the single source and these
+   mirror it. Same constraint as the WebGL config files.
+   ------------------------------------------------------------------ */
+
+.vault-teaser {
+	position: relative;
+	/* Mirrors VAULT_SCROLL.vhPerScreen (2.8). The hook overwrites this on
+	   mount from config; it is duplicated here so the section has its
+	   real height during the first paint and does not shift the page. */
+	height: 280vh;
+	background-color: #050505;
+}
+
+/* Sticky, not pinned. The work section above already uses a GSAP pin,
+   and a second pin-spacer in the same document is where the measurement
+   bugs come from. Sticky costs nothing and cannot desync. */
+.vault-teaser__stage {
+	position: sticky;
+	top: 0;
+	height: 100vh;
+	width: 100%;
+	overflow: hidden;
+	/* Establishes the containing block every child is positioned against,
+	   and the stacking context the z-indexes below are relative to. */
+	isolation: isolate;
+
+	/* Fades the top and bottom edges back into the void so the full-bleed
+	   hand does not butt hard against the neighbouring sections. Matches
+	   VAULT_SCROLL.edgeFade (0.06). */
+	-webkit-mask-image: linear-gradient(
+		to bottom,
+		transparent 0%,
+		#000 6%,
+		#000 94%,
+		transparent 100%
+	);
+	mask-image: linear-gradient(
+		to bottom,
+		transparent 0%,
+		#000 6%,
+		#000 94%,
+		transparent 100%
+	);
+}
+
+/* ---------------- the light, in two layers ----------------
+
+   Both are pure CSS radial gradients rather than canvas: they are large,
+   soft and only ever transformed, which is exactly what the compositor
+   is good at, and keeping them out of the canvas leaves that buffer to
+   the sand alone.
+
+   NEITHER HAS AN EMBER STOP. An earlier pass put terracotta in the
+   falloff and it washed brown across the whole section. The accent
+   belongs on a minority of the sand grains and nowhere else. */
+
+/* HAZE - the lit volume the archive escapes THROUGH.
+
+   Large, dim, and elliptical: the hook sizes it from
+   VAULT_GLOW.hazeSize / hazeAspect, offsets it along the escape
+   direction and rotates it to match, so the light follows the folders
+   and sand up and to the right instead of ringing the opening evenly.
+   Without this layer the folders read as objects on black - the tight
+   core lights the mouth but not the space above it. */
+.vault-teaser__haze {
+	position: absolute;
+	left: 0;
+	top: 0;
+	z-index: 0;
+	pointer-events: none;
+	will-change: transform, opacity;
+	border-radius: 50%;
+	/* Long, gentle falloff with no hard terminator - it should be felt
+	   rather than seen as a shape. */
+	background: radial-gradient(
+		ellipse at 50% 50%,
+		rgba(220, 214, 242, 0.5) 0%,
+		rgba(220, 214, 242, 0.26) 34%,
+		rgba(220, 214, 242, 0.1) 62%,
+		rgba(220, 214, 242, 0) 100%
+	);
+	filter: blur(46px);
+}
+
+/* CORE - the hot opening itself. Small and bright: this is what makes
+   the folder read as a light SOURCE. */
+.vault-teaser__glow {
+	position: absolute;
+	left: 0;
+	top: 0;
+	z-index: 1;
+	pointer-events: none;
+	will-change: transform, opacity;
+	border-radius: 50%;
+	background: radial-gradient(
+		circle at 50% 50%,
+		rgba(241, 237, 251, 0.95) 0%,
+		rgba(220, 214, 242, 0.6) 30%,
+		rgba(220, 214, 242, 0.18) 62%,
+		rgba(220, 214, 242, 0) 100%
+	);
+	/* Bumped with the larger, hotter core so the edge stays soft. */
+	filter: blur(22px);
+}
+
+/* ---------------- the hand ---------------- */
+
+/* Width and top are set by the hook from VAULT_STAGE.handWidth; the
+   transform carries the arc. left: 0 because the hook's translate is
+   measured from the stage's left edge. */
+.vault-teaser__hand {
+	position: absolute;
+	left: 0;
+	z-index: 2;
+	will-change: transform;
+	/* The hook rotates and scales about the centre, and computes the
+	   folder mouth on that assumption. Changing this silently moves the
+	   glow, the folders and the sand emitter. */
+	transform-origin: 50% 50%;
+}
+
+/* The whole asset is the link - "click me" is embossed into the image,
+   so there is no smaller element to attach the click to. Also the
+   stacking context for the two frames. */
+.vault-teaser__trigger {
+	position: relative;
+	display: block;
+	line-height: 0;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.vault-teaser__hand-img,
+.vault-teaser__hand-glow {
+	display: block;
+	width: 100%;
+	height: auto;
+	user-select: none;
+	-webkit-user-drag: none;
+}
+
+.vault-teaser__hand-img {
+	/* Grounds the cut-out against the void. Deliberately restrained: a
+	   heavier shadow made the transparent PNG read as a sticker. */
+	filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.55));
+}
+
+/* PRESSED FRAME. "click me" is lit from within in this asset. Because
+   that label lives in the pixels there is no text node to glow, so the
+   pressed state is a crossfade between two stacked images.
+
+   Absolutely positioned over the resting frame, so it is out of flow
+   and cannot affect the layout the hook measures. It carries a distinct
+   class for that reason too: the hook queries .vault-teaser__hand-img
+   for the aspect ratio and must keep resolving the resting frame only.
+
+   Both assets must stay pixel-aligned - if the lit version was exported
+   at a different crop, the label will visibly jump on press. */
+.vault-teaser__hand-glow {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	/* Fast in, so the press feels instant; the click is about to trigger
+	   a navigation and there may be very few frames left to show it. */
+	transition: opacity 120ms ease-out;
+	filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.55));
+}
+
+.vault-teaser__trigger:active .vault-teaser__hand-glow {
+	opacity: 1;
+}
+
+/* Keyboard users get the lit frame on focus, since :active only ever
+   fires for a pointer. */
+.vault-teaser__trigger:focus-visible .vault-teaser__hand-glow {
+	opacity: 1;
+}
+
+.vault-teaser__trigger:focus-visible {
+	outline: none;
+	/* A hairline rather than a ring: an outline around a full-bleed
+	   irregular cut-out traces its bounding box, not the folder. */
+	box-shadow: 0 2px 0 0 var(--color-accent);
+}
+
+/* ---------------- sand + escaping folders ---------------- */
+
+/* Sized in device pixels by the hook (capped at DPR 2) and stretched
+   back down here, which is what keeps sub-pixel grains crisp on
+   retina displays. */
+.vault-teaser__dust {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+/* Above the sand so the folders stay readable as objects travelling
+   through it rather than behind it. Size, position and rotation all
+   come from the hook. */
+.vault-teaser__folder {
+	position: absolute;
+	left: 0;
+	top: 0;
+	z-index: 4;
+	pointer-events: none;
+	will-change: transform, opacity;
+	user-select: none;
+	/* Starts hidden: the hook sets real opacity on the first frame, and
+	   without this all seven would flash stacked at the mouth before it
+	   runs. */
+	opacity: 0;
+	filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.5));
+}
+
+/* ---------------- copy ---------------- */
+
+.vault-teaser__eyebrow,
+.vault-teaser__cue {
+	position: absolute;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 5;
+	margin: 0;
+	text-align: center;
+	pointer-events: none;
+	color: #f5f1e8;
+}
+
+.vault-teaser__eyebrow {
+	font-family: var(--font-mono), monospace;
+	font-size: clamp(0.62rem, 0.8vw, 0.78rem);
+	letter-spacing: 0.42em;
+	text-transform: uppercase;
+	opacity: 0.62;
+}
+
+.vault-teaser__cue {
+	font-family: 'Comico', var(--font-sans), sans-serif;
+	font-weight: 700;
+	font-size: clamp(0.95rem, 1.35vw, 1.15rem);
+	letter-spacing: 0.02em;
+	opacity: 0.85;
+}
+
+/* Accessible heading for the document outline. The section's meaning is
+   otherwise carried entirely by two photographs. */
+.vault-teaser__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ---------------- reduced motion ----------------
+
+   The hook already skips the loop and composes a single settled frame.
+   This collapses the scroll budget to one screen to match, so there is
+   no longer a tall section to scroll through for an animation that is
+   never going to play. */
+@media (prefers-reduced-motion: reduce) {
+	.vault-teaser {
+		height: 100vh;
+	}
+
+	.vault-teaser__hand-glow {
+		transition: none;
+	}
+}
+
+/* ---------------- THE PRESS ----------------
+
+   The folder is a button. Three things happen on press, and they are
+   deliberately all on the TRIGGER rather than on the hand wrapper:
+   the wrapper's transform is written inline every frame by the hook
+   (scroll layout plus cursor parallax), so anything set on it here
+   would be overwritten on the very next frame. The trigger is a child,
+   so its transform composes with its parent's instead of fighting it.
+
+   transform-origin is the folder's MOUTH, not the element's centre.
+   Pressing a hand-held object pivots around the thing being pressed -
+   scaling from the centre of a full-bleed image makes the arm shrink,
+   which reads as the photograph zooming out rather than as a press. */
+.vault-teaser__trigger {
+	display: block;
+	transform-origin: 58.8% 34.5%;
+	transition: transform var(--vault-press-release, 260ms)
+		cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Held for the full press duration by React, because :active drops the
+   moment the pointer is released - on a quick click that is a few
+   frames, far too short to be seen. */
+.vault-teaser__trigger[data-pressed='true'] {
+	transform: scale(var(--vault-press-scale, 0.974));
+	/* Compress fast, recover slowly. */
+	transition-duration: var(--vault-press-sink, 110ms);
+}
+
+/* :active still handles the mouse-down phase of a slow, deliberate
+   press, so the folder reacts on contact rather than only on release. */
+.vault-teaser__trigger:active {
+	transform: scale(var(--vault-press-scale, 0.974));
+	transition-duration: var(--vault-press-sink, 110ms);
+}
+
+/* The lit "click me" frame, revealed for the whole held press. The
+   existing :active rule covers the pointer-down phase; this covers the
+   rest, including keyboard activation, which has no :active at all. */
+.vault-teaser__trigger[data-pressed='true'] .vault-teaser__hand-glow {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	/* The lit label still confirms the click; only the movement goes. */
+	.vault-teaser__trigger,
+	.vault-teaser__trigger:active,
+	.vault-teaser__trigger[data-pressed='true'] {
+		transform: none;
+	}
+}
+
+/* ------------------------------------------------------------------
+   THE SPILL
+
+   The folder's light, held at the mouth between the release and the
+   window arriving. Fixed rather than absolute: the sticky stage can
+   scroll away underneath while the route resolves, and the light has to
+   stay on the point the window will open from.
+
+   `screen` blending, like every other light in this section - this is
+   emitted light being added to the frame, not a white shape laid over
+   it. Sizes and timings all arrive as inline custom properties from
+   VAULT_SPILL, so there are no numbers here to drift out of sync.
+
+   Two animations, and the order is deliberate: it swells once, then
+   holds on a slow pulse. Perfectly still light during a wait reads as a
+   frozen page, which is the exact impression this exists to prevent.
+   ------------------------------------------------------------------ */
+.vault-teaser__spill {
+	--vault-spill-core: #DCD6F2; /* matches the new folder's lavender glow */
+	position: fixed;
+	pointer-events: none;
+	z-index: 8600;
+	transform: translate(-50%, -50%) scale(0.55);
+	opacity: 0;
+	mix-blend-mode: screen;
+	border-radius: 50%;
+	/* Warm-white core falling off to nothing well inside the box, so the
+	   edge of the element is never visible as an edge. */
+	background: radial-gradient(
+		circle at 50% 50%,
+		color-mix(in srgb, var(--vault-spill-core) 92%, transparent) 0%,
+		color-mix(in srgb, var(--vault-spill-core) 46%, transparent) 26%,
+		color-mix(in srgb, var(--vault-spill-core) 12%, transparent) 52%,
+		transparent 72%
+	);
+	transition: opacity var(--vault-spill-fade, 260ms) linear;
+}
+
+.vault-teaser__spill[data-live='true'] {
+	opacity: 1;
+	animation:
+		vault-spill-in var(--vault-spill-grow, 380ms)
+			cubic-bezier(0.16, 1, 0.3, 1) forwards,
+		vault-spill-breathe var(--vault-spill-breathe, 2400ms)
+			var(--vault-spill-grow, 380ms) ease-in-out infinite;
+}
+
+@keyframes vault-spill-in {
+	from {
+		transform: translate(-50%, -50%) scale(0.55);
+	}
+	to {
+		transform: translate(-50%, -50%) scale(1);
+	}
+}
+
+@keyframes vault-spill-breathe {
+	0%,
+	100% {
+		transform: translate(-50%, -50%) scale(1);
+	}
+	50% {
+		transform: translate(-50%, -50%) scale(1.08);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vault-teaser__spill {
+	--vault-spill-core: #DCD6F2; /* matches the new folder's lavender glow */
+		display: none;
+	}
+}
+
+
+/* ------------------------------------------------------------------
+   IMAGE PROTECTION (vault teaser + gallery). Dragging, selecting and
+   the long-press / right-click affordances are cut on the images
+   themselves. The vault teaser anchor still receives its clicks: the
+   images inside it are pointer-transparent, so the gesture lands on
+   the trigger underneath. The gallery anchors keep working because
+   only the <img> is inert, not the link.
+
+   Honest note: this stops casual copying, not determined copying -
+   the bytes still arrive over the network.
+   ------------------------------------------------------------------ */
+.vault-teaser__hand-img,
+.vault-teaser__hand-glow,
+.vault-gallery__image {
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-user-drag: none;
+	-webkit-touch-callout: none;
+	pointer-events: none;
+}
+
+.vault-teaser__folder,
+.vault-teaser__dust {
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-user-drag: none;
+	-webkit-touch-callout: none;
+}

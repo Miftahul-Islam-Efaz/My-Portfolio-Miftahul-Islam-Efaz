@@ -77,6 +77,21 @@
  * slot; the webfont build is used as it is the more complete of the two. */
 @font-face { font-family: "Peace Sans"; src: url("/Fonts/peace-sans/peace-sans-webfont.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 
+/* Optima. Four TTFs with inconsistent casing and a space in one filename -
+ * hence the %20, which is required: an unescaped space in a url() token is a
+ * parse error and the whole declaration is dropped. TTF rather than woff2
+ * because that is what the folder holds; convert and swap the urls if the
+ * ~240KB total ever matters.
+ *
+ * THE LIGHTEST CUT IS REGULAR. Nothing set in Optima should be asked for below
+ * 400 - a request for 300 makes the browser synthesise a thin, and on a flared
+ * humanist face that thins the stem and leaves the flare, which is the one
+ * feature worth having. */
+@font-face { font-family: "Optima"; src: url("/Fonts/optima/OPTIMA.TTF") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Optima"; src: url("/Fonts/optima/Optima_Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Optima"; src: url("/Fonts/optima/Optima%20Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Optima"; src: url("/Fonts/optima/OPTIMA_B.TTF") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
+
 :root {
 	--font-body: "Satoshi", ui-sans-serif, system-ui, sans-serif;
 	--font-sans: "Satoshi", ui-sans-serif, system-ui, sans-serif;
@@ -96,4 +111,8 @@
 	--font-kola: "Kola", ui-sans-serif, system-ui, sans-serif;
 	--font-monare: "Monare", ui-sans-serif, system-ui, sans-serif;
 	--font-peace-sans: "Peace Sans", ui-sans-serif, system-ui, sans-serif;
+	/* Flared humanist - a serif's modulation on a sans's skeleton. The fallback
+	 * is a serif rather than a sans because losing the flare reads closer to
+	 * Bespoke Serif than to Satoshi. */
+	--font-optima: "Optima", "Bespoke Serif", ui-serif, Georgia, serif;
 }

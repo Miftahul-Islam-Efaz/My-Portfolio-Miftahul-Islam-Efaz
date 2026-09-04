@@ -23,7 +23,7 @@ export const HeroScrollIndicator: React.FC = () => {
     const lenis = (window as any).lenis;
 
     if (lenis) {
-      lenis.scrollTo(top, { duration: 1.2 });
+      lenis.scrollTo(top, { duration: 1.2, force: true });
     } else {
       window.scrollTo({ top, behavior: 'smooth' });
     }

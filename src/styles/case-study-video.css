@@ -1,0 +1,434 @@
+/*
+  THE CASE STUDY VIDEO PLAYER.
+
+  Kept out of work-case-study.css deliberately, on the same grounds as
+  glass-lens.css: that file is already 139 KB and every rule in here belongs to
+  exactly one component. Splitting it means the player can be read, retimed or
+  deleted without scrolling past the plate flight.
+
+  WHY A CUSTOM CHROME AT ALL. YouTube's own controls come with a title bar, a
+  channel avatar, a share button, an "i" card and a wall of related videos on
+  pause - none of which belong in the middle of a case study. The embed is
+  therefore mounted with controls=0 and everything below is drawn by us, which
+  is also why the surface has to look deliberate rather than default: a cheap
+  control strip reads worse than no video.
+
+  The player fills .case-study__screen-media, which already owns the aspect
+  ratio (16/10 landscape, 4/5 portrait), the 4px radius and the overflow clip.
+  Nothing in here restates any of those.
+*/
+
+.cs-video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  background: var(--cs-plate-bg, #141311);
+  /* The chrome is positioned against this box, and the iframe is painted
+     under it. */
+  isolation: isolate;
+}
+
+/* ------------------------------------------------------------------ */
+/* THE STAGE - where the iframe lands once play is pressed.           */
+/* ------------------------------------------------------------------ */
+
+.cs-video__stage {
+  position: absolute;
+  inset: 0;
+}
+
+.cs-video__stage iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* ------------------------------------------------------------------ */
+/* THE FACADE - poster plus play button, shown before activation.     */
+/*                                                                    */
+/* The iframe is not mounted until this is pressed. A case study can   */
+/* carry six screens, and six YouTube embeds is roughly a megabyte of  */
+/* player JavaScript and six third-party connections for a document    */
+/* the visitor may scroll straight past.                              */
+/* ------------------------------------------------------------------ */
+
+.cs-video__facade {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  background: var(--cs-plate-bg, #141311);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cs-video__poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Matches .case-study__screen-image, so a clip and a still behave
+     identically under the cursor. */
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-video__facade:hover .cs-video__poster {
+  transform: scale(1.028);
+}
+
+/* A wash rather than a flat tint: the play button needs contrast at the
+   centre without the whole frame going grey. */
+.cs-video__scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(20, 19, 17, 0.42) 0%,
+    rgba(20, 19, 17, 0.14) 55%,
+    rgba(20, 19, 17, 0.34) 100%
+  );
+  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-video__facade:hover .cs-video__scrim {
+  opacity: 0.78;
+}
+
+.cs-video__play {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(52px, 5.2vw, 74px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  color: #f5f1e8;
+  background: rgba(20, 19, 17, 0.52);
+  border: 1px solid rgba(245, 241, 232, 0.34);
+  /* Backdrop blur, not opacity: the poster stays legible behind the button
+     instead of being dimmed into mush. */
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  transition:
+    transform 380ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 380ms ease,
+    border-color 380ms ease;
+}
+
+.cs-video__facade:hover .cs-video__play {
+  transform: scale(1.06);
+  background: rgba(20, 19, 17, 0.68);
+  border-color: rgba(245, 241, 232, 0.62);
+}
+
+.cs-video__facade:active .cs-video__play {
+  transform: scale(0.97);
+}
+
+.cs-video__play svg {
+  width: 38%;
+  height: 38%;
+  fill: currentColor;
+  /* The triangle reads off-centre when centred geometrically, because its
+     visual mass sits left of its bounding box. */
+  transform: translateX(6%);
+}
+
+.cs-video__facade:focus-visible {
+  outline: 2px solid rgba(245, 241, 232, 0.9);
+  outline-offset: -4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* THE CHROME - the control strip, drawn by us.                       */
+/* ------------------------------------------------------------------ */
+
+.cs-video__chrome {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
+  display: grid;
+  gap: 8px;
+  padding: clamp(10px, 1.2vw, 16px);
+  /* The gradient is the only thing guaranteeing contrast: the frame
+     underneath is arbitrary video and may be white. */
+  background: linear-gradient(
+    to top,
+    rgba(20, 19, 17, 0.88) 0%,
+    rgba(20, 19, 17, 0.62) 46%,
+    rgba(20, 19, 17, 0) 100%
+  );
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Auto-hide while playing and idle. Pointer events go too, so the hidden
+   strip cannot swallow a click meant for the video. */
+.cs-video[data-chrome='false'] .cs-video__chrome {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+/* ---- The scrub bar. ---- */
+
+.cs-video__bar {
+  position: relative;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+}
+
+/* The visible track is thinner than the hit area above: 3px is the right
+   weight next to this typography, and a 3px pointer target is not. */
+.cs-video__bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(245, 241, 232, 0.24);
+  transition: height 200ms ease;
+}
+
+.cs-video__buffered,
+.cs-video__played {
+  position: absolute;
+  left: 0;
+  height: 3px;
+  border-radius: 2px;
+  transition: height 200ms ease;
+}
+
+.cs-video__buffered {
+  background: rgba(245, 241, 232, 0.36);
+}
+
+.cs-video__played {
+  background: #f5f1e8;
+}
+
+.cs-video__knob {
+  position: absolute;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #f5f1e8;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The handle appears on approach or while dragging - not permanently, which
+   would make a 3px line look like a slider widget. */
+.cs-video__bar:hover .cs-video__knob,
+.cs-video__bar:focus-visible .cs-video__knob,
+.cs-video[data-scrubbing='true'] .cs-video__knob {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.cs-video__bar:hover::before,
+.cs-video__bar:hover .cs-video__buffered,
+.cs-video__bar:hover .cs-video__played,
+.cs-video[data-scrubbing='true'] .cs-video__bar::before,
+.cs-video[data-scrubbing='true'] .cs-video__buffered,
+.cs-video[data-scrubbing='true'] .cs-video__played {
+  height: 5px;
+}
+
+.cs-video__bar:focus-visible {
+  outline: 2px solid rgba(245, 241, 232, 0.9);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---- The button row. ---- */
+
+.cs-video__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cs-video__spacer {
+  flex: 1 1 auto;
+}
+
+.cs-video__btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  color: rgba(245, 241, 232, 0.86);
+  background: transparent;
+  transition:
+    color 200ms ease,
+    background-color 200ms ease;
+}
+
+.cs-video__btn:hover {
+  color: #f5f1e8;
+  background: rgba(245, 241, 232, 0.12);
+}
+
+.cs-video__btn:focus-visible {
+  outline: 2px solid rgba(245, 241, 232, 0.9);
+  outline-offset: 1px;
+}
+
+.cs-video__btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Play and pause are solid glyphs; mute and fullscreen are drawn as outlines.
+   Setting fill/stroke here rather than on the elements keeps the component's
+   markup free of presentation. */
+.cs-video__btn[data-icon='play'] svg,
+.cs-video__btn[data-icon='pause'] svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+.cs-video__btn[data-icon='mute'] svg,
+.cs-video__btn[data-icon='fullscreen'] svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- The timecode. ---- */
+
+.cs-video__time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 6px;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: rgba(245, 241, 232, 0.78);
+  /* The digits must not reflow the row as the clock ticks past 9. */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cs-video__time-sep {
+  opacity: 0.45;
+}
+
+/* ------------------------------------------------------------------ */
+/* THE FAILURE STATE.                                                 */
+/*                                                                    */
+/* The API can fail to load - blocked third-party scripts, an offline  */
+/* network, an embed the owner has disabled. A dead black rectangle is */
+/* the worst possible answer, so the frame offers the plain link out.  */
+/* ------------------------------------------------------------------ */
+
+.cs-video.is-failed .cs-video__chrome {
+  display: none;
+}
+
+.cs-video__fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  padding: clamp(16px, 2vw, 28px);
+  text-align: center;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(245, 241, 232, 0.82);
+  background: var(--cs-plate-bg, #141311);
+}
+
+.cs-video__fallback a {
+  color: #f5f1e8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------ */
+/* NARROW SCREENS.                                                    */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .cs-video__chrome {
+    gap: 6px;
+  }
+
+  .cs-video__btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .cs-video__time {
+    font-size: 0.64rem;
+  }
+
+  /* Touch has no hover, so the handle is always drawn - otherwise the bar
+     looks like a progress readout rather than something draggable. */
+  .cs-video__knob {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* REDUCED MOTION.                                                    */
+/*                                                                    */
+/* Matches the existing block for .case-study__screen-image: the zoom  */
+/* and the chrome slide go, the fades stay. Playback itself is not     */
+/* suppressed - the visitor pressed play, and the component already    */
+/* polls on a timer rather than a frame loop under this preference.    */
+/* ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-video__poster,
+  .cs-video__facade:hover .cs-video__poster {
+    transition: none;
+    transform: none;
+  }
+
+  .cs-video__play,
+  .cs-video__facade:hover .cs-video__play,
+  .cs-video__facade:active .cs-video__play {
+    transition: none;
+    transform: none;
+  }
+
+  .cs-video__chrome {
+    transition: opacity 200ms linear;
+  }
+
+  .cs-video[data-chrome='false'] .cs-video__chrome {
+    transform: none;
+  }
+
+  .cs-video__knob,
+  .cs-video__bar::before,
+  .cs-video__buffered,
+  .cs-video__played {
+    transition: none;
+  }
+}

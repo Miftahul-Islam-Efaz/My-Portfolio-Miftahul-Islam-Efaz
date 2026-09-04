@@ -6,11 +6,32 @@ import {
   CUT_AIR,
   CUT_COLUMN_DELAYS,
   CUT_COLUMN_SPAN,
+  CUT_LINE,
+  CUT_LINE_TEXT,
   CUT_TRAVEL,
 } from '../../config/heroToWorkCut';
 import useHeroToWorkCut from '../../hooks/useHeroToWorkCut';
 import { WORK_THEME } from '../work/workTheme';
 import '../../styles/hero-to-work-cut.css';
+
+/**
+ * The end card's two tiers - statement and coda - see CUT_LINE in
+ * config/heroToWorkCut.ts for the typographic concept, and
+ * hero-to-work-cut.css for how the contrast is set.
+ *
+ * Rendered once PER SLICE, sixteen times over. It is static markup with no
+ * state, so the cost is paint, not React - and each slice paints its band
+ * once and is composited from then on. The whole sliced layer is hidden from
+ * assistive tech; CUT_LINE_TEXT carries the one readable copy.
+ */
+function SlateTiers() {
+  return (
+    <div className="cut-slate-stack">
+      <span className="cut-slate-lead">{CUT_LINE.lead}</span>
+      <span className="cut-slate-coda">{CUT_LINE.coda}</span>
+    </div>
+  );
+}
 
 type HeroToWorkCutProps = {
   /** The outgoing section. The hero - this component consumes it. */
@@ -130,6 +151,49 @@ function HeroToWorkCut({ children }: HeroToWorkCutProps) {
             />
           ))}
         </div>
+
+        {/* ---------- The slate ----------
+
+            THE COLUMNS UNCOVER THE TYPE.
+
+            One slice per column, in front of the columns, each one a window
+            onto the same centred end card. A slice rises exactly as its black
+            column does, and its content is counter-translated by the same
+            amount - so the type never moves, but the window over it does. The
+            staircase edge that takes the hero away is therefore the same edge
+            that carves out the words.
+
+            That counter-translate is the whole trick, and it is why this is
+            done with sixteen windows instead of a mask or a clip-path: two
+            transforms per slice, both composited, nothing repainted per frame
+            over a playing video.
+
+            Slices ride --cut-curtain. There is no second timeline; see
+            config/heroToWorkCut.ts for why that matters. */}
+        <div className="cut-slate" aria-hidden="true">
+          {CUT_COLUMN_DELAYS.map((delay, index) => (
+            <div
+              key={index}
+              className="cut-slate-slice"
+              style={
+                {
+                  '--i': index,
+                  '--d': delay,
+                } as React.CSSProperties
+              }
+            >
+              <div className="cut-slate-inner">
+                <SlateTiers />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* The one copy of the sentence that assistive tech and crawlers see.
+            Visually hidden while the cut plays; becomes the visible, static
+            version under prefers-reduced-motion, where the sliced layer is
+            switched off entirely. */}
+        <p className="cut-slate-sr">{CUT_LINE_TEXT}</p>
       </div>
 
       {/* Scroll distance the cut plays over. This empty element is what holds

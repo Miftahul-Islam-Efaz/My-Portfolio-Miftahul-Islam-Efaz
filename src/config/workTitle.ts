@@ -36,6 +36,13 @@
    `slitOpenMax`, the `--wt-slit` / `--wt-slit-open` channels, the
    `bell()` helper in the hook, and the `.wt-slit` element.
 
+   PARTLY SUPERSEDED SINCE - WITH THE FAILURE MODE STILL REJECTED. The GL
+   pass (components/work/gl/workTitleScene.ts) draws the word when WebGL
+   and the font are both available, and light IS back - but attached to
+   the MOVING edge of the aperture and keyed to motion, so it reads as the
+   act of opening rather than as a glow parked behind the type. The parked
+   smear described above remains rejected in both versions.
+
    WHY A SCALE-THROUGH IS ALLOWED HERE AND WAS NOT IN THE HERO CUT
 
    A dolly-through was rejected for the hero transition because it
@@ -51,7 +58,7 @@
  * Like the cut, every beat here is scrubbed, so this is the master speed
  * control - see the pacing note in `heroToWorkCut.ts`. Shorter than the cut's
  * 138vh on purpose: the cut is dismantling a full-screen photographic frame,
- * where this is four letters. Giving a four-letter word the same runway as the
+ * where this is five letters. Giving a five-letter word the same runway as the
  * hero's departure would make the section feel like it is stalling.
  */
 export const WORK_TITLE_TRAVEL = '130vh' as const;
@@ -59,28 +66,31 @@ export const WORK_TITLE_TRAVEL = '130vh' as const;
 /**
  * The word, one entry per letter.
  *
- * Split in MARKUP rather than at runtime with SplitText. Four known letters do
+ * Split in MARKUP rather than at runtime with SplitText. Five known letters do
  * not need a splitter: SplitText exists to solve line breaking and re-splitting
  * on resize, and a single word has neither problem. Splitting it at runtime
  * would also mean waiting on `document.fonts.ready` before the glyphs exist,
  * which is a real delay for a display face this large - and the aperture reveal
  * would have nothing to reveal until it resolved.
+ *
+ * The GL pass (components/work/gl/workTitleScene.ts) rasterises this same list
+ * into its texture atlas, so the word is edited in exactly one place.
  */
-export const WORK_TITLE_LETTERS = ['W', 'O', 'R', 'K'] as const;
+export const WORK_TITLE_LETTERS = ['W', 'O', 'R', 'K', 'S'] as const;
 
 /**
  * Per-letter start delays for the aperture, in open-progress units.
  *
  * Hand-jittered for the same reason as the cut's column wipe: even steps
- * (`i * 0.12`) make the four letters arrive like a metronome, which reads as a
+ * (`i * 0.12`) make the five letters arrive like a metronome, which reads as a
  * CSS stagger utility. Uneven steps read as choreography. Here W leads, O
- * follows close behind it, then a longer gap before R and K - so the word
- * arrives in two gestures rather than four ticks.
+ * follows close behind it, a longer gap, R, then K and S land as the closing
+ * pair - so the word arrives in three gestures rather than five ticks.
  *
  * Index 0 is the left-most letter. Reverse the array to have the word assemble
  * from the right.
  */
-export const WORK_TITLE_LETTER_DELAYS = [0, 0.13, 0.34, 0.47] as const;
+export const WORK_TITLE_LETTER_DELAYS = [0, 0.12, 0.3, 0.44, 0.6] as const;
 
 /**
  * Compensates the open range so the LAST letter still finishes at progress 1.
@@ -143,6 +153,45 @@ export const WORK_TITLE = {
    */
   outStart: 0.78,
   outEnd: 0.96,
+} as const;
+
+/* ==================================================================
+   THE GL PASS - components/work/gl/workTitleScene.ts
+
+   When WebGL and the display font are both available, the word is drawn
+   by a shader instead of the DOM mask. Same beats, same per-letter
+   choreography - the hook hands the scene `open` / `push` / `out`
+   every frame and the shader derives the rest. What GL adds is what CSS
+   cannot do to text: a hot rim on the moving aperture edge, anamorphic
+   chromatic aberration keyed to motion, film grain, and an exit that
+   breaks the word into the same ordered dither the project cards
+   dissolve into in the carousel below.
+   ================================================================== */
+export const WORK_TITLE_GL = {
+  /* Must match .wt-word's stack in work-title.css - the DOM and GL words
+     swap visibility, so different faces would read as a jump. */
+  fontStack: '"Boreck", "Bespoke Serif", ui-serif, Georgia, serif',
+  /* Atlas rasterisation size in px. Fixed - the quad is rescaled to the
+     live CSS font size on every resize, so this is pure texture
+     resolution, not a layout value. */
+  atlasFontPx: 512,
+  /* The site palette, as literals - same reasoning as dither/gl/config.js:
+     shaders cannot resolve var(--color-*). */
+  ink: '#F5F1E8',
+  ember: '#b56c4b',
+  /* The rim on the moving aperture edge. Sigma is its half-width in uv. */
+  rimStrength: 1.15,
+  rimSigma: 0.016,
+  /* Chromatic aberration in uv: the resting floor, and the gain on the
+     motion envelope. */
+  aberration: 0.0016,
+  aberrationMotion: 0.03,
+  /* Exit dither cell in device px - deliberately near the carousel's
+     ditherScale of 7.5 so the two grains read as one material. */
+  ditherScale: 7,
+  /* Grain: full on the ink, a whisper on the field. */
+  grain: 0.06,
+  grainField: 0.016,
 } as const;
 
 export default WORK_TITLE;

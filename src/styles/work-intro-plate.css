@@ -1,0 +1,260 @@
+/* ==================================================================
+   WORK INTRO - "THE PLATE"
+
+   The portrait treated as a photographic plate on a contact sheet:
+   registration marks at its corners, a caption beneath it, and an
+   editorial caption block in the column beside it.
+
+   WHY THIS FILE EXISTS SEPARATELY from work-intro-reveal.css: that
+   sheet declares the surfaces the reveal HOOK drives (--frame-in,
+   --link-draw, --sig-write, the lens mask). Nothing here is animated
+   by JS at all - it is layout, hairlines and one hover affordance. The
+   two are imported together by WorkIntroHeader.tsx.
+
+   THE MOTION IN THIS SECTION IS NOT DEFINED HERE, and no new engine
+   was added for it. The caption block's type rides the existing drum:
+   it carries `data-reveal="statement"` and `data-reveal="credits"`,
+   which useWorkIntroReveal already splits to characters and rolls up
+   inside a shared line perspective. Those two branches were guarded
+   and had been dead since the placeholder copy was removed; this
+   section is what fills them again.
+
+   ONE RULE INHERITED FROM THE REVEAL SHEET: every default here is the
+   finished state. Nothing is hidden except the hover hint, which is a
+   cursor affordance rather than content.
+   ================================================================== */
+
+.wip {
+	/* Hairline weight and colour, matching --color-border. Declared once so
+	   the rules, the marks and the spec dividers cannot drift apart. */
+	--wip-hair: rgba(216, 212, 200, 0.16);
+	--wip-ink-low: rgba(216, 212, 200, 0.55);
+	--wip-ink-mid: rgba(216, 212, 200, 0.78);
+	--wip-ink-hi: #f5f1e8;
+	--wip-ember: #b56c4b;
+}
+
+/* ------------------------------------------------------------------
+   LAYOUT
+
+   Stacked on small screens, plate-then-caption. Two columns from lg,
+   where the plate holds its 420px and the caption takes the rest -
+   which is the space that was empty black before.
+   ------------------------------------------------------------------ */
+
+.wip-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: clamp(2.5rem, 6vw, 5rem);
+	align-items: start;
+}
+
+@media (min-width: 1024px) {
+	.wip-grid {
+		/* Not 1fr 1fr. The plate is a fixed-ish object and the caption column
+		   should take the slack, so the text block grows on wide screens
+		   instead of stranding a gutter between the two. */
+		grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+		gap: clamp(3rem, 7vw, 7rem);
+	}
+}
+
+/* ------------------------------------------------------------------
+   THE PLATE
+
+   `position: relative` is load-bearing: the signature, the corner
+   marks and the caption are all SIBLINGS of the frame rather than
+   children, because the frame is overflow-hidden (it has to be, to
+   clip the lens mask) and anything inside it gets sliced at the edge.
+   ------------------------------------------------------------------ */
+
+.wip-plate {
+	position: relative;
+	width: 100%;
+	max-width: 420px;
+}
+
+/* Registration marks: four corner brackets, sitting just outside the
+   plate. Two borders each, so a corner is an L rather than a box. */
+.wip-mark {
+	position: absolute;
+	width: 14px;
+	height: 14px;
+	border: 0 solid var(--wip-hair);
+	pointer-events: none;
+}
+
+.wip-mark--tl {
+	top: -7px;
+	left: -7px;
+	border-top-width: 1px;
+	border-left-width: 1px;
+}
+
+.wip-mark--tr {
+	top: -7px;
+	right: -7px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+}
+
+.wip-mark--bl {
+	bottom: -7px;
+	left: -7px;
+	border-bottom-width: 1px;
+	border-left-width: 1px;
+}
+
+.wip-mark--br {
+	bottom: -7px;
+	right: -7px;
+	border-bottom-width: 1px;
+	border-right-width: 1px;
+}
+
+/* ------------------------------------------------------------------
+   PLATE CAPTION - AND THE HOVER AFFORDANCE
+
+   The lens is the best interaction in this section and it was
+   completely undiscoverable: a soft window revealing the sharp
+   photograph under the dithered one, with nothing on screen to suggest
+   the portrait responds to a cursor at all.
+
+   `HOVER TO FOCUS` is that hint, and it removes itself once the hint
+   has been taken - the sibling selector below fires off
+   `.is-lens-on`, which useIntroPortraitLens already sets on the frame.
+   Hence caption AFTER frame in the DOM: this depends on sibling order.
+   ------------------------------------------------------------------ */
+
+.wip-caption {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.35rem 0.75rem;
+	margin-top: 0.9rem;
+	font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+	font-size: 0.62rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--wip-ink-low);
+}
+
+.wip-caption-dot {
+	color: var(--wip-ember);
+}
+
+.wip-hint {
+	color: var(--wip-ink-mid);
+	transition: opacity 320ms ease;
+}
+
+/* Hint taken - retire it. Not `display: none`, which would reflow the
+   caption row as the cursor arrives. */
+.wi-lens.is-lens-on ~ .wip-caption .wip-hint {
+	opacity: 0;
+}
+
+/* Nothing to hover on touch, so the hint would be a lie. */
+@media (hover: none), (pointer: coarse) {
+	.wip-hint {
+		display: none;
+	}
+}
+
+/* ------------------------------------------------------------------
+   THE CAPTION BLOCK
+   ------------------------------------------------------------------ */
+
+.wip-body {
+	display: flex;
+	flex-direction: column;
+	gap: clamp(1.75rem, 3.5vh, 2.75rem);
+}
+
+.wip-eyebrow {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+	font-size: 0.62rem;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--wip-ink-low);
+}
+
+/* The rule runs to the end of the column, which is what makes the row
+   read as a printed caption rather than a floating label. */
+.wip-eyebrow::after {
+	content: '';
+	flex: 1;
+	height: 1px;
+	background-color: var(--wip-hair);
+}
+
+.wip-statement {
+	margin: 0;
+	max-width: 22ch;
+	font-family: var(--font-heading, 'Cabinet Grotesk', sans-serif);
+	font-size: clamp(1.75rem, 3.4vw, 3.4rem);
+	font-weight: 700;
+	line-height: 1.02;
+	letter-spacing: -0.02em;
+	color: var(--wip-ink-hi);
+}
+
+/* The single accent in this section, on one word. workTheme caps ember
+   at points, never areas. */
+.wip-accent {
+	color: var(--wip-ember);
+}
+
+.wip-credits {
+	margin: 0;
+	max-width: 42ch;
+	font-family: var(--font-sans, 'Satoshi', sans-serif);
+	font-size: clamp(0.95rem, 1.05vw, 1.075rem);
+	line-height: 1.6;
+	color: var(--wip-ink-mid);
+}
+
+/* ------------------------------------------------------------------
+   SPEC ROWS
+
+   What he actually does, as a printed spec strip. Three rows, hairline
+   separated. Deliberately NOT part of the drum: the statement and the
+   credits carry the motion, and rolling a third block would turn a
+   sequence into noise.
+   ------------------------------------------------------------------ */
+
+.wip-spec {
+	display: flex;
+	flex-direction: column;
+	border-top: 1px solid var(--wip-hair);
+}
+
+.wip-spec-row {
+	display: grid;
+	grid-template-columns: 1.35rem 5.5rem minmax(0, 1fr);
+	gap: 0.75rem;
+	align-items: baseline;
+	padding: 0.7rem 0;
+	border-bottom: 1px solid var(--wip-hair);
+	font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+	font-size: 0.68rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.wip-spec-index {
+	color: var(--wip-ember);
+}
+
+.wip-spec-label {
+	color: var(--wip-ink-hi);
+}
+
+.wip-spec-value {
+	letter-spacing: 0.08em;
+	text-transform: none;
+	color: var(--wip-ink-low);
+}

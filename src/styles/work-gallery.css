@@ -1,0 +1,733 @@
+/* ==================================================================
+   THE WORK GALLERY
+
+   This stylesheet is SMALL on purpose. The field inside the window is
+   the vault's - it renders .vault-gallery and is styled entirely by
+   styles/vault-gallery.css, so the lattice, the diagonal, the smear
+   and the arrival all live there and are shared. What is left here is
+   only what the vault does not have: the window shell around the
+   field, its small header, the docked close, and the cue on the
+   landing page that opens it.
+
+   Anything that should change in BOTH rooms belongs in
+   vault-gallery.css. Anything added here is, by definition, a
+   difference between them - so add it deliberately.
+
+   ------------------------------------------------------------------
+   STACKING. 9200, which is BELOW the header at 9999.
+
+   This is load-bearing and was a real bug. At 99990 the window covered
+   the header, so the MENU pill and the CLOSE docked beside it were
+   painted underneath an opaque black surface: the window appeared to
+   have no chrome at all. VaultWindow has always been at 9000 for this
+   reason. Above it, below the header. The case study still covers this
+   window at 99992, because a study is a full takeover.
+
+   ONE SCROLLING BOX, AND THE HEAD IS INSIDE IT. The header scrolls
+   away with the field instead of pinning over it, which is why nothing
+   here needs a background to hide content passing behind it.
+
+   DOM:
+     .wg
+       > .wg__scroller
+           > .wg__content
+               > header.wg__head > .wg__eyebrow + .wg__title + .wg__count
+               > .vault-gallery  (the vault's field, its own stylesheet)
+     + button.wg__close  (re-parented into the header dock)
+   ================================================================== */
+
+.wg {
+	position: fixed;
+	inset: 0;
+	z-index: 9200;
+
+	display: flex;
+	flex-direction: column;
+
+	background-color: var(--color-background, #050505);
+
+	--wg-text: var(--color-primary, #f5f1e8);
+	--wg-muted: var(--color-taupe, #8a8279);
+	--wg-accent: var(--color-accent, #b56c4b);
+
+	/* ---------------------------------------------------------------
+	   THE TOKENS THE SHARED STYLESHEET EXPECTS.
+
+	   vault-gallery.css was written inside the vault window and reads
+	   that window's palette: --vw-base backs each frame while its image
+	   loads, --vw-text-hi and --vw-text-mid colour the two caption
+	   lines, --vw-ember draws the focus ring.
+
+	   Outside .vault-window none of those exist, and an undefined
+	   var() with no fallback is INVALID AT COMPUTED-VALUE TIME - the
+	   declaration is thrown away, so the captions were merely
+	   inheriting a colour and the frames had no backing at all. It
+	   looked almost right, which is the worst way for it to fail.
+
+	   Answered here, in this room's own palette, rather than by
+	   editing the shared sheet - which must keep working unchanged for
+	   the vault.
+	   --------------------------------------------------------------- */
+	--vw-base: var(--color-background, #050505);
+	--vw-text-hi: var(--color-primary, #f5f1e8);
+	--vw-text-mid: var(--color-taupe, #8a8279);
+	--vw-ember: var(--color-accent, #b56c4b);
+	--vw-hair: var(--color-border, #38393f);
+
+	animation: wg-in var(--wg-open) var(--wg-open-ease) both;
+}
+
+.wg[data-closing='true'] {
+	/* Inert the moment the exit starts, so a second click during the
+	   fade cannot re-enter a window that is leaving. */
+	pointer-events: none;
+	animation: wg-out var(--wg-close) var(--wg-close-ease) both;
+}
+
+@keyframes wg-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes wg-out {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+/* The page underneath must not scroll behind the window. Its Lenis is
+   stopped in JS as well - this covers the no-Lenis case (mobile, and
+   reduced motion). */
+html.work-gallery-open,
+html.work-gallery-open body {
+	overflow: hidden;
+}
+
+.wg__scroller {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+
+	/* HIDDEN ON PURPOSE. Lenis drives this box, so a native scrollbar is
+	   a second indicator moving on a different curve from the content.
+	   The vault window shows none for the same reason. */
+	scrollbar-width: none;
+}
+
+.wg__scroller::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+}
+
+/* ------------------------------------------------------------------
+   THE FIELD'S GUTTER. Not decoration - this is what stops the
+   lattice sliding off the left edge.
+
+   THE BUG IT FIXES. The diagonal translates the whole field up and to
+   the LEFT by up to driftX, and the odd rows of the lattice are
+   shifted RIGHT by rowShift. Both need somewhere to go. In the vault
+   they move into .vault-window__body's clamp(1.25rem, 6vw, 6rem)
+   side gutter, and config/vaultGallery.ts says so explicitly: driftX
+   is 5vw and not more BECAUSE the gutter is 6vw, with the standing
+   instruction that raising one means raising the other.
+
+   This window had no inline padding whatsoever - only a block start.
+   So the field was flush to both viewport edges before it had moved
+   at all, and at the ends of the drift's travel the outer column
+   crossed x: 0 and was cut in half by the clip on __field. That reads
+   as a broken layout rather than as motion, which is exactly what was
+   reported.
+
+   THE SAME 6vw, deliberately - it is the number the drift was
+   budgeted against. If driftX is ever raised, raise this with it.
+   ------------------------------------------------------------------ */
+.wg__content {
+	/* Clears the wordmark and the menu pill, both of which are fixed
+	   over this window's top edge. */
+	padding-block-start: clamp(4.5rem, 9.5vh, 7.5rem);
+
+	padding-inline: clamp(1.25rem, 6vw, 6rem);
+}
+
+/* ------------------------- the header -----------------------------
+   A LABEL, NOT A BANNER. No background, no rule, and small: it used to
+   be clamp(1.5rem, 4.2vw, 3.25rem) inside a bordered band, which put a
+   huge title in the same strip as the EFAZ wordmark and read as two
+   headers fighting.
+
+   NO INLINE PADDING OF ITS OWN any more - the content box above owns
+   that now, so the header's left edge and the field's line up instead
+   of being indented by two different clamps.
+   ------------------------------------------------------------------ */
+
+.wg__head {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: clamp(0.3rem, 0.6vw, 0.5rem);
+	padding: 0 0 clamp(1.25rem, 3vw, 2.25rem);
+
+	animation: wg-head-rise var(--wg-head-dur) var(--wg-open-ease) both;
+}
+
+@keyframes wg-head-rise {
+	from {
+		opacity: 0;
+		transform: translateY(0.75rem);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.wg__eyebrow {
+	font-family: var(--font-ark-es), ui-monospace, monospace;
+	font-size: clamp(9px, 0.7vw, 11px);
+	font-weight: 500;
+	letter-spacing: 0.28em;
+	text-transform: uppercase;
+	color: var(--wg-accent);
+}
+
+.wg__title {
+	margin: 0;
+	font-family: var(--font-heading), sans-serif;
+	font-size: clamp(1.125rem, 2vw, 1.75rem);
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	line-height: 1.05;
+	color: var(--wg-text);
+}
+
+.wg__count {
+	font-family: var(--font-ark-es), ui-monospace, monospace;
+	font-size: clamp(9px, 0.7vw, 11px);
+	letter-spacing: 0.2em;
+	color: rgb(216 212 200 / 38%);
+}
+
+/* ------------------------- the close ------------------------------
+   Sized from the MENU pill's OWN custom properties rather than from
+   matching guesses, so the two stay identical if the pill is retuned.
+   ------------------------------------------------------------------ */
+
+.navmenu__dock .wg__close--docked {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	height: var(--nm-pill-h);
+	padding-inline: var(--nm-pill-pad);
+
+	/* MINIMAL IS ONE HAIRLINE, NOT A FILL. This was a tinted chip docked
+	   immediately left of the pill - and the pill is a solid charcoal
+	   surface, so the strip carried two filled pills, the quieter of
+	   which was the one you press to leave the room. The vault's docked
+	   close has always been transparent with a hairline (nav-menu.css);
+	   matching it also stops the two rooms shipping two different CLOSE
+	   buttons into the same dock. */
+	border: 1px solid var(--nm-hair, rgb(245 241 232 / 14%));
+	border-radius: 999px;
+	background-color: transparent;
+	color: var(--nm-pill-text, #f5f1e8);
+
+	font-family: var(--font-sans), sans-serif;
+	font-size: var(--nm-pill-font);
+	font-weight: 500;
+	/* The pill's own tracking. These two are read as a pair, so a looser
+	   letter-spacing on one of them is just a mismatch. */
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	cursor: pointer;
+
+	transition:
+		background-color var(--nm-hover, 220ms) ease,
+		transform 160ms ease;
+}
+
+/* The fill now only exists on hover, which is the one moment it is
+   actually saying something. */
+.navmenu__dock .wg__close--docked:hover {
+	background-color: var(--nm-chip, rgb(245 241 232 / 8%));
+}
+
+.navmenu__dock .wg__close--docked:active {
+	transform: scale(0.97);
+}
+
+/* The fallback, for when there is no header mounted to dock into. */
+.wg__close--corner {
+	position: absolute;
+	inset-block-start: clamp(1rem, 2.5vh, 2rem);
+	inset-inline-end: clamp(1rem, 4vw, 3.25rem);
+
+	display: inline-flex;
+	align-items: center;
+	height: clamp(38px, 3vw, 46px);
+	padding-inline: clamp(0.9rem, 1.6vw, 1.4rem);
+	border: none;
+	border-radius: 999px;
+
+	/* Same hairline treatment as the docked form above - this is the
+	   same control, just parked in the corner because no header exists
+	   to dock into. */
+	border: 1px solid rgb(245 241 232 / 14%);
+	background-color: transparent;
+	color: var(--wg-text);
+
+	font-family: var(--font-sans), sans-serif;
+	font-size: clamp(10px, 0.8vw, 13px);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.wg__close:focus-visible {
+	outline: 2px solid var(--wg-accent);
+	outline-offset: 3px;
+}
+
+/* ==================================================================
+   THE PLATES, IN THIS ROOM ONLY.
+
+   The vault's images are artwork and are meant to be read as artwork,
+   so they sit sharp under a caption gradient that covers the foot of
+   the frame only. These are SCREENSHOTS OF WEBSITES - dense with
+   their own headlines, their own type, their own contrast - and a
+   title laid over one competes with whatever that site's hero happens
+   to be. PENCILLINK in neon behind the word PencilLink was the case in
+   point.
+
+   So here the image is held slightly soft and slightly darker, which
+   pushes it behind the text without hiding the work, and the caption
+   gradient is deepened to match.
+
+   ------------------------------------------------------------------
+   THE BLUR GOES ON THE IMAGE, NOT ON THE FRAME.
+
+   The frame carries filter: url(#vg-motion) - the smear - and filter
+   does not accumulate: a second filter declaration on the same
+   element REPLACES it, so blurring the frame would silently delete
+   the motion blur from this room. The image is the child inside it,
+   and its own filter composes with the frame's.
+
+   AND IT IS SCALED PAST THE CROP. A blurred edge inside overflow:
+   hidden samples transparency at the boundary and leaves a soft
+   transparent halo along all four sides of the plate. Scaling the
+   image up slightly pushes that halo outside the crop, so the plate
+   keeps its hard rounded edge.
+
+   HOVER RESOLVES IT. A visitor who stops on a plate wants to see the
+   actual site, and the sharpening doubles as the hover feedback -
+   which keeps this on the right side of the standing instruction that
+   the plates carry a hover effect but no border and no glow.
+   ------------------------------------------------------------------ */
+
+.wg .vault-gallery__image {
+	filter: blur(3px) brightness(0.68) saturate(0.94);
+
+	/* Overrides the shared sheet's hover-scale base so the blur's soft
+	   edge is pushed outside the crop. The hover below scales further,
+	   so the travel that rule was written for is preserved. */
+	transform: scale(1.06);
+
+	transition:
+		filter 620ms var(--wg-open-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+		transform 1100ms var(--wg-open-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.wg .vault-gallery__item:hover .vault-gallery__image,
+.wg .vault-gallery__item:focus-visible .vault-gallery__image {
+	filter: blur(0) brightness(1) saturate(1);
+	transform: scale(1.1);
+}
+
+/* Deeper than the vault's, and reaching higher up the plate: it is
+   holding two lines of text off a screenshot rather than off
+   photography. */
+.wg .vault-gallery__caption {
+	background: linear-gradient(
+		to top,
+		rgb(0 0 0 / 88%) 0%,
+		rgb(0 0 0 / 62%) 38%,
+		rgb(0 0 0 / 18%) 72%,
+		rgb(0 0 0 / 0%) 100%
+	);
+}
+
+/* The project name carries the weight; the line under it stays quiet. */
+.wg .vault-gallery__title {
+	font-weight: 600;
+	letter-spacing: 0.005em;
+}
+
+/* ------------------------- work-only additions --------------------
+   The vault's plates all open. These do not: only ids present in
+   caseStudyData have a study behind them, and a plate that silently
+   swallows a click is worse than one that says why.
+   ------------------------------------------------------------------ */
+
+.wg__soon {
+	position: absolute;
+	inset-block-start: 0.75rem;
+	inset-inline-start: 0.75rem;
+	z-index: 2;
+
+	padding: 0.3rem 0.6rem;
+	border-radius: 999px;
+	background-color: rgb(5 5 5 / 62%);
+	backdrop-filter: blur(8px);
+
+	font-family: var(--font-ark-es), ui-monospace, monospace;
+	font-size: clamp(8px, 0.62vw, 10px);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: rgb(245 241 232 / 72%);
+}
+
+.vault-gallery__item[aria-disabled='true'] {
+	cursor: default;
+}
+
+/* ==================================================================
+   THE CUE
+
+   The pill that offers the gallery once the work section has been
+   scrolled to its end.
+
+   BIG, AND IN THE MIDDLE. It used to sit small against the bottom
+   edge, where the problem was not that it was ugly but that it was
+   not NOTICED: the eye is on the helix in the centre of the frame,
+   and the pill was announcing itself in the darkest, emptiest, least
+   watched part of the screen.
+
+   So it is now placed where the attention already is - centred in the
+   frame, in the black the cards have just dissolved out of - and it is
+   roughly twice the size.
+
+   NO BORDER, AND NOT A POPUP. It arrives in three parts, in order:
+     1. an accent glow blooms out of the centre, which is what actually
+        catches the eye - light, not an outline
+     2. the plate rises into it and settles
+     3. the label wipes in from the left behind the plate
+   That sequence is why it reads as arriving rather than appearing.
+   ================================================================== */
+
+/* ==================================================================
+   THE VIEW MORE CUE
+
+   A soft blob welded into the bottom-left corner of the viewport, and
+   a permanent fixture of the work section rather than a reward for
+   reaching the end of it.
+
+   IT USED TO BE A PILL IN THE MIDDLE OF THE FRAME. That put a large
+   plate over the work the visitor was still looking at, and however
+   carefully it was staged it read as a popup. The corner is where a
+   persistent offer belongs: visible, ignorable, never over the content.
+
+   FOUR RULES HOLD THIS TOGETHER. They were each arrived at by breaking
+   them, so they are worth stating plainly:
+
+   1. THE SILHOUETTE NEVER CHANGES. It is one clip-path, in every state.
+      Hover swapping in a second path, or a keyframe morphing between
+      two, makes the blob visibly change formation under the pointer and
+      appear to jump - a different path puts its mass somewhere else.
+      border-radius cannot draw this shape at all: it gives exactly one
+      curve per corner, so the most it can produce is an egg.
+
+   2. THE CONTAINER NEVER MOVES. It is flush in the corner, so any
+      translate on it opens a gap along the screen edge and the blob
+      looks like it came unstuck. A body stuck to a surface does not
+      travel when shoved, it deforms.
+
+   3. DEFORMATION IS ANCHORED AT THE CORNER. transform-origin is the
+      stuck corner, so the welded mass stays put and only the free edge
+      travels. With the default centre origin the whole blob slides off
+      the corner as it scales.
+
+   4. transform IS OWNED BY THE SPRING, exclusively. ViewMoreCue.tsx
+      rewrites it every frame from a filtered, sprung scroll velocity.
+      Nothing else may set it on the visible pill, and it must stay out
+      of the transition list - a transition on a per-frame value makes
+      the spring chase a moving target and arrive visibly late.
+
+   The arrival is therefore on the CONTAINER, not the pill: the two are
+   nested, so a reveal on the outer box and a stretch on the inner one
+   compose instead of overwriting each other.
+   ================================================================== */
+
+.workcue {
+	position: fixed;
+	inset-inline-start: 0;
+	inset-block-end: 0;
+	z-index: 45;
+
+	width: 200px;
+	height: 150px;
+
+	/* Rule 3, for the reveal below. */
+	transform-origin: 0 100%;
+
+	/* The container is inert; only the blob inside it takes the click, so
+	   the cue never blocks a scroll or a drag over the corner. */
+	pointer-events: none;
+}
+
+/* THE ARRIVAL. Re-triggered every time the attribute flips to true,
+   which is what makes returning from the gallery an entrance rather
+   than the blob simply being there again. Growing out of the corner it
+   is stuck to, so arriving and leaving are the same movement reversed. */
+.workcue[data-visible='true'] {
+	animation: wc-reveal var(--wc-show) var(--wc-show-ease) both;
+}
+
+@keyframes wc-reveal {
+	from {
+		opacity: 0;
+		transform: scale(0.72, 0.58);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1, 1);
+	}
+}
+
+.workcue[data-visible='false'] {
+	opacity: 0;
+	transform: scale(0.9, 0.8);
+	transition:
+		opacity var(--wc-hide) var(--wc-hide-ease),
+		transform var(--wc-hide) var(--wc-hide-ease);
+}
+
+/* THE GLOW. What separates the blob from black cards passing behind it.
+   At this size it is a shadow's opposite, not a light source. */
+.workcue::before {
+	content: '';
+	position: absolute;
+	inset-block-end: -40%;
+	inset-inline-start: -40%;
+	width: 180%;
+	height: 180%;
+
+	background: radial-gradient(
+		50% 50% at 50% 50%,
+		rgb(181 108 75 / 14%) 0%,
+		rgb(181 108 75 / 5%) 45%,
+		rgb(181 108 75 / 0%) 74%
+	);
+
+	opacity: 0;
+	transition: opacity var(--wc-show) var(--wc-show-ease);
+	pointer-events: none;
+}
+
+.workcue[data-visible='true']::before {
+	opacity: 1;
+}
+
+/* THE BLOB.
+
+   NO backdrop-filter and no drop shadow. The colour is opaque by
+   request (#3f3b38), so a blur behind it would cost a compositor pass
+   on a pinned WebGL section and never be seen - and clip-path cuts
+   everything outside the path, shadow included, so an outer shadow
+   cannot render at all. Depth is therefore entirely inset: lit along
+   the crest, shaded under the belly.
+
+   The surface is a sheen and nothing else. A noise layer was tried and
+   removed: at full strength, overlay-blended against a dark base, the
+   noise BECAME the colour and the blob rendered flat grey. */
+.workcue__pill {
+	position: absolute;
+	inset: 0;
+	width: 200px;
+	height: 150px;
+
+	clip-path: path("M0,150 L0,58 C24,30 58,36 80,66 C100,92 118,94 140,88 C164,82 184,116 200,150 Z");
+
+	/* Label low-left, well inside the solid mass. clip-path clips
+	   hit-testing too, so anything near the curve is unclickable. */
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-start;
+	padding: 0 0 20px 20px;
+
+	border: none;
+	background-color: #3f3b38;
+	background-image:
+		radial-gradient(
+			130% 110% at 22% 12%,
+			rgb(255 255 255 / 9%) 0%,
+			rgb(255 255 255 / 3%) 40%,
+			rgb(0 0 0 / 0%) 70%
+		),
+		linear-gradient(160deg, rgb(255 255 255 / 4%) 0%, rgb(0 0 0 / 14%) 100%);
+
+	box-shadow:
+		inset 0 2px 2px rgb(255 255 255 / 12%),
+		inset -2px -3px 7px rgb(0 0 0 / 26%),
+		inset 0 0 26px rgb(0 0 0 / 14%);
+
+	color: var(--color-primary, #f5f1e8);
+	cursor: pointer;
+	pointer-events: none;
+
+	/* Rules 3 and 4. */
+	transform-origin: 0 100%;
+	transform: scale(var(--wc-sx, 1), var(--wc-sy, 1));
+	transition: background-color 320ms ease;
+}
+
+.workcue[data-visible='true'] .workcue__pill {
+	pointer-events: auto;
+	/* Promoted once. This is rewritten every frame during a scroll, over a
+	   pinned WebGL section already competing for the frame budget. */
+	will-change: transform;
+	backface-visibility: hidden;
+}
+
+/* Colour only. A hover transform would fight the spring for rule 4. */
+.workcue[data-visible='true'] .workcue__pill:hover {
+	background-color: #4a4541;
+}
+
+.workcue[data-visible='true'] .workcue__pill:active {
+	transform: scale(calc(var(--wc-sx, 1) * 1.02), calc(var(--wc-sy, 1) * 0.97));
+}
+
+.workcue__pill:focus-visible {
+	outline: 2px solid var(--color-accent, #b56c4b);
+	outline-offset: 4px;
+}
+
+.workcue__text {
+	font-family: var(--font-ark-es), ui-monospace, monospace;
+	font-size: clamp(9px, 0.62vw, 11px);
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	opacity: 0.82;
+	transition:
+		letter-spacing 320ms ease,
+		opacity 320ms ease;
+}
+
+.workcue__pill:hover .workcue__text {
+	letter-spacing: 0.2em;
+	opacity: 1;
+}
+
+/* path() takes absolute pixels with no percentage form, so the phone
+   outline is the same curve retraced at 0.74 rather than scaled. */
+@media (max-width: 640px) {
+	.workcue {
+		width: 148px;
+		height: 111px;
+		inset-block-end: max(0px, env(safe-area-inset-bottom));
+	}
+
+	.workcue__pill {
+		width: 148px;
+		height: 111px;
+		clip-path: path("M0,111 L0,43 C18,22 43,27 59,49 C74,68 87,70 104,65 C121,61 136,86 148,111 Z");
+		padding: 0 0 15px 15px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	/* The spring never starts, so --wc-sx/--wc-sy are absent and the
+	   fallbacks resolve to 1. */
+	.workcue[data-visible='true'] .workcue__pill {
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.wg,
+	.wg[data-closing='true'],
+	.wg__head {
+		animation-duration: 0.01ms !important;
+	}
+
+	/* The softening stays - it is legibility, not motion - but it stops
+	   animating between states. */
+	.wg .vault-gallery__image,
+	.workcue::before,
+	.workcue__pill,
+	.workcue__text {
+		transition-duration: 0.01ms !important;
+		animation: none !important;
+	}
+}
+
+/* ==================================================================
+   THE CLOSE, ON A PHONE
+
+   Icon only, for the room reasons set out at the foot of
+   styles/nav-menu.css - same dock, same 375px, same two hairlines.
+
+   THE TEXT IS CLIPPED, NOT HIDDEN, AND THE DIFFERENCE IS THE WHOLE
+   POINT. WORK_GALLERY_COPY.close IS this button's accessible name:
+   unlike the vault's close it carries no aria-label, so display:none
+   on that text would leave a button that announces nothing at all.
+   ================================================================== */
+
+@media (max-width: 768px) {
+	.navmenu__dock .wg__close--docked {
+		position: relative;
+		width: var(--nm-pill-h);
+		padding-inline: 0;
+	}
+
+	.wg__close--corner {
+		display: grid;
+		place-items: center;
+		width: 42px;
+		height: 42px;
+		padding-inline: 0;
+	}
+
+	.wg__close .wg__close-text {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.wg__close::before,
+	.wg__close::after {
+		content: '';
+		position: absolute;
+		inset-block-start: 50%;
+		inset-inline-start: 50%;
+		width: 12px;
+		height: 1px;
+		background-color: currentColor;
+	}
+
+	.wg__close::before {
+		transform: translate(-50%, -50%) rotate(45deg);
+	}
+
+	.wg__close::after {
+		transform: translate(-50%, -50%) rotate(-45deg);
+	}
+}

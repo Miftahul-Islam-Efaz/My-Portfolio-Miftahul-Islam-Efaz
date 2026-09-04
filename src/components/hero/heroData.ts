@@ -16,7 +16,7 @@ export const HERO_CONFIG = {
     },
     secondary: {
       text: "Get In Touch →",
-      href: "mailto:webigns@gmail.com",
+      href: "mailto:hello@miftahulislamefaz.xyz",
     },
   },
   socialLinks: [

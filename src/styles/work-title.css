@@ -24,9 +24,12 @@
    the same failure as the very first "seam" attempt at this junction,
    which decorated the gap rather than acting on the content.
 
-   The aperture alone is the effect. The word opening from its own
-   centre line is legible as an aperture without anything shining to
-   announce it. No glow, no bloom, no flare on this transition.
+   The DOM aperture remains, but it is now the FALLBACK. When
+   `workTitleScene` arms (WebGL + font loaded + first frame drawn), it
+   draws the word and the DOM copy is kept only for screen readers - see
+   [data-wt-gl] at the bottom. The rejection above still stands in both
+   versions: the GL pass attaches its light to the moving aperture edge
+   and to motion, never parked behind the type.
    ------------------------------------------------------------------
 
    ------------------------------------------------------------------
@@ -196,6 +199,88 @@
 }
 
 /* ------------------------------------------------------------------
+   THE GL WORD
+
+   The canvas covers the holder and draws the same word from the same
+   beats. It stays transparent until the hook sets [data-wt-gl='on'],
+   which only happens after the scene's first real frame, so a WebGL
+   failure, a missing font or reduced motion all leave the DOM title
+   untouched. The DOM word is dimmed with `opacity`, not `visibility`:
+   visibility would strip the accessible name from the a11y tree.
+   ------------------------------------------------------------------ */
+
+.wt-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wt[data-wt-gl='on'] .wt-canvas {
+  opacity: 1;
+}
+
+.wt[data-wt-gl='on'] .wt-word {
+  opacity: 0;
+}
+
+/* ------------------------------------------------------------------
+   PERF - THE HIDDEN DOM WORD MUST ALSO STOP WORKING
+
+   Once GL is armed the DOM word is at opacity 0, but opacity 0 is not
+   free: the element is still styled, still laid out, still painted and
+   still composited. And it was the expensive kind of painted.
+
+   The hook writes --wt-open / --wt-push / --wt-out onto .wt every
+   scrubbed frame. A custom property write invalidates style for the
+   whole subtree, so each of those frames re-resolved, on five letters:
+
+     - --l, --band and --feather (three dependent calc() chains)
+     - a FOUR-STOP linear-gradient mask image, whose stops are all
+       calc() expressions - a mask image whose stops change cannot be
+       reused, so it is re-rasterised per letter per frame
+     - a translate, and the scale on the wrapper
+
+   plus the will-change on both, which holds six compositor layers
+   alive for something nobody can see. All of it thrown away on
+   composite because opacity is 0.
+
+   During the exit that lands on exactly the frames that are already
+   the most expensive: the dissolve is the shader's heaviest pass, so
+   the invisible DOM aperture was competing with the visible GL one for
+   the same frame budget. Hence the lag on the disappear specifically.
+
+   Neutralised here rather than with display:none or visibility:hidden,
+   both of which would strip the accessible name this copy exists to
+   provide. The text stays in the a11y tree; only the ornament stops.
+
+   Scoped to [data-wt-gl='on'], so the no-WebGL / no-font / reduced
+   motion path - where these letters ARE the title - is untouched.
+   ------------------------------------------------------------------ */
+
+.wt[data-wt-gl='on'] .wt-word {
+  /* The word is invisible; nothing needs to scale, and no layer needs
+     to be reserved for it. */
+  transform: none;
+  will-change: auto;
+}
+
+.wt[data-wt-gl='on'] .wt-letter {
+  /* The aperture is the whole per-frame cost, and the GL pass is drawing
+     its own. Dropping the mask to 'none' is a constant - it no longer
+     depends on --wt-open, so these letters fall out of the scrubbed
+     style work entirely. */
+  -webkit-mask-image: none;
+  mask-image: none;
+  translate: none;
+  opacity: 1;
+  will-change: auto;
+}
+
+/* ------------------------------------------------------------------
    REDUCED MOTION
 
    The holder stops being sticky and collapses to its content, so the
@@ -213,6 +298,10 @@
   .wt-word {
     transform: none;
     opacity: 1;
+  }
+
+  .wt-canvas {
+    display: none;
   }
 
   .wt-letter {

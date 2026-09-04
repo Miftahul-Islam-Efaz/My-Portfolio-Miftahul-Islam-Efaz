@@ -1,0 +1,386 @@
+// Scratch, idempotent. Font pairing on the statement, ink-fill contrast
+// floor, veil off, credit row removed, close line rewritten.
+import { readFileSync, writeFileSync } from 'node:fs';
+
+const L = (...lines) => lines.join('\n');
+
+const patches = [
+  // ---------------------------------------------------------------- copy
+  {
+    file: 'src/components/compositor/compositorContent.ts',
+    name: 'copy: statement carries a face per line',
+    old: L(
+      'export const COMPOSITOR_STATEMENT = [',
+      "  { words: ['Anyone', 'can', 'write', 'this', 'sentence.'] },",
+      "  { words: ['Look', 'what', 'happens', 'when', 'I', 'set', 'it.'] },",
+      '] as const;',
+    ),
+    new: L(
+      '/* `face` selects the typeface, and the PAIRING IS THE ARGUMENT.',
+      '',
+      '   Line 1 - the line anyone could write - is set in ARK_ES Dense, the',
+      '   same spec face as the sheet furniture around it. Line 2 - the line',
+      '   about setting it - is set in Monare, a display face, and it is where',
+      '   the ember and the ink fill land. Raw material against judgement,',
+      '   stated in the type itself and not only in the motion.',
+      '',
+      '   Both files were verified to cover this exact sentence before use:',
+      '   Monare 198 glyphs, ARK_ES 222, both 26/26 upper and lower, nothing',
+      '   missing. A display face that silently falls back mid-word is the',
+      '   usual way this idea fails. */',
+      'export const COMPOSITOR_STATEMENT = [',
+      "  { face: 'spec', words: ['Anyone', 'can', 'write', 'this', 'sentence.'] },",
+      '  {',
+      "    face: 'display',",
+      "    words: ['Look', 'what', 'happens', 'when', 'I', 'set', 'it.'],",
+      '  },',
+      '] as const;',
+    ),
+  },
+  {
+    file: 'src/components/compositor/compositorContent.ts',
+    name: 'copy: weight note tells the truth',
+    old: "  'Weight 100 \\u2192 900',",
+    new: "  'Weight 300 \\u2192 700',",
+  },
+  {
+    file: 'src/components/compositor/compositorContent.ts',
+    name: 'copy: new close line',
+    old: L(
+      '   No number in it on purpose. An earlier draft read "you\'ve been reading',
+      '   a few hundred", which is an invented metric about my own work and',
+      '   exactly what the skill forbids. */',
+      'export const COMPOSITOR_CLOSE =',
+      "  'That was five decisions. Nothing else on this page is accidental either.';",
+    ),
+    new: L(
+      '   Structure: single-frame. The turn it hinges on is raw material ->',
+      '   judgement - the same turn the mechanism just performed - so the line',
+      '   reports what the visitor watched instead of asserting something new.',
+      '',
+      '   "five decisions" had to go regardless: the 01-05 index row was removed',
+      '   in an earlier pass, so the sentence was counting something that is no',
+      '   longer on screen. No number replaces it. A figure about my own work is',
+      '   an invented metric and the skill forbids it. */',
+      'export const COMPOSITOR_CLOSE =',
+      "  'Nothing was added to that sentence. It was only decided about. ' +",
+      "  'So was everything else you have scrolled past.';",
+    ),
+  },
+  {
+    file: 'src/components/compositor/compositorContent.ts',
+    name: 'copy: credit row deleted',
+    old: L(
+      '',
+      '/* Utility line. Keeps the two links reachable without turning the',
+      '   section into an about page - the studio and the handles were already',
+      '   approved copy and removing them would cost real usability. */',
+      'export const COMPOSITOR_CREDIT = {',
+      "  studio: 'Webigns \\u2014 Dhaka',",
+      '  links: [',
+      "    { label: 'GitHub', href: 'https://github.com/Miftahul-Islam-Efaz' },",
+      "    { label: 'X', href: 'https://x.com/Miftahul_Islam9' },",
+      '  ],',
+      '} as const;',
+    ),
+    new: '',
+  },
+
+  // ------------------------------------------------------------- markup
+  {
+    file: 'src/components/compositor/CompositorSection.tsx',
+    name: 'markup: drop credit import',
+    old: L('  COMPOSITOR_CLOSE,', '  COMPOSITOR_CREDIT,', "} from './compositorContent';"),
+    new: L('  COMPOSITOR_CLOSE,', "} from './compositorContent';"),
+  },
+  {
+    file: 'src/components/compositor/CompositorSection.tsx',
+    name: 'markup: line carries its face class',
+    old: '            <span key={li} className="comp-line">',
+    new: '            <span key={li} className={`comp-line comp-line--${line.face}`}>',
+  },
+  {
+    file: 'src/components/compositor/CompositorSection.tsx',
+    name: 'markup: credit row deleted',
+    old: L(
+      '',
+      '        <p className="comp-credit">',
+      '          <span>{COMPOSITOR_CREDIT.studio}</span>',
+      '          {COMPOSITOR_CREDIT.links.map((link) => (',
+      '            <a',
+      '              key={link.label}',
+      '              href={link.href}',
+      '              target="_blank"',
+      '              rel="noopener noreferrer"',
+      '              className="comp-link"',
+      '            >',
+      '              {link.label}',
+      '            </a>',
+      '          ))}',
+      '        </p>',
+    ),
+    new: '',
+  },
+  {
+    file: 'src/components/compositor/CompositorSection.tsx',
+    name: 'markup: readout starts at the real light cut',
+    old: "  { key: 'weight', label: 'Weight', initial: '100' },",
+    new: "  { key: 'weight', label: 'Weight', initial: '300' },",
+  },
+
+  // ------------------------------------------------------------- tuning
+  {
+    file: 'src/config/compositor.ts',
+    name: 'config: weight axis follows the pairing',
+    old: L(
+      '  /* The fake weight axis: the two static Cabinet Grotesk cuts that get',
+      '     cross-faded. Both must exist in fonts.css or the browser will',
+      '     synthesise and the blend will look muddy rather than heavy. */',
+      '  weightLight: 100,',
+      '  weightHeavy: 900,',
+    ),
+    new: L(
+      '  /* The fake weight axis. These are ARK_ES cuts now, not Cabinet',
+      "     Grotesk's Thin and Black: the statement is set in a pairing",
+      '     (ARK_ES Dense / Monare - see compositorContent.ts) and neither',
+      '     family ships a 100 or a 900. ARK_ES has 300-700, so the ramp',
+      '     narrowed. Monare ships ONE weight, so line 2 does not ramp at all',
+      '     and carries its transformation through size, tracking and the fill.',
+      '',
+      '     These two numbers are what the readout PRINTS, so they must stay',
+      '     equal to the --w-light / --w-heavy pair on .comp-line--spec in',
+      '     compositor.css. A readout advertising 100 -> 900 over type that',
+      '     cannot do it is the one failure this section cannot afford. */',
+      '  weightLight: 300,',
+      '  weightHeavy: 700,',
+    ),
+  },
+  {
+    file: 'src/config/compositor.ts',
+    name: 'config: veil off',
+    old: L(
+      '  /* Full-bleed copy of the plate behind everything. Deliberately tiny -',
+      '     this is here so the filled letters have a visible source of light,',
+      '     not to put a photograph in the section. Set to 0 to remove. */',
+      '  veilOpacity: 0.07,',
+    ),
+    new: L(
+      '  /* Full-bleed copy of the plate behind everything. Now 0: its radial',
+      '     mask had a visible edge and read as a grey rectangle sitting behind',
+      '     the type. The control that the stylesheet actually reads is',
+      '     --comp-veil-max in compositor.css, set to 0 to match. */',
+      '  veilOpacity: 0,',
+    ),
+  },
+
+  // ---------------------------------------------------------------- css
+  {
+    file: 'src/styles/compositor.css',
+    name: 'css: replace the stated compromise',
+    old: L(
+      '   ONE COMPROMISE, STATED',
+      '',
+      '   The raw state would ideally set the statement in ARK_ES and the',
+      '   composed state in Cabinet Grotesk. `font-family` cannot be',
+      '   interpolated, and swapping it at a threshold mid-scroll snaps - which',
+      '   reads as a bug, not a decision. So the statement stays in Cabinet',
+      '   Grotesk throughout and its RAW character comes from size, tracking,',
+      '   leading and the surrounding ARK_ES chrome. ARK_ES sets the sheet',
+      '   furniture, which is where a spec face belongs anyway.',
+    ),
+    new: L(
+      '   THE PAIRING, AND WHAT IT COST',
+      '',
+      '   `font-family` still cannot be interpolated, and swapping it at a',
+      '   threshold mid-scroll still snaps. So the families do not change with',
+      '   scroll - they change with LINE, which is a static decision and reads',
+      '   as typesetting rather than as a glitch:',
+      '',
+      '     line 1  ARK_ES Dense  the spec face anyone would default to',
+      '     line 2  Monare        the display face someone chose',
+      '',
+      '   The cost is the weight axis. Cabinet Grotesk gave us Thin 100 and',
+      '   Black 900; ARK_ES ships 300-700 and Monare ships one weight. So each',
+      '   line now declares its own --w-light / --w-heavy, the ramp narrows on',
+      '   line 1, and line 2 does not ramp at all - its transformation is size,',
+      '   tracking and the ink fill. The readout was retuned to 300 -> 700 so',
+      '   the sheet is not advertising a ramp the type cannot perform.',
+    ),
+  },
+  {
+    file: 'src/styles/compositor.css',
+    name: 'css: per-line family + weight ends',
+    old: L('.comp-line {', '\tdisplay: block;', '}'),
+    new: L(
+      '.comp-line {',
+      '\tdisplay: block;',
+      '}',
+      '',
+      '/* Each line names its family AND its own ends of the fake axis, because',
+      '   the two families do not ship the same cuts. See the pairing note at',
+      '   the top of this file.',
+      '',
+      '   --face-scale is the optical-size knob: two different families at the',
+      '   same px never read as the same size. Tune the pairing here, never on',
+      '   .comp-statement - that font-size is the scale RAMP and touching it',
+      '   would desynchronise the readout. */',
+      '.comp-line--spec {',
+      '\tfont-family: var(--font-ark-es-dense);',
+      '\t--w-light: 300;',
+      '\t--w-heavy: 700;',
+      '\t--face-scale: 0.94;',
+      '}',
+      '',
+      '.comp-line--display {',
+      '\tfont-family: var(--font-monare);',
+      '\t--w-light: 400;',
+      '\t--w-heavy: 400;',
+      '\t--face-scale: 1;',
+      '}',
+      '',
+      '.comp-line--spec,',
+      '.comp-line--display {',
+      '\tfont-size: calc(1em * var(--face-scale, 1));',
+      '}',
+    ),
+  },
+  {
+    file: 'src/styles/compositor.css',
+    name: 'css: sizer weight from the line',
+    old: L('.comp-w--sizer {', '\tvisibility: hidden;', '\tfont-weight: 900;', '}'),
+    new: L(
+      '.comp-w--sizer {',
+      '\tvisibility: hidden;',
+      '\tfont-weight: var(--w-heavy, 900);',
+      '}',
+    ),
+  },
+  {
+    file: 'src/styles/compositor.css',
+    name: 'css: light cut weight from the line',
+    old: L('\tfont-weight: 100;', '\topacity: calc(1 - var(--local));'),
+    new: L('\tfont-weight: var(--w-light, 100);', '\topacity: calc(1 - var(--local));'),
+  },
+  {
+    file: 'src/styles/compositor.css',
+    name: 'css: heavy cut weight from the line',
+    old: L('\tfont-weight: 900;', '\t/* Floor of 0.05 - at pure Thin, the 100 cut nearly vanishes at'),
+    new: L(
+      '\tfont-weight: var(--w-heavy, 900);',
+      '\t/* Floor of 0.05 - at pure Thin, the 100 cut nearly vanishes at',
+    ),
+  },
+  {
+    file: 'src/styles/compositor.css',
+    name: 'css: ink cut weight + contrast floor',
+    old: L(
+      '\tfont-weight: 900;',
+      '\tbackground-image: var(--comp-ink-image);',
+      '\tbackground-size: cover;',
+    ),
+    new: L(
+      '\tfont-weight: var(--w-heavy, 900);',
+      '\tbackground-image: var(--comp-ink-image);',
+      '\tbackground-size: cover;',
+      '',
+      '\t/* THE FLOOR. The plate is ONE continuous fixed image across the whole',
+      '\t   statement, so whichever words land in its dark half were painting',
+      '\t   near-black glyphs onto a near-black page - half the sentence',
+      '\t   disappeared, and it was the middle half. Blending the plate against',
+      '\t   a floor colour with `lighten` takes the per-channel maximum: the',
+      '\t   beam is untouched, and no glyph can fall below a readable value.',
+      '\t   Tune --comp-ink-floor, never the plate. */',
+      '\tbackground-color: var(--comp-ink-floor);',
+      '\tbackground-blend-mode: lighten;',
+    ),
+  },
+  {
+    file: 'src/styles/compositor.css',
+    name: 'css: floor var + veil off',
+    old: L(
+      '\t--comp-ink: 0;',
+      '\t--comp-ink-ready: 0;',
+      '\t--comp-ink-shift: 0px;',
+      '\t--comp-veil-max: 0.07;',
+      '}',
+    ),
+    new: L(
+      '\t--comp-ink: 0;',
+      '\t--comp-ink-ready: 0;',
+      '\t--comp-ink-shift: 0px;',
+      '',
+      '\t/* The lowest value any filled glyph may reach. See the floor note on',
+      '\t   .comp-w--ink below. Raise it if the shadowed words still read as',
+      '\t   holes; lower it if the plate stops looking like light. */',
+      '\t--comp-ink-floor: #7d766b;',
+      '',
+      '\t/* Was 0.07. The full-bleed copy of the plate read as a soft grey',
+      '\t   RECTANGLE behind the type - a radial mask still has an edge against',
+      '\t   a #050505 page, which is exactly what it was there to avoid. With',
+      '\t   the floor in place the letters no longer need a light source behind',
+      '\t   them, so the veil is off and the type is the only place the plate',
+      '\t   appears. The element stays, at 0, as the knob. */',
+      '\t--comp-veil-max: 0;',
+      '}',
+    ),
+  },
+  {
+    file: 'src/styles/compositor.css',
+    name: 'css: close no longer shares with credit',
+    old: L('.comp-close,', '.comp-credit {'),
+    new: '.comp-close {',
+  },
+  {
+    file: 'src/styles/compositor.css',
+    name: 'css: credit + link rules deleted',
+    old: L(
+      '.comp-credit {',
+      '\tdisplay: flex;',
+      '\tflex-wrap: wrap;',
+      '\tgap: 1.25rem;',
+      '\tfont-family: var(--font-ark-es);',
+      '\tfont-size: 10px;',
+      '\tletter-spacing: 0.22em;',
+      '\ttext-transform: uppercase;',
+      '\tcolor: var(--comp-ink-low);',
+      '}',
+      '',
+      '.comp-link {',
+      '\tcolor: var(--comp-ink-mid);',
+      '\ttext-decoration: none;',
+      '\tborder-bottom: 1px solid rgba(181, 108, 75, 0.55);',
+      '\tpadding-bottom: 2px;',
+      '\ttransition: color 0.24s ease, border-color 0.24s ease;',
+      '}',
+      '',
+      '.comp-link:hover {',
+      '\tcolor: var(--comp-ember);',
+      '\tborder-color: var(--comp-ember);',
+      '}',
+      '',
+    ),
+    new: '',
+  },
+];
+
+let missed = false;
+for (const p of patches) {
+  const raw = readFileSync(p.file, 'utf8');
+  const crlf = raw.includes('\r\n');
+  const fix = (s) => (crlf ? s.replace(/\n/g, '\r\n') : s);
+  const oldStr = fix(p.old);
+  const newStr = fix(p.new);
+
+  if (newStr !== '' && raw.includes(newStr)) {
+    console.log(`SKIP  ${p.name}`);
+    continue;
+  }
+  if (!raw.includes(oldStr)) {
+    console.log(`MISS  ${p.name}`);
+    missed = true;
+    continue;
+  }
+  writeFileSync(p.file, raw.replace(oldStr, newStr));
+  console.log(`OK    ${p.name}`);
+}
+console.log(missed ? 'SOME PATCHES MISSED' : 'ALL PATCHES OK');

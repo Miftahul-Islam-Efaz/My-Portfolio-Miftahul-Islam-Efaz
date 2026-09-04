@@ -1,0 +1,3903 @@
+/**
+ * THE CASE STUDY WINDOW.
+ *
+ * Owned by src/components/work/case-study/. Every colour and duration in this
+ * file arrives as a custom property set on `.case-study` by CaseStudyWindow -
+ * from config/caseStudy.ts - so this stylesheet only knows how to spend them,
+ * never what they are.
+ *
+ * THIS IS THE ONE LIGHT ROOM. The site is carbon; the window is dimmed bone,
+ * because it is the only surface that asks for three paragraphs of reading.
+ * The cover stays dark - it is a photograph with type over it - and the
+ * polarity flips at the overview. The header pill flips with it: light type
+ * over the image, dark type once paper is behind it.
+ *
+ * ONE FONT: OPTIMA, registered in src/styles/fonts.css as --font-optima.
+ * A flared humanist - a serif's stroke modulation on a sans's skeleton - which
+ * is why it can carry both the display claim and three paragraphs of prose
+ * without a second face. It replaced Cabinet Grotesk + Satoshi here.
+ *
+ * TWO CONSEQUENCES, both handled below:
+ *   1. THE LIGHTEST CUT IS REGULAR. Nothing in this file may ask for 300 - the
+ *      browser would synthesise a thin, which thins Optima's stems and leaves
+ *      the flares, losing the only thing the face is for. The cover claim is
+ *      set at 400 and gets its lightness from size and tracking instead.
+ *   2. It is warmer and narrower than Satoshi at small sizes. If the prose
+ *      reads too literary at paragraph size, set --cs-font-body back to
+ *      var(--font-body) - one line, and the labels and specs follow.
+ */
+
+/* ------------------------------------------------------------------ */
+/* LOCK                                                               */
+/* ------------------------------------------------------------------ */
+
+/* Lenis is also stopped in useCaseStudyOverlay - this is the belt to that
+   braces, for the case where Lenis never initialised (reduced motion, or a
+   failed dynamic import). */
+html.case-study-open,
+html.case-study-open body {
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------ */
+/* SHELL                                                              */
+/* ------------------------------------------------------------------ */
+
+.case-study {
+  position: fixed;
+  inset: 0;
+  /* Above the nav's stacking band, below the reveal loader (99999) - the
+     loader must always be able to cover this. */
+  z-index: 99992;
+
+  /* THREE FACES, THREE JOBS.
+
+     The reason the document below the hero was hard to scan is that it had
+     exactly one face at one weight. Optima was doing headings, paragraphs
+     and labels alike, so nothing announced itself - no entry point, every
+     block the same weight. The earlier note here argued that pairing Optima
+     with a grotesque would fight it. That is true of a HEADLINE. It is not
+     true of 16px body copy, where the change of texture is the whole signal
+     that a heading is a heading.
+
+       --cs-font-display   Optima. Hero claim, section headings, ledes,
+                           plate values. Unchanged everywhere it was.
+       --cs-font-doc-body  Satoshi. Paragraph text BELOW THE HERO only.
+       --cs-font-label     Cabinet Grotesk. Eyebrows, index numbers, spec
+                           keys - uppercase and tracked, so it reads as
+                           data rather than prose.
+
+     The shell - bar, tabs, cover - still uses --cs-font-body, so nothing
+     above the fold moves.
+
+     /public/Fonts also holds ARK_ES Dense, which would give the spec keys a
+     genuinely monospaced register. Cabinet Grotesk is used instead because
+     it is already proven in this build and ARK_ES has not been seen
+     rendered at 10px; swapping --cs-font-label is a one-line change. */
+  --cs-font-display: var(--font-optima);
+  --cs-font-body: var(--font-optima);
+  --cs-font-doc-body: var(--font-body);
+  --cs-font-label: var(--font-heading);
+
+  /* THE SURFACE SYSTEM, and the reason every box looked flat.
+
+     Every panel in this document was painted --cs-paper-raised (#EFEBE1) on
+     a --cs-paper (#E7E3D9) page. That is EIGHT UNITS LIGHTER than its
+     background - and lighter is the one direction with nowhere to go on an
+     already-light ground. No amount of radius or spacing rescues a fill
+     that close to the page.
+
+     So there are now three tiers, and a panel must pick one:
+
+       PLATE     the facts row only. Dark, inverted, one per page, the
+                 single strongest contrast moment in the document.
+       RECESS    metrics, pull quotes, swatches. Very slightly DARKER than
+                 the page, so they read as wells sunk into the paper. 5%
+                 alpha of the ink gets more separation than 8 units of
+                 lightness ever did.
+       OUTLINE   chips. No fill at all; the hairline carries the shape. */
+  --cs-recess: rgba(23, 22, 20, 0.05);
+  --cs-recess-edge: rgba(23, 22, 20, 0.1);
+}
+
+/* The wipe. clip-path rather than opacity, so the window RISES over the helix
+   instead of dissolving on top of it - and so nothing inside is visible until
+   the mask has passed it. */
+.case-study__panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--cs-paper);
+  clip-path: inset(100% 0 0 0);
+  animation: cs-wipe-in var(--cs-open) var(--cs-open-ease) forwards;
+}
+
+.case-study[data-state='closing'] .case-study__panel {
+  animation: cs-wipe-out var(--cs-close) var(--cs-close-ease) forwards;
+}
+
+@keyframes cs-wipe-in {
+  from { clip-path: inset(100% 0 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes cs-wipe-out {
+  from { clip-path: inset(0 0 0 0); }
+  to   { clip-path: inset(100% 0 0 0); }
+}
+
+/* ------------------------------------------------------------------ */
+/* THE FLOATING BAR                                                   */
+/* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* THE GLASS, AND THE ONE MARGIN                                      */
+/* ------------------------------------------------------------------ */
+
+/* #b3b9c9 held as a channel triple so one colour can be spent at several
+   alphas without inventing three more tokens.
+
+   THE HIGHLIGHT IS NOT WHITE. It is this colour lifted toward white, which is
+   what keeps the raised pill inside the family instead of punching a hole in
+   the bar - white was the reason the active tab read as a different material
+   from the thing it sits in.
+
+   ONE LABEL COLOUR FOR BOTH POLARITIES. That is only possible because the pill
+   now has a body: a light blue-grey surface over the photograph AND over paper.
+   The old build flipped the type from bone to ink at the overview, and every
+   time that flip mistimed the controls vanished into whatever was behind them.
+   A constant surface needs no flip, so there is nothing left to mistime. */
+.case-study {
+  --cs-gutter: clamp(28px, 8.6vw, 176px);
+  --cs-gutter-top: clamp(20px, 2.6vw, 46px);
+  /* SITE PALETTE. The bar is built from the same tokens as the landing
+     page header (styles/nav-menu.css): the track is charcoal, the raised pill
+     is pearl, the focus ring and the menu arrow are the site's ember accent.
+     Held as channel triples so one colour can be spent at several alphas. */
+  --cs-glass: 42, 39, 37; /* --color-charcoal */
+  --cs-glass-lift: 245, 241, 232; /* --color-pearl */
+  --cs-accent: var(--color-accent, #b56c4b);
+  /* #b56c4b as a channel triple - the raised pill spends it in a gradient. */
+  --cs-accent-rgb: 181, 108, 75;
+  /* The pearl chip wash the landing header's controls get on hover. */
+  --cs-chip: rgba(245, 241, 232, 0.09);
+  /* Ink sits on the raised PEARL pill, so it is the site's eerie black. */
+  --cs-glass-ink: #050505;
+  /* Track labels dim to pearl at 55% once frosted - the track is charcoal in
+     both polarities, so the dim never flips to dark. */
+  --cs-glass-ink-dim: rgba(245, 241, 232, 0.55);
+  /* Labels sitting on the TRACK over the photograph, where there is no pill
+     body under them. Bound to [data-frosted] below, never to a timer. */
+  --cs-glass-on-dark: rgba(245, 241, 232, 0.82);
+  /* THE TEXTURE. A 3px halftone carried as a background LAYER rather than a
+     pseudo-element, so it cannot land above the travelling indicator. Light
+     grain over the dark track, ink grain over the near-white pills. */
+  --cs-glass-grain: radial-gradient(rgba(255, 255, 255, 0.13) 0.5px, transparent 0.6px);
+  --cs-glass-grain-ink: radial-gradient(rgba(23, 24, 26, 0.07) 0.5px, transparent 0.6px);
+  /* Roll window. Sentence case has descenders; 1em clipped the g in Challenge. */
+  --cs-roll-h: 1.32em;
+}
+
+/* A sibling of the scroller rather than a sticky child: the document has to
+   pass UNDERNEATH the pills for the blur to mean anything, and backdrop-filter
+   is unreliable when the blurred element is inside the scrolling ancestor it is
+   sampling.
+
+   THE BAR IS TWO THINGS. A full-width blur BAND across the top - in the
+   reference everything passing under the whole strip is smeared, not only what
+   passes inside a pill - and, floating over it, three glass groups. The frame
+   itself takes no pointer, so the middle of the cover stays clickable. */
+.case-study__bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  /* THE ONE MARGIN. The back button, the first letter of the claim below it,
+     the prose and the plates all start on this line. Nothing sits at a
+     different inset from anything else - that misalignment, rather than the
+     size of the type, is what made the frame feel crowded. */
+  padding: var(--cs-gutter-top) var(--cs-gutter);
+  pointer-events: none;
+}
+
+/* The band. Masked out at its lower edge so it ends in a fade rather than a
+   seam, and always on - over the photograph as well as over paper.
+
+   TWO THINGS FIGHT HERE, and the last attempt traded one for the other. The
+   band used to overhang the bar by 22px, which fogged the picture ~50px below
+   the pills. Shortening it to 26px INSIDE the bar fixed that and created a hard
+   horizontal edge, because the same two-stop fade then had only about 20px of
+   band to resolve in - and a 14px blur going to nothing across 20px is a seam,
+   not a fade.
+
+   So: the band ends just past the bar again, but the ramp starts at 30% instead
+   of 70% and steps through four stops on the way down. The opaque part still
+   ends behind the pills, and what follows is ~70px of gradual falloff rather
+   than 20px of cliff. A masked backdrop-filter needs the fade to be long
+   relative to its own blur radius, or the eye reads the boundary itself. */
+.case-study__bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(100% + 6px);
+  z-index: -1;
+  backdrop-filter: blur(8px) saturate(104%);
+  -webkit-backdrop-filter: blur(8px) saturate(104%);
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 30%,
+    rgba(0, 0, 0, 0.88) 48%,
+    rgba(0, 0, 0, 0.6) 64%,
+    rgba(0, 0, 0, 0.28) 80%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 30%,
+    rgba(0, 0, 0, 0.88) 48%,
+    rgba(0, 0, 0, 0.6) 64%,
+    rgba(0, 0, 0, 0.28) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.case-study__bar > * {
+  pointer-events: auto;
+}
+
+.case-study__bar-left,
+.case-study__bar-right {
+  display: flex;
+  align-items: center;
+}
+
+.case-study__bar-left {
+  gap: 10px;
+}
+
+/* The right group is itself the outer pill, with the call to action raised
+   inside it and the three-dot button flush - the nesting the reference uses. */
+.case-study__bar-right {
+  gap: 2px;
+  padding: 5px;
+}
+
+/* THE CONTAINERS. Three layers, read off the frames:
+     1. a blurred, slightly BRIGHTENED sample of what passes under the bar - the
+        background is visibly washed toward light inside the pill, not dimmed;
+     2. a veil of the base colour, so the pill has a body of its own;
+     3. a FEATHERED rim - specular top edge, dark seat, and a wide very low
+        opacity halo. No hard 1px outline: in the reference the edge dissolves
+        over several pixels, and a crisp border is what made mine read as a flat
+        rectangle of colour. */
+.case-study__back,
+.case-study__tabs,
+.case-study__bar-right {
+  position: relative;
+  border-radius: 999px;
+  /* DENSE ON PURPOSE. Charcoal at glass alphas is only a tint of whatever
+     is behind it; 0.82 keeps the sample moving under the pill while letting
+     the named colour win. */
+  background-color: rgba(var(--cs-glass), 0.82);
+  background-image: var(--cs-glass-grain);
+  background-size: 3px 3px;
+  backdrop-filter: blur(14px) saturate(118%) brightness(1.02);
+  -webkit-backdrop-filter: blur(14px) saturate(118%) brightness(1.02);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(9, 11, 16, 0.12),
+    0 12px 34px rgba(5, 5, 5, 0.22),
+    0 0 0 8px rgba(var(--cs-glass), 0.04);
+  /* Pearl, not ink: the track is charcoal now, so anything drawn directly on
+     it - the back chevron, the kebab - is light. */
+  color: var(--cs-glass-on-dark);
+}
+
+/* Over paper the veil thickens slightly and stops brightening, so the group
+   still separates from cream. Same colour, same type - only the alpha moves. */
+.case-study__bar[data-frosted='true'] .case-study__back,
+.case-study__bar[data-frosted='true'] .case-study__tabs,
+.case-study__bar[data-frosted='true'] .case-study__bar-right {
+  background-color: rgba(var(--cs-glass), 0.9);
+  backdrop-filter: blur(14px) saturate(108%) brightness(0.99);
+  -webkit-backdrop-filter: blur(14px) saturate(108%) brightness(0.99);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(9, 11, 16, 0.12),
+    0 10px 26px rgba(12, 11, 10, 0.14),
+    0 0 0 7px rgba(var(--cs-glass), 0.06);
+}
+
+/* ---- BACK ---- */
+
+.case-study__back {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background-color 200ms ease;
+}
+
+.case-study__back:hover {
+  background-color: var(--cs-chip);
+}
+
+/* The landing header's focus ring: 2px of accent, 3px off the control. */
+.case-study__back:focus-visible,
+.case-study__tab:focus-visible,
+.case-study__cta:focus-visible,
+.case-study__menu-button:focus-visible {
+  outline: 2px solid var(--cs-accent);
+  outline-offset: 3px;
+}
+
+/* ---- TABS ---- */
+
+.case-study__tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+}
+
+/* THE HIGHLIGHT. One element for the whole nav, so it can travel. Position and
+   width arrive as custom properties written by CaseStudyWindow from the live
+   tab's own geometry - measured rather than derived from an index, so it stays
+   correct when a section is added or a label is translated. */
+.case-study__tab-indicator {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  width: var(--cs-ind-w, 0px);
+  transform: translate3d(var(--cs-ind-x, 0px), 0, 0);
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    var(--cs-glass-grain-ink) 0 0 / 3px 3px,
+    linear-gradient(
+      180deg,
+      rgba(var(--cs-glass-lift), 0.99),
+      rgba(var(--cs-glass-lift), 0.9)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(9, 11, 16, 0.1),
+    0 5px 14px rgba(5, 5, 5, 0.2);
+  transition:
+    transform 460ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 460ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 220ms ease;
+}
+
+/* Nothing to show until it has been measured once. */
+.case-study__tabs[data-ready='true'] .case-study__tab-indicator {
+  opacity: 1;
+}
+
+.case-study__tab {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+  font-family: var(--cs-font-body);
+  /* SENTENCE CASE, NORMAL TRACKING. The reference sets these as words, not as
+     spaced capitals - 0.1em of tracking on uppercase Optima is what made a
+     two-item nav read as a crowded strip. */
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  color: var(--cs-glass-on-dark);
+  transition:
+    color 300ms ease,
+    opacity 300ms ease,
+    background-color 200ms ease,
+    transform 160ms ease;
+}
+
+/* THE FLIP IS PER-TAB, NOT PER-SCROLL. The raised pill is near-white so its
+   label is ink; the track is thin glass over a photograph so its labels are
+   bone. Both come off the same [data-frosted] attribute the background uses,
+   so they cannot desynchronise the way the old timed flip did. */
+.case-study__tab[data-active='true'] {
+  color: var(--cs-glass-ink);
+}
+
+.case-study__bar[data-frosted='true'] .case-study__tab {
+  color: var(--cs-glass-ink-dim);
+}
+
+.case-study__bar[data-frosted='true'] .case-study__tab[data-active='true'] {
+  color: var(--cs-glass-ink);
+}
+
+/* SIBLING DIM. In the frames the cursor does not brighten what it lands on -
+   the OTHER tabs drop back, and the raised one keeps its weight. */
+.case-study__tabs:hover .case-study__tab:not(:hover):not([data-active='true']) {
+  opacity: 0.34;
+}
+
+/* The landing header's hover, translated: a pearl chip wash on the
+   charcoal track - a background, not a colour flip, so there is nothing left
+   to mistime at the frost boundary. */
+.case-study__tab:hover {
+  background-color: var(--cs-chip);
+}
+
+/* The icon rides the active tab, but its SLOT exists in every tab and only
+   fades. Rendering it conditionally would change that tab's width, which would
+   drag the indicator's target out from under it mid-transition. */
+.case-study__tab-icon,
+.case-study__cta-icon {
+  display: grid;
+  place-items: center;
+  margin-right: 7px;
+}
+
+/* The Meet mark is a filled colour glyph, not a 1.6px stroke, so it needs a
+   touch more air than the outlined page icon. */
+.case-study__cta-icon {
+  margin-right: 9px;
+}
+
+.case-study__tab-icon {
+  opacity: 0;
+  transform: scale(0.82);
+  transition:
+    opacity 300ms ease,
+    transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.case-study__tab[data-active='true'] .case-study__tab-icon {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- CALL TO ACTION. Raised inside the right group. ---- */
+
+.case-study__cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 18px 10px 12px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--cs-font-body);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  color: var(--cs-glass-ink);
+  background:
+    var(--cs-glass-grain-ink) 0 0 / 3px 3px,
+    linear-gradient(
+      180deg,
+      rgba(var(--cs-glass-lift), 0.99),
+      rgba(var(--cs-glass-lift), 0.9)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(9, 11, 16, 0.1),
+    0 5px 14px rgba(5, 5, 5, 0.2);
+  transition: transform 160ms ease;
+}
+
+/* The link is not wired yet, so the button says so rather than going nowhere. */
+.case-study__cta[data-pending='true'] {
+  cursor: default;
+}
+
+/* ---- THE THREE-DOT MENU ---- */
+
+.case-study__menu {
+  position: relative;
+}
+
+.case-study__menu-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+  color: var(--cs-glass-on-dark);
+  opacity: 0.86;
+  transition:
+    opacity 240ms ease,
+    background-color 200ms ease,
+    transform 160ms ease;
+}
+
+.case-study__menu-button:hover,
+.case-study__menu-button[aria-expanded='true'] {
+  opacity: 1;
+  background-color: var(--cs-chip);
+}
+
+/* No colour flip here any more: the kebab rides the charcoal track in
+   both polarities, so it stays pearl through the frost. */
+
+.case-study__menu-list {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 190px;
+  display: grid;
+  padding: 6px;
+  border-radius: 14px;
+  /* The landing dropdown's panel (nav-menu.css): charcoal body, the site's
+     hairline border, and its deep soft shadow. */
+  border: 1px solid var(--color-border, #38393f);
+  background: var(--color-charcoal, #2a2725);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.45);
+  transform-origin: 100% 0;
+  animation: cs-menu-swing 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* THE EXIT SWING, the landing dropdown's nm-swing-out: the panel stays
+   mounted through 'closing' (see CaseStudyWindow), already deaf to clicks,
+   and turns further than it came from - down to a narrow slanted sliver,
+   which is what sells the hinge. 190ms, the landing close duration. */
+.case-study__menu-list[data-state='closing'] {
+  pointer-events: none;
+  animation: cs-menu-swing-out 190ms cubic-bezier(0.4, 0, 0.9, 0.3) both;
+}
+
+@keyframes cs-menu-swing {
+  from {
+    opacity: 0;
+    transform: perspective(1000px) translate3d(16px, -12px, 0) rotateX(9deg) rotateY(-24deg) rotateZ(2.5deg) scale(1.05);
+  }
+
+  60% {
+    opacity: 1;
+    transform: perspective(1000px) translate3d(0, 0, 0) rotateX(0deg) rotateY(3.5deg) rotateZ(-0.4deg) scale(0.994);
+  }
+
+  to {
+    opacity: 1;
+    transform: perspective(1000px) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes cs-menu-swing-out {
+  from {
+    opacity: 1;
+    transform: perspective(1000px) translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: perspective(1000px) translate3d(22px, -10px, 0) rotateX(6deg) rotateY(-58deg) rotateZ(3deg) scale(0.94);
+  }
+}
+
+.case-study__menu-list > * {
+  position: relative;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: var(--cs-font-body);
+  font-size: 12.5px;
+  color: var(--color-pearl, #f5f1e8);
+  transition: background 160ms ease;
+}
+
+.case-study__menu-list > *:hover {
+  background: var(--cs-chip);
+}
+
+/* The landing dropdown's signature: an accent arrow slides in from the left
+   and the label steps right to meet it. */
+.case-study__menu-arrow {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  display: flex;
+  width: 13px;
+  transform: translate(-6px, -50%);
+  color: var(--cs-accent);
+  opacity: 0;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+.case-study__menu-text {
+  display: block;
+  transition: transform 200ms ease;
+}
+
+.case-study__menu-list > *:hover .case-study__menu-arrow,
+.case-study__menu-list > *:focus-visible .case-study__menu-arrow {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.case-study__menu-list > *:hover .case-study__menu-text,
+.case-study__menu-list > *:focus-visible .case-study__menu-text {
+  transform: translateX(18px);
+}
+
+/* ------------------------------------------------------------------ */
+/* BUTTON TEXTURE + MOTION                                            */
+/* ------------------------------------------------------------------ */
+
+/* THE HALFTONE BELONGS TO ONE BUTTON. It was on the tabs, the back arrow and
+   the kebab as well, which is why the back button came out as a circle of
+   floating dots - a 40px target has no room for a 6px grid, so the texture
+   stopped reading as texture and became the button's content. Only the call to
+   action is wide enough to carry it. Everywhere else the hover lives entirely
+   in the label roll. */
+.case-study__cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  pointer-events: none;
+  background: rgba(5, 5, 5, 0.06);
+  transition: opacity 200ms ease;
+  /* NO DIRECTION AT ALL, AND THIS IS THE CORRECTION. Amplified difference
+     against the resting frame shows the halftone arriving across the WHOLE
+     pill and holding - at the sustained hover frame the dots run edge to edge,
+     rim included. The right-to-left reading in the previous round was an
+     artefact: texture energy was measured in thirds while the label was
+     mid-roll, and a rolling label DESTROYS edge energy in the band it
+     occupies, which faked a wave travelling across the pill.
+
+     IT DOES NOT STAY, THOUGH - and that is the correction to the correction.
+     It fires when the pointer arrives, runs its course and is gone, whether or
+     not the cursor is still on the button. So it is a one-shot ANIMATION on
+     hover rather than a transitioned state: no transition here, and nothing
+     holding opacity at 1. */
+}
+
+.case-study__cta:hover::after {
+  opacity: 1;
+}
+
+/* NO HELD DARKENING EITHER. The pill used to sit 8% darker for the whole
+   hover, which is the same "stays until the cursor leaves" behaviour that was
+   wrong about the dots. The pass is the whole hover on this button. */
+.case-study__cta {
+  transition: transform 160ms ease;
+}
+
+/* THE LABEL ROLL. The label does not fade between states, it rolls: the live
+   copy slides up and out while a duplicate arrives from below. The duplicate is
+   aria-hidden, so the roll costs nothing to a screen reader. */
+/* PER GLYPH, STAGGERED LEFT TO RIGHT - which reverses the note that used to
+   sit here, and that note was wrong. In these clips the disturbance walks
+   along the word: the B of "Book" is displaced at frame 34, "an" at 38,
+   "Intro" at 41, the last l of "Call" at 47. Thirteen frames of spread, in one
+   direction, on a label that never moves as a single block. ~22ms per index
+   over a 420ms travel reproduces that.
+
+   THREE COPIES DEEP, NOT TWO, because two independent things advance this
+   column: hovering it, and it becoming the active tab. Their sum is 0, 1 or 2
+   rows and every row carries the same glyph - so every resting position looks
+   identical, while each change animates exactly one row. That is what makes
+   the tab SWITCH in the first clip, where both labels roll as the highlight
+   travels between them, fall out of this mechanism rather than needing a
+   second one bolted on beside it. */
+.case-study__roll {
+  display: inline-flex;
+  height: var(--cs-roll-h);
+  overflow: hidden;
+  --cs-roll-n: calc(var(--cs-roll-hov, 0) + var(--cs-roll-act, 0));
+}
+
+.case-study__roll-char {
+  display: block;
+  height: var(--cs-roll-h);
+  overflow: hidden;
+}
+
+.case-study__roll-char > span {
+  display: block;
+  height: var(--cs-roll-h);
+  line-height: var(--cs-roll-h);
+  /* pre, or the spaces between words collapse in the flex row and the label
+     comes out as one long word. */
+  white-space: pre;
+  transform: translateY(calc(var(--cs-roll-h) * -1 * var(--cs-roll-n)));
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--i, 0) * 22ms);
+}
+
+.case-study__tab:hover,
+.case-study__cta:hover {
+  --cs-roll-hov: 1;
+}
+
+.case-study__tab[data-active='true'] {
+  --cs-roll-act: 1;
+}
+
+/* PRESS ONLY. Across nine seconds of reference footage the pills never lift on
+   hover - movement is reserved for the press, and the hover is carried by
+   texture and by the label. The lift in the previous build was invented. */
+.case-study__tab:active,
+.case-study__cta:active,
+.case-study__menu-button:active {
+  transform: scale(0.97);
+}
+
+.case-study__back:active {
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-study__tab::after,
+  .case-study__cta::after,
+  .case-study__menu-button::after,
+  .case-study__back::after {
+    display: none;
+  }
+
+  .case-study__roll-char > span,
+  .case-study__tab-indicator,
+  .case-study__tab-icon {
+    transition: none;
+  }
+
+  .case-study__menu-list {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* SCROLLER                                                           */
+/* ------------------------------------------------------------------ */
+
+.case-study__scroller {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.case-study__doc {
+  background: var(--cs-paper);
+}
+
+/* Sits at the depth where content starts sliding under the bar: the bar's own
+   padding plus a 40px pill, rounded down so the frost arrives a touch early
+   rather than a touch late. */
+.case-study__frost-probe {
+  position: absolute;
+  top: clamp(52px, 5vw, 74px);
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* COVER                                                              */
+/* ------------------------------------------------------------------ */
+
+.case-study__cover {
+  position: relative;
+  height: 100svh;
+  min-height: 520px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  /* Nothing inside the cover can paint outside it - it already clips - so
+     promising that lets the compositor treat the hero as its own region
+     instead of re-testing it against the document every frame. */
+  contain: paint;
+  background: var(--cs-plate-bg);
+}
+
+/* The image flies in from wherever the cursor was when the card was clicked,
+   small and tilted, and straightens as it lands. Same choreography as before
+   the redesign - it was the best thing about the old window. */
+.case-study__cover-media {
+  position: absolute;
+  inset: 0;
+  animation: cs-plate-land var(--cs-plate) var(--cs-open-ease) both;
+}
+
+/* TRANSFORM AND OPACITY ONLY, WHICH IS THE WHOLE POINT.
+   This used to animate border-radius 20px -> 0 as well. border-radius is
+   not compositable, so that forced a full repaint of a viewport-sized
+   element on every frame of the open - the single largest cost in the
+   opening sequence, and felt as the plate stuttering as it lands. The
+   rounded corners were only ever visible on a shrunken, tilted plate for
+   under a second, so this is a large win for almost nothing. */
+@keyframes cs-plate-land {
+  from {
+    opacity: 0.45;
+    transform:
+      translate(calc(var(--cs-origin-x) - 50vw), calc(var(--cs-origin-y) - 50svh))
+      scale(var(--cs-plate-scale))
+      rotate(var(--cs-plate-rotate));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* PARALLAX, and it lives on the photograph.
+   The reference holds the image at ~0.61x the scroll rate for the first third
+   of a screen and then lets it travel with the document: a lag that
+   accumulates to roughly 120px and stops, not a rate that runs forever.
+
+   Sliding an image down means uncovering its top edge, so the zoom buys
+   precisely the headroom the shift spends - which is why CaseStudyWindow
+   derives one from the other instead of hardcoding two numbers that can drift
+   apart at an unusual viewport height.
+
+   FROM THE CENTRE, NOT FROM THE BOTTOM EDGE. Scaling from 50% 100% pinned the
+   bottom of the photograph to the bottom of the frame and pushed the entire
+   overflow off the top, so the upper part of the image was unreachable at every
+   scroll position - that is not a crop, it is a clipped bottom band. From the
+   centre it crops evenly top and bottom, which is what a plain object-fit cover
+   looks like. The cost: only HALF the overflow now sits above the frame, so the
+   headroom factor has to clear 2 to cover the same slide. See COVER_PARALLAX -
+   maxShift came down and headroom went up together, and the resulting zoom is
+   within a thousandth of what it was, so the crop is no tighter than before.
+
+   The transform sits on the image rather than on __cover-media because the
+   wrapper is mid-flight on cs-plate-land when the window opens, and a filling
+   animation outranks a stylesheet transform for as long as it lasts. */
+.case-study__cover-image {
+  object-fit: cover;
+  transform: translate3d(0, var(--cs-plate-shift, 0px), 0)
+    scale(var(--cs-plate-zoom, 1.16));
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+/* Type on a photograph needs a floor, not a hope. Weighted to the bottom where
+   the claim sits, with a lighter pass at the top so the bar stays legible over
+   a bright plate. No full veil - the image is the point. */
+.case-study__cover-scrim {
+  position: absolute;
+  inset: 0;
+  /* THE BOTTOM BAND IS DELIBERATELY LIGHTER THAN IT WAS.
+     0.72 at the floor was crushing the photograph into a flat near-black,
+     which read as a vintage vignette rather than as a floor for the type.
+     It also starved the corner glass: refraction and dispersion can only
+     bend and split detail that is actually there, so over a crushed band
+     they had nothing to work with.
+
+     Held at 0.42, which still measures over 4.5:1 for the claim against the
+     brightest plate in the set, so legibility is unchanged. */
+  background: linear-gradient(
+    to top,
+    rgba(5, 5, 5, 0.42) 0%,
+    rgba(5, 5, 5, 0.28) 26%,
+    rgba(5, 5, 5, 0.06) 58%,
+    rgba(5, 5, 5, 0.4) 100%
+  );
+}
+
+/* A second floor that arrives with the scroll rather than sitting there: the
+   bottom of the image deepens as the overview approaches, so the cover hands
+   over to paper instead of being cut off by it. Opacity only - the gradient
+   itself never changes, so there is nothing to re-rasterise. */
+.case-study__cover-scrim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: var(--cs-cover-dark, 0);
+  /* Eased to match the lighter base above. This one only reaches full
+     strength as the overview arrives, so it still does its handover job
+     without stacking a second near-opaque floor on the first. */
+  background: linear-gradient(
+    to top,
+    rgba(5, 5, 5, 0.6) 0%,
+    rgba(5, 5, 5, 0.34) 40%,
+    rgba(5, 5, 5, 0) 78%
+  );
+}
+
+.case-study__cover-text {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  /* The same margin the bar uses, so the back button and the first letter of
+     the claim sit on one line. */
+  padding: clamp(28px, 4vw, 56px) var(--cs-gutter) clamp(48px, 7vw, 112px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'claim note';
+  gap: clamp(18px, 2.4vw, 34px);
+  align-items: end;
+  color: var(--cs-on-dark);
+  /* NO TRANSFORM HERE, deliberately.
+     Measured off the reference clip frame by frame: the type travels at exactly
+     the scroll rate and is clipped away under the bar - its bottom edge held a
+     constant 135px above the section boundary for the whole descent, which is
+     simply what static flow does. The separation the eye reads as parallax
+     comes from the photograph lagging, not from the words leading. Moving both
+     layers is what made this feel like two unrelated animations. */
+}
+
+.case-study__claim {
+  grid-area: claim;
+  margin: 0;
+  position: relative;
+  isolation: isolate;
+  /* A MEASURE, NOT A WIDTH - but the measure was wrong. The reference sets
+     three long lines of roughly twenty-six characters at close to 4rem; 18ch
+     at 2.75rem turned the same sentence into five short ones, which is what
+     read as congested. Wider measure, larger type, fewer lines: the claim
+     gets AIR by being bigger, not by being trimmed. Tracking goes slightly
+     negative because Optima's caps open up at display size. */
+  max-width: 26ch;
+  font-family: var(--cs-font-display);
+  font-size: clamp(1.9rem, 3.9vw, 4.05rem);
+  font-weight: 400;
+  /* AIR BETWEEN THE LINES. Held against the reference the difference is not the
+     size - both set three long lines at about the same cap height - it is the
+     leading and the colour. 1.17 packed the caps into a slab with the
+     descender of one line almost touching the next; 1.3 lets each line be read
+     on its own. */
+  line-height: 1.3;
+  letter-spacing: -0.018em;
+  text-transform: uppercase;
+  /* WHITE, NOT BONE. --cs-on-dark is the warm cream the rest of the window is
+     built from, and over a cold photograph it reads as slightly dirty next to
+     the reference's plain white. The claim is the one place that goes pure. */
+  color: #fff;
+}
+
+/* NO FLOOR UNDER THE CLAIM AT ALL. The reference puts its claim straight onto
+   the photograph: no wash, no blur, no plate. The gradient pad that used to be
+   here was the last remnant of the smudge behind the words, and in plain white
+   at this size the type carries itself. The cover scrim over the image is the
+   only darkening left in the shot. */
+
+.case-study__cover-note {
+  grid-area: note;
+  margin: 0;
+  max-width: 32ch;
+  text-align: right;
+  font-family: var(--cs-font-body);
+  /* The reference's note is a readable two-line paragraph, not a caption
+     whispering in the corner - mine was 12px at 62% and disappeared into the
+     photograph. */
+  font-size: clamp(0.9rem, 1.05vw, 1.08rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* ------------------------------------------------------------------ */
+/* OVERVIEW                                                           */
+/* ------------------------------------------------------------------ */
+
+.case-study__overview {
+  background: var(--cs-paper);
+  color: var(--cs-ink);
+  padding:
+    clamp(56px, 9vw, 140px)
+    var(--cs-gutter)
+    clamp(36px, 5vw, 80px);
+}
+
+.case-study__overview-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.38fr) minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 80px);
+  align-items: start;
+}
+
+.case-study__section-title {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-family: var(--cs-font-display);
+  /* 500, not 400. Optima Medium is a real file in /public/Fonts, so this is
+     an actual cut rather than a synthesised one - which matters on a flared
+     humanist, where faking weight thickens the stem and flattens the flare. */
+  font-weight: 500;
+  font-size: clamp(1.12rem, 1.9vw, 1.62rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cs-ink);
+}
+
+/* The index moves into the LABEL face so the number reads as a marker and
+   the words read as the heading - two registers in one line instead of one
+   line in two colours. Tabular figures keep 01 through 07 identically wide,
+   which stops the sticky heading column from shifting as you scroll. */
+.case-study__section-index {
+  font-family: var(--cs-font-label);
+  font-weight: 500;
+  font-size: 0.72em;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cs-ember);
+}
+
+.case-study__copy p {
+  margin: 0;
+  /* 60ch, down from 64ch. Long measures are where a return sweep starts to
+     miss the next line, and this text is now set in a grotesque with a
+     smaller x-height advantage than Optima had. */
+  max-width: 60ch;
+  font-family: var(--cs-font-doc-body);
+  font-size: clamp(1rem, 1.04vw, 1.09rem);
+  line-height: 1.68;
+  color: var(--cs-ink-mid);
+}
+
+/* The first paragraph carries the weight, so it is set larger and darker -
+   the step down to the other two is what makes it read as a lede rather than
+   as three equal blocks. */
+.case-study__copy p[data-lead='true'] {
+  /* THE LEDE GOES BACK INTO THE DISPLAY FACE, and this is the single change
+     that buys the most scannability in the whole document: the first
+     paragraph of every section is now a different TYPEFACE from the two
+     that follow it. The shape of the block tells you a section has started
+     before you read a word of it. Size alone could never do that while
+     everything was one family - which is exactly why the old 1.16rem step
+     read as "slightly bigger paragraph" rather than as a lede.
+
+     Narrower than the body on purpose: a lede at 60ch and body at 60ch
+     makes two grey rectangles of equal width. */
+  font-family: var(--cs-font-display);
+  max-width: 46ch;
+  font-size: clamp(1.28rem, 2.05vw, 1.86rem);
+  line-height: 1.36;
+  letter-spacing: -0.012em;
+  color: var(--cs-ink);
+  text-wrap: pretty;
+}
+
+.case-study__copy p + p {
+  margin-top: 1.1em;
+}
+
+/* ---- SPEC LIST ---- */
+
+/* Dotted leaders rather than a table: five rows of two columns is a list that
+   has been given borders. The dots run the full width of the <dt> and the
+   label's own <span> paints over them in paper - which is why the label needs
+   a background matching the page, and why that background is a variable
+   rather than a literal. */
+.case-study__specs {
+  margin: clamp(44px, 6vw, 96px) 0 0;
+  border-top: 1px solid var(--cs-hair);
+}
+
+.case-study__spec {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  padding: clamp(14px, 1.6vw, 20px) 0 0;
+}
+
+.case-study__spec dt {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px dotted var(--cs-dot);
+  font-family: var(--cs-font-body);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cs-ink-low);
+}
+
+.case-study__spec dt span {
+  background: var(--cs-paper);
+  padding-right: 12px;
+}
+
+.case-study__spec dd {
+  flex: 0 1 auto;
+  max-width: min(56%, 620px);
+  margin: 0;
+  text-align: right;
+  font-family: var(--cs-font-body);
+  font-size: clamp(0.9rem, 1vw, 1.02rem);
+  line-height: 1.45;
+  color: var(--cs-ink);
+}
+
+/* ------------------------------------------------------------------ */
+/* THE TWO PLATES                                                     */
+/* ------------------------------------------------------------------ */
+
+/* The paper stays full-bleed - a max-width on this element would narrow its
+   own background and open a seam against the section above. */
+.case-study__plates {
+  background: var(--cs-paper);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(18px, 3.2vw, 64px);
+  padding: clamp(24px, 4vw, 60px) var(--cs-gutter) 0;
+}
+
+/* THE CAP GOES ON THE PLATE, NOT ON THE TRACK. Measured off the reference at
+   1920: each plate is about 490px wide sitting inside a half that is 960 - a
+   quarter of the viewport each, with a wide corridor of paper down the middle.
+   Capping the grid TRACKS at 520 and centring the pair got the size roughly
+   right but pushed the two plates shoulder to shoulder in the centre, which is
+   a different composition entirely. So the column stays 1fr and the plate caps
+   itself inside it - the corridor is the point, not a by-product. */
+.case-study__plate {
+  margin: 0 auto;
+  width: 100%;
+  max-width: clamp(240px, 26vw, 500px);
+}
+
+.case-study__plate-media {
+  position: relative;
+  /* 3:4, measured off the reference - 490 wide by about 650 tall. Portrait
+     matters more than the exact ratio: a square plate at any width reads as a
+     billboard rather than a specimen. */
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  /* Nearly square. A radius that scales with the viewport was making a 500px
+     plate read as a card - a UI object with a soft shell. The reference keeps
+     about 4px flat: enough to stop the corner looking cut, not enough to
+     announce itself. Fixed, not clamped, because the corner should not grow
+     with the plate. */
+  border-radius: 4px;
+  /* Both plates are dark images, so they sit on carbon rather than on paper -
+     a dark picture on a light card needs the card to meet it halfway. */
+  background: var(--cs-plate-bg);
+}
+
+.case-study__plate-image {
+  object-fit: cover;
+}
+
+/* Placeholder that announces itself. Remove-by-data: the tag disappears the
+   moment a real logoImage / systemImage lands on the record. */
+.case-study__plate[data-demo='true'] .case-study__plate-media::after {
+  content: 'DEMO';
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: var(--cs-ember);
+  color: var(--cs-on-dark);
+  font-family: var(--cs-font-body);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+/* ------------------------------------------------------------------ */
+/* FOOT                                                               */
+/* ------------------------------------------------------------------ */
+
+.case-study__foot {
+  background: var(--cs-paper);
+  padding:
+    clamp(44px, 6vw, 110px)
+    var(--cs-gutter)
+    clamp(64px, 8vw, 130px);
+}
+
+.case-study__exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--cs-hair);
+  text-decoration: none;
+  font-family: var(--cs-font-display);
+  font-weight: 400;
+  font-size: clamp(1.05rem, 1.8vw, 1.5rem);
+  letter-spacing: -0.01em;
+  color: var(--cs-ink);
+  transition: color 260ms ease, border-color 260ms ease;
+}
+
+.case-study__exit:hover {
+  color: var(--cs-ember);
+  border-color: var(--cs-ember);
+}
+
+.case-study__exit-arrow {
+  transition: transform 280ms var(--cs-open-ease);
+}
+
+.case-study__exit:hover .case-study__exit-arrow {
+  transform: translateX(6px);
+}
+
+/* ------------------------------------------------------------------ */
+/* THE LADDER                                                         */
+/* ------------------------------------------------------------------ */
+
+/* One rule for every block that arrives. `--i` is the rung, assigned in
+   reading order by CaseStudyBody, so adding a block there means adding one
+   attribute here-adjacent rather than a new animation. */
+.case-study [data-rise='true'] {
+  opacity: 0;
+  transform: translate3d(0, var(--cs-rise), 0);
+  animation: cs-rise var(--cs-rise-duration) var(--cs-open-ease) forwards;
+  animation-delay: calc(
+    var(--cs-rise-delay) + var(--i, 0) * var(--cs-rise-stagger)
+  );
+}
+
+@keyframes cs-rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* THE CLAIM OPTS OUT OF THE BLOCK LADDER. It still CALLS rise() in the TSX so
+   it consumes its rung and everything after it keeps its place in the queue -
+   only the block-level fade is cancelled, because the characters do the
+   arriving now. Fading the block AND the characters would double the ramp and
+   flatten the warm pass into a grey smear. */
+.case-study__claim[data-rise='true'] {
+  opacity: 1;
+  transform: none;
+  animation: none;
+}
+
+/* Keeps a word whole across a line break - see splitClaim in CaseStudyBody. */
+.case-study__claim-word {
+  display: inline-block;
+}
+
+/* IT ARRIVES WARM, THEN COOLS TO WHITE. Sampled off the reference frames: the
+   most saturated core is #f7bc78, and the dim samples measure as that same hue
+   at low opacity - so it is one colour rising in opacity while crossing to
+   white, not two colours cross-fading. The colour lands before the opacity
+   does, which is why the tail of the sweep reads as cream rather than orange.
+
+   `--i` inherits from the h2, `--c` is set per character, so one delay
+   expression keeps the claim in step with the block ladder AND sweeps inside
+   itself. */
+.case-study__claim-char {
+  opacity: 0;
+  color: #f7bc78;
+  animation: cs-claim-char 300ms var(--cs-open-ease) forwards;
+  animation-delay: calc(
+    var(--cs-rise-delay) + var(--i, 0) * var(--cs-rise-stagger) + var(--c, 0) *
+      11.5ms
+  );
+}
+
+@keyframes cs-claim-char {
+  0% {
+    opacity: 0;
+    color: #f7bc78;
+  }
+  45% {
+    opacity: 0.7;
+    color: #f9c98f;
+  }
+  100% {
+    opacity: 1;
+    color: #fff;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* NARROW                                                             */
+/* ------------------------------------------------------------------ */
+
+/* FOUR QUERIES, EACH WITH ONE JOB. Deliberately not one "phone" block:
+
+     900px          the LAYOUT collapses - two columns become one, the dotted
+                    leaders unstack, the plate row goes single file. Also where
+                    the blur band is traded for a gradient.
+     640px          the PHONE. Where the bar has to be made to fit and the
+                    measures stop being expressed in ch.
+     (hover: none)  TOUCH, at any width - target sizes and the fact that :hover
+                    sticks after a tap. A 1024px tablet needs this and a narrow
+                    desktop window does not, so it cannot be a width.
+     short + wide   LANDSCAPE PHONES, where 100svh is ~375px and the cover's
+                    520px floor turns one screen into a scroll. */
+
+@media (max-width: 900px) {
+  /* ONE MARGIN, STILL - and this is a fix, not a tweak. The bar used to
+     hardcode 12px 14px here while the claim, the prose, the specs and the
+     plates all stayed on --cs-gutter, whose floor is 28px. So the alignment
+     the entire desktop composition is built on - back button, first letter of
+     the claim, first word of the prose, left edge of the plates, all on one
+     line - quietly came apart at exactly the width where crowding is most
+     visible. The GUTTER comes down instead, and the bar goes on sharing it. */
+  .case-study {
+    --cs-gutter: clamp(16px, 4.6vw, 30px);
+    --cs-gutter-top: 12px;
+  }
+
+  .case-study__bar {
+    gap: 10px;
+  }
+
+  .case-study__cta {
+    padding: 10px 14px;
+    font-size: 11.5px;
+  }
+
+  /* THE BLUR BAND GOES, AND ONLY THE BAND. It is the cheapest thing to lose
+     and by far the most expensive to keep: a full-viewport-width
+     backdrop-filter, with a six-stop mask over it, sampling a document that is
+     moving under it - on top of the three pills that ALSO sample, and a WebGL
+     helix still mounted behind the window. Four blur surfaces is a desktop
+     budget.
+
+     A two-stop gradient does the same job here, because the band's whole
+     purpose is to keep the pills legible over whatever passes beneath them,
+     and legibility is contrast, not blur. It flips with the frost like
+     everything else in the bar. */
+  .case-study__bar::before {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    mask-image: none;
+    -webkit-mask-image: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(5, 5, 5, 0.5),
+      rgba(5, 5, 5, 0)
+    );
+  }
+
+  .case-study__bar[data-frosted='true']::before {
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--cs-paper) 92%, transparent),
+      transparent
+    );
+  }
+
+  /* The pills keep their blur - they are the glass, and small - but at half
+     the radius. Blur cost scales with area AND radius; 7px over a 40px circle
+     is nothing like 14px over a 400px strip. Both polarities in one rule, so
+     the frost boundary still has nothing to mistime. */
+  .case-study__back,
+  .case-study__tabs,
+  .case-study__bar-right,
+  .case-study__bar[data-frosted='true'] .case-study__back,
+  .case-study__bar[data-frosted='true'] .case-study__tabs,
+  .case-study__bar[data-frosted='true'] .case-study__bar-right {
+    backdrop-filter: blur(7px) saturate(112%);
+    -webkit-backdrop-filter: blur(7px) saturate(112%);
+  }
+
+  .case-study__cover-text {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'claim'
+      'note';
+  }
+
+  .case-study__cover-note {
+    text-align: left;
+    max-width: 44ch;
+  }
+
+  /* One column now, so the measure comes from the viewport and the ceiling
+     drops again - 52px over a 360px-wide plate is a different proportion
+     entirely. */
+  .case-study__claim {
+    max-width: 24ch;
+    font-size: clamp(1.5rem, 7.4vw, 2.4rem);
+  }
+
+  .case-study__overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  /* Baseline leaders do not survive a two-line value in a narrow column, so
+     the row stacks and the dots are dropped rather than broken. */
+  .case-study__spec {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--cs-hair);
+  }
+
+  .case-study__spec dt {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .case-study__spec dt span {
+    padding-right: 0;
+  }
+
+  .case-study__spec dd {
+    max-width: none;
+    text-align: left;
+  }
+
+  .case-study__specs {
+    border-top: 0;
+  }
+
+  .case-study__plates {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* THE PLATE CAP IS A DESKTOP IDEA AND IT INVERTS DOWN HERE. On two columns
+     the cap is what opens the corridor of paper down the middle; on one
+     column there is no corridor, and clamp(240px, 26vw, 500px) resolves to
+     26vw of a 390px phone - 101px - which the 240px FLOOR then rescues into a
+     240px picture centred in a 390px screen. A stamp with a wide paper border,
+     not a plate.
+
+     Full width, and a shorter crop with it: 3:4 across a full phone width is
+     a screen and a half of one image, and there are two of them. */
+  .case-study__plate {
+    max-width: none;
+  }
+
+  .case-study__plate-media {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+@media (max-width: 640px) {
+  /* THE BAR HAS TO FIT 375px, AND AT DESKTOP METRICS IT DOES NOT.
+
+     Back 40 + two tabs at ~95 each + an eighteen-character label + a 34px
+     kebab is roughly 430px of controls, and .case-study__bar is a nowrap flex
+     row with justify-content: space-between - so nothing wrapped and nothing
+     shrank. The right-hand group was simply off the edge of the screen.
+
+     Three savings, taken in the order of what they cost:
+       1. the tab ICON slot - ~20px per tab, and it is decoration;
+       2. tab padding and half a point of size - ~14px per tab;
+       3. the CTA drops to its mark alone - ~85px.
+     About 100px recovered, which fits an SE with room left over.
+
+     Hiding the icon at a BREAKPOINT is safe, unlike mounting it per-tab: the
+     width changes only on resize, and the indicator re-measures on resize. */
+  .case-study__tab-icon {
+    display: none;
+  }
+
+  .case-study__tab {
+    padding: 9px 12px;
+    font-size: 12.5px;
+  }
+
+  /* THE MARK ALONE - and the label is hidden the careful way. The clipped copy
+     inside .case-study__roll is this control's ONLY accessible name, so what
+     goes is the glyph COLUMNS; the sr copy stays in the tree, absolutely
+     positioned and clipped, exactly as it is on desktop. display:none on the
+     roll itself would leave the button announcing itself as nothing at all. */
+  .case-study__cta {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+
+  .case-study__cta .case-study__roll-char {
+    display: none;
+  }
+
+  .case-study__cta .case-study__roll {
+    width: 0;
+    height: 0;
+  }
+
+  .case-study__cta-icon {
+    margin-right: 0;
+  }
+
+  /* A MEASURE IN ch CANNOT KNOW THE VIEWPORT. 24ch of Optima at 8.2vw on a
+     390px screen is about 420px, so the claim was being handed a line length
+     wider than the phone and the browser broke it wherever it happened to
+     fit - which is what the ragged, arbitrary wrapping was. On one column the
+     column IS the measure, so the cap comes off entirely and line-height
+     tightens, because short lines need less leading, not more. */
+  .case-study__claim {
+    max-width: none;
+    font-size: clamp(1.45rem, 8.2vw, 2.2rem);
+    line-height: 1.22;
+    letter-spacing: -0.012em;
+  }
+
+  .case-study__cover-note {
+    max-width: none;
+    font-size: 0.95rem;
+  }
+
+  .case-study__cover-text {
+    gap: 14px;
+    padding-bottom: clamp(36px, 9vw, 56px);
+  }
+
+  /* 520px of forced cover on a 667px phone leaves 147px of the overview
+     showing under it, which reads as a layout that did not finish. */
+  .case-study__cover {
+    min-height: 460px;
+  }
+
+  /* The photograph is neither offset nor scaled on phones now - see
+     COVER_PARALLAX.disableBelow - so it does not need a compositor layer of
+     its own either. A promoted full-screen image is real memory on a device
+     that has the least of it. */
+  .case-study__cover-image {
+    will-change: auto;
+  }
+
+  /* 190px of menu hard-anchored to the right edge can outrun a small screen
+     once the gutter is added back. */
+  .case-study__menu-list {
+    min-width: 0;
+    width: max-content;
+    max-width: calc(100vw - 2 * var(--cs-gutter));
+  }
+
+  /* The lede's vw term is doing nothing useful this narrow - it just makes the
+     first paragraph nearly the same size as the last two. */
+  .case-study__copy p[data-lead='true'] {
+    font-size: 1.16rem;
+    line-height: 1.4;
+  }
+}
+
+@media (hover: none) {
+  /* TOUCH, AT ANY WIDTH. Two separate problems, and only the first is obvious.
+
+     1. The targets are sized for a one-pixel cursor. 34px and a 9px tab inset
+        are fine for a mouse and under every touch minimum there is.
+     2. :hover STICKS after a tap on essentially every mobile browser. So the
+        sibling dim would leave the tab you just tapped away from sitting at
+        34% opacity until you touched something else, the label roll would stay
+        rolled, and the CTA's halftone pass would hold - all of them read as
+        rendering faults rather than as hover states, because there is no
+        pointer on screen to explain them.
+
+     Everything hover-driven is therefore neutralised here rather than left to
+     be triggered by a finger. The PRESS states are untouched: scale(0.97) on
+     tap is the one piece of feedback that means the same thing on both. */
+  .case-study__back {
+    width: 44px;
+    height: 44px;
+  }
+
+  .case-study__menu-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .case-study__tab {
+    padding-block: 11px;
+  }
+
+  .case-study__tabs:hover
+    .case-study__tab:not(:hover):not([data-active='true']) {
+    opacity: 1;
+  }
+
+  .case-study__tab:hover,
+  .case-study__menu-button:hover:not([aria-expanded='true']) {
+    background-color: transparent;
+  }
+
+  .case-study__cta:hover::after {
+    opacity: 0;
+  }
+
+  .case-study__tab:hover,
+  .case-study__cta:hover {
+    --cs-roll-hov: 0;
+  }
+
+  .case-study__exit:hover {
+    color: var(--cs-ink);
+    border-color: var(--cs-hair);
+  }
+
+  /* The press scale is the feedback; a grey box flashing behind it is not. */
+  .case-study__back,
+  .case-study__tab,
+  .case-study__cta,
+  .case-study__menu-button,
+  .case-study__exit,
+  .case-study__menu-list > * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* LANDSCAPE PHONES. 100svh is about 375px here, so the cover's 520px floor
+   makes a one-screen cover into a scroll - the claim ends up below the fold of
+   its own section. The floor comes off and the type comes down to suit a frame
+   that is now wider than it is tall. */
+@media (max-height: 540px) and (orientation: landscape) {
+  .case-study__cover {
+    min-height: 0;
+  }
+
+  .case-study__claim {
+    font-size: clamp(1.15rem, 4.6vw, 1.9rem);
+    line-height: 1.18;
+  }
+
+  .case-study__cover-text {
+    padding-top: 56px;
+    padding-bottom: 20px;
+    gap: 10px;
+  }
+
+  .case-study__cover-note {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* REDUCED MOTION                                                     */
+/* ------------------------------------------------------------------ */
+
+/* The window still arrives - it just arrives already there. Note the
+   clip-path override: without it the panel would stay masked out entirely,
+   since the mask's open state lives in the animation. */
+@media (prefers-reduced-motion: reduce) {
+  .case-study__panel,
+  .case-study[data-state='closing'] .case-study__panel,
+  .case-study__cover-media,
+  .case-study [data-rise='true'] {
+    animation: none;
+  }
+
+  .case-study__panel {
+    clip-path: none;
+  }
+
+  .case-study[data-state='closing'] .case-study__panel {
+    opacity: 0;
+    transition: opacity var(--cs-close) linear;
+  }
+
+  .case-study__cover-media {
+    transform: none;
+    opacity: 1;
+  }
+
+  .case-study [data-rise='true'] {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* The claim is already white and already there. */
+  .case-study__claim-char {
+    animation: none;
+    opacity: 1;
+    color: #fff;
+  }
+}
+
+/* ==================================================================
+   THE EIGHT-SECTION TEMPLATE
+   ------------------------------------------------------------------
+   Everything below is the running order added on top of the original
+   cover + overview + plates document: the fact row, the problem, the
+   three principles, the selected-experience grid, the build notes
+   with the palette grid, delivery, and credits.
+
+   It is APPENDED rather than merged into the sections above on
+   purpose. The hero overrides at the top of this block need to win
+   against the original .case-study__claim rules without an id or an
+   !important, and source order is the cheapest way to do that. The
+   spacing, colour and type here all come from the same custom
+   properties the original document spends - --cs-gutter, --cs-ink*,
+   --cs-hair, --cs-paper*, --cs-font-display - so retuning the
+   surface still retunes all of it.
+   ================================================================== */
+
+/* ---- 1. HERO -----------------------------------------------------
+   THE SWAP. The display slot used to hold the hook - a sentence - so
+   it was sized for one: 26ch and a modest cap. It now holds the
+   PROJECT NAME, which is shorter, wants to be bigger, and should not
+   wrap mid-word. The hook moves right, into the area the note used
+   to occupy, where it reads as the argument under the name.
+
+   The grid itself is untouched: the original laid this out as
+   'claim note' and collapses it below 900px, so this is two pieces of
+   content trading places inside a layout that already worked. */
+
+.case-study__claim {
+  /* 13ch, not 18ch. Three or four words of a project name at display
+     size do not need eighteen characters of runway, and the wider cap
+     was letting a short title claim most of the hero. */
+  max-width: 13ch;
+  /* Stepped down from 6.4vw / 6.6rem. The title is an identifier, not
+     the argument - the headline on the right is the argument - so it
+     should dominate the cover without swallowing it. */
+  font-size: clamp(2rem, 4.6vw, 4.5rem);
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* THE SPACES BETWEEN WORDS HAD TO COME BACK AS MARGIN.
+
+   splitTitle wraps each word in an inline-block so a title can never
+   break mid-word. But the split threw the actual space CHARACTERS
+   away, and inline-block boxes sitting flush against each other have
+   nothing between them - so "Bela Vista Resort" rendered as
+   BELAVISTARESORT: one unbreakable run, which then could not wrap at
+   all and stretched to whatever width it needed.
+
+   The gap is restored as margin rather than by re-inserting text
+   nodes on purpose. JSX whitespace between mapped elements is
+   fragile - it collapses depending on how the array is built - and a
+   margin in em is deterministic, scales with the clamped font size,
+   and cannot be lost to a future refactor of the split. */
+.case-study__claim-word:not(:last-child) {
+  margin-right: 0.26em;
+}
+
+/* THE RIGHT-HAND COLUMN.
+
+   Compacted into one block with a hairline spine rather than three
+   pieces separated by air. Two composition decisions carry it:
+
+   1. align-self: end. The title beside this is roughly four times
+      the size, so aligning the two columns at the TOP leaves this
+      one stranded in the middle of the hero with nothing under it.
+      Aligning the bottoms sits the group on the title's baseline,
+      which is the line the eye is already travelling along.
+   2. The left rule. It replaces the vertical gaps that used to do
+      the separating, so the three lines can close right up and
+      still read as structured. Grouping tightly is what makes it
+      read as composed rather than stacked.
+
+   The measure drops from 44ch to 32ch as well - a shorter line next
+   to a very large title reads as a caption to it, which is exactly
+   the relationship wanted here. */
+.case-study__cover-side {
+  grid-area: note;
+  align-self: end;
+  /* Optical, not arbitrary: lifts the group off the title's descenders
+     so the two columns share a baseline instead of colliding on it. */
+  padding-bottom: clamp(4px, 0.8vw, 12px);
+  padding-left: clamp(14px, 1.5vw, 24px);
+  border-left: 1px solid rgba(245, 241, 232, 0.2);
+  max-width: 32ch;
+}
+
+/* The kicker. Smallest type in the group and first in the order, so
+   the column has a definite entry point. */
+.case-study__cover-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 9px;
+  font-family: var(--cs-font-body);
+  font-size: 0.64rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(245, 241, 232, 0.6);
+}
+
+/* A rule, not a middot: it holds its width whatever the two labels
+   are, so the kicker keeps the same rhythm across every project. */
+.case-study__cover-kicker-sep {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 1px;
+  background: rgba(245, 241, 232, 0.34);
+}
+
+/* The impact headline. Deliberately NOT display type: two competing
+   display sizes in one hero is two headlines and no hierarchy. It is
+   the only thing in this column at reading size, and it now hangs
+   straight off the kicker instead of floating between two gaps. */
+.case-study__cover-headline {
+  margin: 0;
+  font-family: var(--cs-font-body);
+  font-size: clamp(1.04rem, 1.58vw, 1.38rem);
+  line-height: 1.34;
+  letter-spacing: -0.006em;
+  color: var(--cs-glass-on-dark, rgba(245, 241, 232, 0.86));
+  text-wrap: pretty;
+}
+
+/* The tagline closes the group, and is dimmer on purpose: it repeats
+   what the on-image type already says, so it supports rather than
+   competes. */
+.case-study__cover-sub {
+  margin: 9px 0 0;
+  font-family: var(--cs-font-body);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 241, 232, 0.44);
+}
+
+/* ---- THE POINTER CUE ON THE HERO IMAGE ---------------------------
+   Position is written by useCoverCursor as a transform on every
+   animation frame; everything else - fade, scale, press - is state
+   driven off data-cue on the anchor, so the hook writes two
+   attributes and the styling stays here.
+
+   top/left 0 with the transform doing all the placement is required,
+   not stylistic: the hook works in area-local pixels, and any static
+   offset here would be added to a number that already includes the
+   configured offset. */
+
+.case-study__cover-media {
+  cursor: pointer;
+}
+
+.case-study__cover-cue {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  /* A CIRCLE, NOT A PILL. The pill had to be as wide as its sentence, so
+     it covered a third of the image and pulled the eye away from the
+     artwork it was inviting you to click. A disc is a fixed 68px whatever
+     the label says, which is why the label is now one word. */
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 241, 232, 0.22);
+  background: rgba(16, 15, 14, 0.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  backdrop-filter: blur(12px) saturate(1.2);
+  color: #f5f1e8;
+  font-family: var(--cs-font-label);
+  font-weight: 500;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* The follower must never eat the pointer events that drive it. */
+  pointer-events: none;
+  opacity: 0;
+  /* Scale and fade only. The translate is the hook's, and putting
+     both in one transform here would fight it every frame - so the
+     scale rides on a nested variable instead. */
+  transition:
+    opacity 160ms ease,
+    scale 160ms ease;
+  scale: 0.72;
+  transform-origin: 0 0;
+}
+
+.case-study__cover-media[data-cue='on'] .case-study__cover-cue {
+  opacity: 1;
+  scale: 1;
+  transition:
+    opacity 260ms ease,
+    scale 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.case-study__cover-media[data-cue-press='true'] .case-study__cover-cue {
+  scale: 0.94;
+}
+
+/* The dot and the arrow are hidden rather than deleted. Inside a 68px disc
+   there is room for one word OR three ornaments, not both, and the word is
+   the part that says what happens. They stay in the markup because the hook
+   and the reduced-motion rules reference the cue as a unit, and because
+   bringing either back is a one-line change here. */
+.case-study__cover-cue-dot,
+.case-study__cover-cue-arrow {
+  display: none;
+}
+
+/* Touch has no hover, and a finger fires pointerenter one frame
+   before it navigates - so the cue would flash on the way out. The
+   always-visible link above is the affordance there. */
+@media (hover: none) {
+  .case-study__cover-cue {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-study__cover-cue {
+    transition: opacity 120ms linear;
+    scale: 1;
+  }
+}
+
+/* ---- SHARED SECTION SCAFFOLD -------------------------------------
+   One grid for every section below: the heading in a narrow left
+   column, the content in a wide right one, collapsing to stacked on
+   the same 900px line the cover uses. Sections declare their own
+   vertical rhythm through --cs-section-gap so a single value retimes
+   the whole document. */
+
+.case-study__doc {
+  --cs-section-gap: clamp(56px, 8vw, 132px);
+}
+
+.case-study__facts,
+.case-study__problem,
+.case-study__direction,
+.case-study__experience,
+.case-study__build,
+.case-study__outcome,
+.case-study__credits {
+  padding: 0 var(--cs-gutter);
+  margin-top: var(--cs-section-gap);
+  color: var(--cs-ink, #171614);
+
+  /* SCROLL COST, NOT APPEARANCE. This document is one paint layer holding
+     eight sections, several full-width images, three grids and a frosted bar
+     that samples whatever passes under it - so every scroll frame was
+     repainting work nowhere near the viewport.
+
+     content-visibility: auto lets the browser skip layout and paint for a
+     section until it approaches the screen. contain-intrinsic-size is the
+     placeholder height used while a section is skipped; without it the
+     scrollbar jumps as real heights replace zero. 900px is a deliberate
+     over-estimate of a typical section - too small causes visible settling,
+     too large only costs a little scrollbar drift.
+
+     The tab highlight still tracks correctly because it is driven by an
+     IntersectionObserver on these same elements, and a skipped section keeps
+     its box - only its contents go unpainted. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
+.case-study__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.34fr) minmax(0, 0.66fr);
+  gap: clamp(24px, 4vw, 72px);
+  align-items: start;
+}
+
+.case-study__grid-head {
+  position: sticky;
+  /* Clears the floating bar. Sticky headings are what make a long
+     document feel navigable without a second nav. */
+  top: calc(var(--cs-gutter-top) + 74px);
+}
+
+.case-study__grid-note {
+  margin: 12px 0 0;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--cs-ink-low, #8c887e);
+  max-width: 26ch;
+}
+
+/* ---- 2. PROJECT FACTS - THE SPEC PLATE ---------------------------
+   REDESIGNED, because the old version had no contrast to work with:
+   paper cells (#EFEBE1) on a paper page (#E7E3D9) divided by a
+   14%-alpha hairline. Three nearly identical tones - so however it
+   was spaced it was going to read as a flat spreadsheet.
+
+   The concept is a SPEC PLATE: the dark technical caption under a
+   museum object, or the datasheet block on a film sheet. Inverting
+   it is what buys the contrast, and it earns its place three ways -
+   it is the only dark mass in the document so it reads as a
+   designed object rather than a table; it answers the cinematic
+   hero without repeating it; and on a dark ground the key and the
+   value can differ in COLOUR as well as size, which is what makes
+   seven fields scannable at a glance.
+
+   The hairline mechanism is unchanged in structure but inverted in
+   colour: a 1px gap lets a light background show THROUGH the dark
+   cells. auto-fit is also kept - seven cells at a readable size do
+   not fit a phone, and the row should reflow to four, then three,
+   then two, without a breakpoint per step. */
+
+.case-study__fact-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  background: rgba(245, 241, 232, 0.14);
+  border-radius: 10px;
+  overflow: hidden;
+  /* Wide, soft, low-opacity and offset well down: a shadow that lifts the
+     plate off the paper without ever being seen as a shadow. The inset
+     top line is the highlight that keeps a near-black block from reading
+     as a hole punched in the page. */
+  box-shadow:
+    0 26px 50px -34px rgba(23, 22, 20, 0.6),
+    inset 0 1px 0 rgba(245, 241, 232, 0.07);
+}
+
+.case-study__fact {
+  padding: 17px 18px 19px;
+  background: var(--cs-plate-bg, #141311);
+}
+
+.case-study__fact dt {
+  font-family: var(--cs-font-label);
+  font-weight: 500;
+  font-size: 0.62rem;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  /* Warm and dimmed rather than neutral grey. A mid grey on a near-black
+     plate goes muddy at 10px; the ember holds its hue at low opacity and
+     ties the plate to the section numbers. */
+  color: rgba(181, 108, 75, 0.92);
+}
+
+.case-study__fact dd {
+  margin: 8px 0 0;
+  /* Values in the display face at Medium: this is the one place in the
+     document where small text should feel set rather than typed. */
+  font-family: var(--cs-font-display);
+  font-weight: 500;
+  font-size: 0.98rem;
+  line-height: 1.34;
+  color: var(--cs-on-dark, #f5f1e8);
+  text-wrap: pretty;
+}
+
+.case-study__fact dd a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(245, 241, 232, 0.34);
+}
+
+.case-study__fact dd a:hover {
+  border-bottom-color: var(--cs-ember, #b56c4b);
+  color: var(--cs-ember, #b56c4b);
+}
+
+/* ---- 4. THE DIRECTION - three principles ------------------------ */
+
+.case-study__principles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: clamp(18px, 2.6vw, 34px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case-study__principle {
+  padding-top: 16px;
+  border-top: 1px solid var(--cs-hair, rgba(23, 22, 20, 0.14));
+}
+
+.case-study__principle-num {
+  display: block;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  color: var(--cs-ember, #b56c4b);
+}
+
+.case-study__principle-title {
+  margin: 10px 0 0;
+  font-family: var(--cs-font-display);
+  font-weight: 400;
+  font-size: clamp(1.06rem, 1.5vw, 1.32rem);
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+}
+
+.case-study__principle-body {
+  margin: 8px 0 0;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--cs-ink-mid, #4b4842);
+  text-wrap: pretty;
+}
+
+/* ---- 5. SELECTED EXPERIENCE -------------------------------------
+   Two up on desktop, one up narrow. Captions carry the section: a
+   screenshot without one is decoration, so the caption is part of
+   the figure rather than an optional extra. */
+
+.case-study__screens {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 46px);
+  margin-top: clamp(26px, 3.4vw, 48px);
+}
+
+.case-study__screen {
+  margin: 0;
+}
+
+.case-study__screen-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 4px;
+  /* Same duration-as-colour bug as the CTA above; --cs-plate-bg is the
+     colour token. */
+  background: var(--cs-plate-bg, #141311);
+}
+
+.case-study__screen[data-orientation='portrait'] .case-study__screen-media {
+  aspect-ratio: 4 / 5;
+}
+
+.case-study__screen-image {
+  object-fit: cover;
+  /* Slow, small zoom on hover. Enough to feel live, not enough to
+     re-crop the shot. */
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.case-study__screen:hover .case-study__screen-image {
+  transform: scale(1.028);
+}
+
+/* Placeholder honesty: a borrowed cover image is tagged, exactly as
+   the plates already do, so a stand-in is never read as a shipped
+   screen. Same badge treatment as .case-study__plate[data-demo]. */
+.case-study__screen[data-demo='true'] .case-study__screen-media::after {
+  content: 'DEMO';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  background: rgba(20, 19, 17, 0.72);
+  color: rgba(245, 241, 232, 0.82);
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+}
+
+.case-study__screen-caption {
+  margin-top: 12px;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--cs-ink-mid, #4b4842);
+  text-wrap: pretty;
+}
+
+.case-study__screen-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cs-ink-low, #8c887e);
+}
+
+/* ---- 6. BUILD NOTES + PALETTE ----------------------------------- */
+
+.case-study__notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case-study__notes li {
+  position: relative;
+  padding: 12px 0 12px 22px;
+  border-bottom: 1px solid var(--cs-hair, rgba(23, 22, 20, 0.14));
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--cs-ink-mid, #4b4842);
+  text-wrap: pretty;
+}
+
+.case-study__notes li:first-child {
+  border-top: 1px solid var(--cs-hair, rgba(23, 22, 20, 0.14));
+}
+
+.case-study__notes li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  /* Optically centred on the first line, not on the bullet box. */
+  top: 1.32em;
+  width: 6px;
+  height: 1px;
+  background: var(--cs-ember, #b56c4b);
+}
+
+.case-study__build-meta,
+.case-study__delivered,
+.case-study__palette {
+  margin-top: clamp(26px, 3.2vw, 44px);
+}
+
+.case-study__build-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(20px, 3vw, 40px);
+}
+
+.case-study__chips-label {
+  display: block;
+  margin-bottom: 12px;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cs-ink-low, #8c887e);
+}
+
+.case-study__chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.case-study__chip {
+  padding: 6px 12px;
+  border: 1px solid var(--cs-hair, rgba(23, 22, 20, 0.14));
+  border-radius: 999px;
+  /* No fill. The raised tone was only softening its own outline, and an
+     outlined pill on paper is both cleaner and lighter to render. */
+  background: transparent;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.8rem;
+  color: var(--cs-ink-mid, #4b4842);
+}
+
+.case-study__chips-text {
+  margin: 0;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--cs-ink-mid, #4b4842);
+}
+
+/* THE PALETTE, SHOWN NOT LISTED. A hex code in a sentence is data;
+   a swatch is the only version of a palette that can be judged. The
+   chip is deliberately tall - a colour needs area before the eye
+   will read it as a colour rather than as a marker. */
+
+.case-study__palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case-study__swatch {
+  overflow: hidden;
+  border: 1px solid var(--cs-hair, rgba(23, 22, 20, 0.14));
+  border-radius: 6px;
+  /* Recessed, so the frame reads as a mount around the colour rather than a
+     card floating behind it - which matters most for near-white swatches,
+     where the chip and the old fill were almost the same tone. */
+  background: var(--cs-recess, rgba(23, 22, 20, 0.05));
+}
+
+.case-study__swatch-chip {
+  display: block;
+  height: clamp(74px, 9vw, 122px);
+  /* An inner hairline, so a near-white swatch still has an edge
+     against near-white paper instead of dissolving into it. */
+  box-shadow: inset 0 0 0 1px rgba(23, 22, 20, 0.08);
+}
+
+.case-study__swatch-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px 11px;
+}
+
+.case-study__swatch-name {
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.78rem;
+  color: var(--cs-ink, #171614);
+}
+
+.case-study__swatch-hex {
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--cs-ink-low, #8c887e);
+}
+
+/* ---- 7. DELIVERY / OUTCOME -------------------------------------- */
+
+.case-study__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  margin: clamp(26px, 3.2vw, 44px) 0 0;
+  background: var(--cs-hair, rgba(23, 22, 20, 0.14));
+  border: 1px solid var(--cs-hair, rgba(23, 22, 20, 0.14));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.case-study__metric {
+  padding: 20px 17px;
+  background: var(--cs-recess, rgba(23, 22, 20, 0.05));
+}
+
+.case-study__metric dd {
+  margin: 0;
+  font-family: var(--cs-font-display);
+  font-size: clamp(1rem, 1.5vw, 1.28rem);
+  line-height: 1.2;
+  color: var(--cs-ink, #171614);
+}
+
+.case-study__quote {
+  margin: clamp(26px, 3.2vw, 44px) 0 0;
+  padding: clamp(20px, 2.6vw, 34px);
+  border-left: 2px solid var(--cs-ember, #b56c4b);
+  background: var(--cs-recess, rgba(23, 22, 20, 0.05));
+  border-radius: 0 5px 5px 0;
+}
+
+.case-study__quote p {
+  margin: 0;
+  font-family: var(--cs-font-display);
+  font-size: clamp(1.04rem, 1.6vw, 1.4rem);
+  line-height: 1.42;
+  color: var(--cs-ink, #171614);
+  text-wrap: pretty;
+}
+
+.case-study__quote cite {
+  display: block;
+  margin-top: 12px;
+  font-family: var(--cs-font-doc-body);
+  font-style: normal;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cs-ink-low, #8c887e);
+}
+
+/* The caveat on illustrative numbers, printed with the numbers. */
+.case-study__footnote {
+  margin: 18px 0 0;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--cs-ink-low, #8c887e);
+  max-width: 64ch;
+}
+
+/* ---- 8. CREDITS + NEXT + CTA ------------------------------------ */
+
+.case-study__credit-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--cs-hair, rgba(23, 22, 20, 0.14));
+  border: 1px solid var(--cs-hair, rgba(23, 22, 20, 0.14));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.case-study__end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: clamp(20px, 3vw, 48px);
+  margin-top: clamp(34px, 4.4vw, 64px);
+  padding-top: clamp(26px, 3vw, 40px);
+  border-top: 1px solid var(--cs-hair, rgba(23, 22, 20, 0.14));
+}
+
+.case-study__next {
+  min-width: 0;
+  max-width: 46ch;
+}
+
+.case-study__next-title {
+  margin: 0;
+  font-family: var(--cs-font-display);
+  font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.018em;
+  color: var(--cs-ink, #171614);
+}
+
+.case-study__next-hook {
+  margin: 10px 0 0;
+  font-family: var(--cs-font-doc-body);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--cs-ink-mid, #4b4842);
+  text-wrap: pretty;
+}
+
+/* The one filled control in the document, because it is the one
+   thing the page is asking for. */
+.case-study__start {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 15px 24px;
+  border-radius: 999px;
+  /* THE BUG, AND IT WAS NOT A CONTRAST PROBLEM. This said
+     var(--cs-plate, #141311) - but --cs-plate is not a colour.
+     CaseStudyWindow sets it to the plate ANIMATION DURATION (820ms), so
+     the declaration computed to `background: 820ms`, which is invalid and
+     therefore dropped. The result was no background at all: pearl text on
+     paper. The fallback never fired either, because a fallback only
+     applies when the variable is UNDEFINED, and this one was defined - as
+     a time. --cs-plate-bg is the colour token. */
+  background: var(--cs-plate-bg, #141311);
+  color: var(--cs-on-dark, #f5f1e8);
+  /* Belt and braces: if that token ever goes missing, the shadow alone
+     still describes a button rather than nothing. */
+  box-shadow: 0 18px 34px -22px rgba(23, 22, 20, 0.55);
+  font-family: var(--cs-font-label);
+  font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    background 240ms ease,
+    transform 240ms ease;
+}
+
+.case-study__start svg {
+  width: 12px;
+  height: 12px;
+  transition: transform 240ms ease;
+}
+
+.case-study__start:hover {
+  background: var(--cs-ember, #b56c4b);
+}
+
+.case-study__start:hover svg {
+  transform: translate(2px, -2px);
+}
+
+/* ---- NARROW ------------------------------------------------------
+   Same 900px line the rest of the document collapses on, so the
+   heading columns and the cover stack together rather than one
+   section reflowing before its neighbour. */
+
+@media (max-width: 900px) {
+  .case-study__grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  /* Sticky headings in a single column would sit on top of their own
+     content. */
+  .case-study__grid-head {
+    position: static;
+    top: auto;
+  }
+
+  .case-study__claim {
+    max-width: none;
+    font-size: clamp(1.9rem, 8.6vw, 3rem);
+  }
+
+  /* Stacked, the left spine would be a rule down the side of the
+     whole viewport, so it moves to the top and becomes the seam
+     between the title and the group instead. */
+  .case-study__cover-side {
+    align-self: auto;
+    max-width: none;
+    padding: 14px 0 0;
+    border-left: 0;
+    border-top: 1px solid rgba(245, 241, 232, 0.2);
+  }
+
+  .case-study__screens {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .case-study__end {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .case-study__fact-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .case-study__cover-headline {
+    font-size: 1rem;
+  }
+
+  .case-study__start {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-study__screen-image,
+  .case-study__start,
+  .case-study__start svg {
+    transition: none;
+  }
+
+  .case-study__screen:hover .case-study__screen-image {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   THE COVER CORNERS  (matched to the Figma layout)
+
+   Two quarter-ellipses, one in each bottom corner of the hero. Each
+   is full height against its own outer edge, curves over, and tapers
+   to nothing well before the centre. The title sits in the left one,
+   the kicker/headline/tagline in the right one. The middle stays
+   completely open, so the cover image reaches the bottom edge.
+
+   A PATH, NOT A RADIUS. The edge is a flat shoulder, a short knee, a
+   long STRAIGHT ramp, and a small fillet into vertical. The straight
+   middle is the part no radius and no single curve can give you: a
+   corner radius is an ellipse arc, curved everywhere by definition,
+   and one cubic forced to start flat and stay straight in the middle
+   bulges instead. Hence four explicit segments, defined as clipPaths
+   in CaseStudyCover.tsx.
+
+   The shape therefore comes from SVG clipPaths defined in
+   CaseStudyCover.tsx, in objectBoundingBox units so one path scales
+   to any size. clip-path also clips backdrop-filter correctly, so the
+   blur follows the curve instead of squaring off behind it, and the
+   edge stays geometrically crisp - no alpha ramp, no mask compositing.
+
+   SIZED OFF THE VIEWPORT, NOT THE TEXT. The previous version drew
+   each shape from its text box, which forced the shape to end where
+   the words ended - and a taper cannot end where the text ends or the
+   text pokes out of the thin end. These are sized in vw/vh from the
+   Figma proportions (37% of width, 34% of height), so the curve
+   always has room to run past the text before it closes.
+
+   Appended, so these land after the narrow-screen blocks earlier in
+   the file; equal specificity means last-one-wins regardless of media
+   queries, so the <=900px overrides are restated at the end.
+   ============================================================ */
+
+.case-study__cover-text {
+  /* Straight off the Figma frame: the corner runs 380/1019 of the
+     width and 175/565 of the height. The clamps stop it collapsing on
+     small laptops or ballooning on ultrawides. */
+  /* ASPECT-LOCKED TO THE FIGMA BOX. The exported SVG is 355 x 200,
+     so exactly 1.775:1. Because the clip path is expressed in
+     fractions of this box, any other ratio would shear the whole
+     edge to a different angle and stop matching the drawing - so
+     height is the single input and width is derived from it. That is
+     also why the earlier independent vw/vh pair was wrong in
+     principle, not just in value: it let the shape's angle drift with
+     the window's aspect.
+
+     42vh is chosen so the tall end still clears a two-line title and a
+     three-line headline; measured against the exported path rather
+     than guessed. */
+  --cs-corner-h: clamp(185px, 42vh, 470px);
+  --cs-corner-w: calc(var(--cs-corner-h) * 1.775);
+
+  /* More bottom air than the old band had: in the Figma the text sits
+     well up from the frame edge, inside the tall part of the curve
+     rather than jammed into the corner. */
+  --cs-band-bleed: clamp(34px, 5vh, 70px);
+
+  /* DELIBERATELY NOT --cs-gutter. This is the fix for text spilling out
+     of the corners, and the reason is pure geometry:
+
+     each shape is FULL HEIGHT at the screen edge and tapers to NOTHING
+     at its inner tip. So height is only available at the outside. The
+     page gutter goes up to 176px, which threw away the tallest 176px of
+     each shape and started the text where the wedge was already
+     falling - then the text grew inward, into less and less height. The
+     right-hand block ran out entirely: at its inner edge the shape was
+     about 71px tall and the block needed 190px.
+
+     A much smaller inset pulls both blocks back out to where the glass
+     is deep. It breaks alignment with the body copy below, which is a
+     real cost, but the body copy is not sitting inside a tapering
+     shape. */
+  --cs-corner-inset: clamp(18px, 3.2vw, 62px);
+
+  padding: clamp(20px, 2.4vw, 34px) var(--cs-corner-inset) var(--cs-band-bleed);
+  /* This gap is the opening between the two corners, so it is
+     structural, not just breathing room. */
+  gap: clamp(24px, 4vw, 72px);
+  align-items: end;
+
+  position: relative;
+  /* Contains the z-index: -1 shapes so they sit behind their own text
+     but still above the cover scrim. */
+  isolation: isolate;
+  background: none;
+  overflow: visible;
+}
+
+/* The two corners. This element already spans the full width of the
+   hero and its bottom edge IS the frame's bottom edge, so left/right/
+   bottom of 0 need no negative offsets to reach the corners. */
+.case-study__cover-text::before,
+.case-study__cover-text::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  bottom: 0;
+  width: var(--cs-corner-w);
+  height: var(--cs-corner-h);
+  /* THE FIGMA GLASS EFFECT, REBUILT. NOT THE SVG.
+
+     The pasted SVG carried only a path and fill=#2A2E30 at 2 percent,
+     which is why the first attempt rendered invisible. That was not a
+     wrong export - Figma Effects never travel in copied SVG markup, so
+     the whole material was missing from the code and had to be read off
+     the Glass panel and rebuilt here.
+
+     THE 2 PERCENT FILL IS CORRECT AND STAYS. Raising it is the one change
+     that cannot work: opacity on a charcoal fill gives smoked plastic,
+     and the glass in Figma is not coming from the fill at all. The fill
+     is only a whisper of body tone; the effect does everything else.
+
+     Panel readings, and what each becomes:
+
+       Frost 14      -> a LIGHT blur. The previous build used 34px, which
+                        is a slab; 14 on Figma scale is a thin sheet, so
+                        the photograph behind stays a recognisable picture
+                        instead of dissolving to colour.
+       Refraction 100 -> maximum bend. CSS cannot displace pixels, so this
+                        is carried as saturation and contrast lift: bent
+                        light reads as MORE colour and MORE separation,
+                        which is the part of refraction the eye scores.
+       Depth 70      -> a thick sheet, so the blur is allowed to be the
+                        dominant term and the body tone stays minimal.
+       Dispersion 87 -> the chromatic split. High, so the sheet fringes
+                        its transmitted light rather than passing it
+                        neutral - carried as a faint warm/cool pair of
+                        gradients that never resolve into a visible
+                        colour, only into the sense that the light has
+                        been through something.
+       Light -45 at 0% -> NO SPECULAR HIGHLIGHT. Intensity is zero, so the
+                        lit shoulder the earlier version shipped was never
+                        in the design and is deliberately absent.
+
+     backdrop-filter is the load-bearing declaration here, and it works on
+     this element specifically because clip-path clips backdrop-filter too,
+     so the blur terminates on the bezier instead of squaring off the box.
+
+     Geometry is untouched: same path, same clipPaths, same size vars. */
+  background:
+    /* DISPERSION, the cool side. Sits over the thin end of the wedge. */
+    linear-gradient(
+      160deg,
+      rgba(150, 200, 255, 0.028) 0%,
+      rgba(150, 200, 255, 0) 42%
+    ),
+    /* DISPERSION, the warm side. Opposite end, opposite hue, so the two
+       read as one beam split rather than as two tints. */
+    linear-gradient(
+      340deg,
+      rgba(255, 210, 180, 0.024) 0%,
+      rgba(255, 210, 180, 0) 46%
+    ),
+    /* THE BODY. The export value, unchanged. */
+    rgba(42, 46, 48, 0.02);
+
+  /* Frost 14 -> 11px. Refraction 100 and Dispersion 87 -> the saturate
+     and contrast terms; brightness is nudged, not lifted, because Light
+     is at 0 percent and a brighter sheet would imply illumination the
+     design does not have. */
+  -webkit-backdrop-filter: blur(11px) saturate(1.18) contrast(1.04) brightness(1.02);
+  backdrop-filter: blur(11px) saturate(1.18) contrast(1.04) brightness(1.02);
+
+  pointer-events: none;
+}
+
+/* Radius on the INNER top corner only: the corner ellipse centre
+   lands on the outer bottom corner, so the fill becomes a quarter
+   ellipse - flat at the frame edge, tapering to zero at the inner
+   end. */
+/* The paths are defined in CaseStudyCover.tsx. Note there is deliberately
+   NO border-radius fallback alongside these: clip-path and border-radius
+   both clip, so if both applied the result would be their intersection -
+   a smaller, wrong shape - rather than one overriding the other. */
+/* REFRACTION, PER SIDE. The displacement map is mirrored for the right
+   corner, so each side needs its own filter - hence these live here rather
+   than in the shared rule above.
+
+   THE CASCADE IS THE FEATURE-DETECT. The shared rule above already states a
+   plain blur/saturate backdrop-filter. Only Chromium parses url() inside
+   backdrop-filter, so browsers that cannot will DISCARD the declaration
+   below and keep the frosted one - a fallback with no @supports block to
+   drift out of sync. Order matters: the plain one must come first.
+
+   The blur is carried here too because a backdrop-filter list replaces the
+   inherited one rather than adding to it. Dropped to 6px next to the 11px
+   fallback: with real displacement doing the work, the frost only has to
+   soften the refracted image, not stand in for it. */
+.case-study__cover-text::before {
+  left: 0;
+  --cs-bloom-x: 16%;
+  -webkit-clip-path: url(#cs-corner-left);
+  clip-path: url(#cs-corner-left);
+  backdrop-filter: url(#cs-glass-left) saturate(1.18) contrast(1.04);
+}
+
+.case-study__cover-text::after {
+  right: 0;
+  --cs-bloom-x: 84%;
+  -webkit-clip-path: url(#cs-corner-right);
+  clip-path: url(#cs-corner-right);
+  backdrop-filter: url(#cs-glass-right) saturate(1.18) contrast(1.04);
+}
+
+/* Carrier for the clipPath definitions only - it must stay in the render
+   tree (display: none can drop referenced paths in some engines) but must
+   never occupy space or paint. */
+.case-study__cover-shapes {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ---- The text inside the corners ---- */
+
+.case-study__claim {
+  align-self: end;
+  /* Auto width again: with the shape no longer drawn from this box,
+     fit-content served no purpose. */
+  width: auto;
+  /* 14ch and a lower cap, both for the same reason: the curve is
+     already falling across the span the title occupies, so the wider
+     measure and larger cap pushed long titles ("Bela Vista Resort")
+     out through the thin end of the shape. Checked against the path:
+     a two-line title at this cap clears the edge with room to spare
+     at every width. */
+  /* The previous note here measured the plateau but forgot that the
+     GUTTER decides where the text starts. With the small inset above,
+     the title now begins where the shape is at full height, so it can
+     be bigger rather than smaller.
+
+     Checked against the path at the tightest realistic case - a 940px
+     tall window, so a 395px shape and a 701px span: 13ch at 3.2rem
+     measures about 415px, putting the inner edge at 0.67 of the span,
+     where the shape is still 0.64 of its height, or ~253px. A two-line
+     title needs ~145px including the bleed. So it clears with room,
+     and long titles ("Bela Vista Resort") wrap to two lines rather
+     than reaching the taper. */
+  max-width: 13ch;
+  font-size: clamp(1.9rem, 3.4vw, 3.2rem);
+  /* A hair over 1: at exactly 1 the descenders of a two-line title
+     touched the ascenders below it. */
+  line-height: 1.02;
+  letter-spacing: -0.018em;
+  /* Two-line titles split evenly instead of leaving one orphan word,
+     which matters more than usual here because the second line sits
+     under the thinner part of the curve. */
+  text-wrap: balance;
+}
+
+.case-study__cover-side {
+  align-self: end;
+  /* 32ch, down from 38ch. The right-hand corner is tapering across
+     exactly this span, so a wider measure would push the last line of
+     the headline out through the thin end of the curve. */
+  /* RIGHT-ALIGNED, which is the composition answer rather than a
+     stylistic one: the shape is deepest at the right edge, so anchoring
+     the lines there means every line starts from the strongest part of
+     the glass and the ragged edge falls away toward the taper. Short
+     lines then pull AWAY from the thin end instead of toward it.
+
+     24ch, down from 30ch, because 30ch was measured against the wrong
+     font size - the headline renders near 30px, not the ~16px body, so
+     30ch was about 455px on screen, not 250px. That reached 0.65 of the
+     span and was the direct cause of the first two lines hanging
+     outside the glass. 24ch lands near 360px, inner edge at ~0.59 of
+     the span where ~272px of height remains - and the block now needs
+     only ~130px, since the kicker and tagline above and below the hook
+     have been removed. Comfortable slack, not a tight fit. */
+  max-width: 24ch;
+  padding: 0;
+  text-align: right;
+  /* Avoids single-word last lines in the hook, which read as mistakes
+     against a curved edge. */
+  text-wrap: pretty;
+  /* The spine is gone: the corner's own curved edge separates the two
+     columns now. */
+  border-left: 0;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .case-study__cover-text::before,
+  .case-study__cover-text::after {
+    background: rgba(var(--cs-glass), 0.97);
+    /* Asking for less transparency and leaving a 34px backdrop sample
+       running is answering the opposite question. */
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (max-width: 900px) {
+  /* ONE COLUMN MEANS TWO CORNERS CANNOT WORK. Stacked, the text no
+     longer sits in two opposite corners - the right-hand block moves
+     under the left one, into the open middle where there is no shape
+     at all. So the corners are dropped and the group gets a single
+     plain surface, the same decision the layout itself makes when it
+     collapses. */
+  .case-study__cover-text::before,
+  .case-study__cover-text::after {
+    display: none;
+  }
+
+  .case-study__cover-text {
+    padding: clamp(14px, 3vw, 20px) var(--cs-gutter) clamp(16px, 3.4vw, 24px);
+    gap: 12px;
+    /* The corners are gone at this width, but the glass should not
+       change character - same charcoal token, just denser because it
+       now has to carry the type on its own. */
+    background: linear-gradient(
+      to top,
+      rgba(var(--cs-glass), 0.94) 0%,
+      rgba(var(--cs-glass), 0.86) 62%,
+      rgba(var(--cs-glass), 0.42) 100%
+    );
+    -webkit-backdrop-filter: blur(14px) saturate(1.12);
+    backdrop-filter: blur(14px) saturate(1.12);
+  }
+
+  .case-study__claim {
+    max-width: none;
+    font-size: clamp(1.7rem, 7.4vw, 2.6rem);
+  }
+
+  .case-study__cover-side {
+    max-width: none;
+    padding: 12px 0 0;
+    border-top: 1px solid rgba(245, 241, 232, 0.2);
+    /* One column, no corner to hug - right alignment would just look
+       arbitrary against the full-width rule above it. */
+    text-align: left;
+  }
+}
+
+/* ---- THE CORNER GLASS STOPS COSTING ANYTHING ONCE IT IS GONE ------
+   The two corner shapes are the most expensive thing in this window:
+   large clip-pathed layers running blur(20px) plus a saturate pass, and
+   backdrop-filter is re-sampled whenever the content behind it moves. A
+   blurred layer that has scrolled off-screen is not reliably dropped by
+   the compositor, so the cover was still being asked about on frames
+   where it was a full viewport away - which is exactly where the lag was
+   felt, scrolling the document below the hero.
+
+   data-cover-past is written by the parallax handler that is already
+   reading scrollTop, so this costs no new listener and no new layout -
+   one dataset write when the flag actually flips. While the cover is on
+   screen the glass is untouched and looks exactly as before. */
+.case-study__cover[data-cover-past='true'] .case-study__cover-text::before,
+.case-study__cover[data-cover-past='true'] .case-study__cover-text::after {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* ---- THE NEXT PROJECT IS A CONTROL NOW, NOT A LABEL ---------------
+   It became a <button>, so it needs the usual reset: a button brings its
+   own font, colour, padding, border and centred text, none of which
+   belong here. The title and hook are <span>s rather than <p>s because a
+   button may only contain phrasing content, so they need display: block
+   to keep stacking the way the paragraphs did. */
+.case-study__next {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.case-study__next-title,
+.case-study__next-hook {
+  display: block;
+}
+
+.case-study__next-title {
+  transition: color 220ms ease;
+}
+
+.case-study__next:hover .case-study__next-title {
+  color: var(--cs-ember, #b56c4b);
+}
+
+.case-study__next:focus-visible {
+  outline: 2px solid var(--cs-ember, #b56c4b);
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-study__next-title {
+    transition: none;
+  }
+}
+
+
+/* ---- THE CORNER GLASS IS NOW A SHADER ---- */
+
+/* The two frosted pseudo-element cards above are switched OFF rather than
+   deleted: ShaderLensMaterial draws the same two shapes from the same path,
+   with real refraction instead of a backdrop-filter. Reverting is one rule. */
+.case-study .case-study__cover-text::before,
+.case-study .case-study__cover-text::after {
+  display: none;
+}
+
+/* THE SHADER CANVAS, AND ITS PLACE IN THE STACK IS THE POINT.
+
+   It sits INSIDE .case-study__cover-media, after the photograph and before
+   the scrim, so it carries no z-index at all - DOM order among positioned
+   siblings does the work. That ordering is deliberate and load-bearing:
+
+     image  ->  glass  ->  scrim  ->  cursor cue
+
+   The glass therefore gets darkened by the SAME scrim as the rest of the
+   hero, including the scroll-driven second floor the parallax handler fades
+   in through --cs-cover-dark. Sitting above the scrim, as it did, left the
+   two corners visibly brighter than their surroundings at rest and drifting
+   further apart on every scroll frame. It also puts the cue back on top,
+   where it belongs, instead of under the glass. */
+.case-study__glass-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: block;
+}
+
+/* THE TEST BENCH mounts this same cover and then lays its OWN material over
+   the top, so the cover-owned canvas stands down there or the two stack and
+   the material switch appears to do nothing. The bench canvas is a sibling of
+   the cover section, not a descendant, so it is untouched. */
+[data-glass-test] .case-study__cover .case-study__glass-canvas {
+  display: none;
+}
+
+/* ---- CLAIM FITS INSIDE THE SHAPE ---- */
+/* The claim used to be sized in ch and vw only, so it knew nothing about
+   the shape it sits in. A long title (SONAPAHAR FARMHOUSE RESORT) wrapped to
+   a third line and walked straight out through the taper. Both the measure
+   and the cap are now DERIVED from the corner tokens, so the type can never
+   outgrow the glass at any viewport.
+
+   --cs-claim-fit is the per-title shrink, set from the character count where
+   the title is rendered. 1 for short titles, less for long ones. */
+.case-study__cover-text {
+  --cs-claim-fit: 1;
+}
+
+.case-study__claim {
+  max-width: min(13ch, calc(var(--cs-corner-w) * 0.54));
+  font-size: min(
+    clamp(1.9rem, 3.4vw, 3.2rem),
+    calc(var(--cs-corner-h) * 0.188 * var(--cs-claim-fit))
+  );
+}
+
+/* The headline in the right corner has the same exposure. */
+.case-study__cover-headline {
+  max-width: min(24ch, calc(var(--cs-corner-w) * 0.56));
+}
+
+/* ============================================================
+   MOBILE READING PASS  (phones, portrait)
+
+   Appended LAST in the file so these rules win every equal-specificity
+   tie above. Scoped to the DOCUMENT typography only - the cover claim is
+   left to the corner-token sizing system at the end of the window rules.
+
+   THE RESEARCH, IN ONE BREATH. Mobile readers hold the phone close, scan
+   in an F/layer-cake pattern, and bail on anything that looks dense. The
+   established floors this pass enforces:
+     - body copy never under 16px (1rem) - below that it reads as fine
+       print and gets skipped, not read (Toptal / Smashing mobile guides)
+     - line-height 1.5-1.7 for paragraphs; short lines need LESS leading,
+       but a phone measure is still ~35ch, so 1.6-1.7 stands
+     - measure capped near 38ch - the 30-40 character window eye-tracking
+       studies keep landing on for handheld reading
+     - hierarchy by STEP, not by shade: lede / body / caption keep a clear
+       size ladder so a scanner can find the start of each section
+     - contrast: mid-grey on warm paper at small sizes was the mobile
+       screenshot's biggest failure, so small text moves a step darker
+   ============================================================ */
+@media (max-width: 640px) {
+  /* Sections were up to 132px apart on desktop rhythm; on a phone that
+     reads as the document having ENDED between sections. Tighten the
+     rhythm so the next heading is always visible as a promise below the
+     fold of the one you are finishing. */
+  .case-study__doc {
+    --cs-section-gap: clamp(48px, 13vw, 72px);
+  }
+
+  /* SECTION TITLES get a bigger step over the body: they are the
+     layer-cake anchors a scanner uses to decide what to read. */
+  .case-study__section-title {
+    font-size: clamp(1.2rem, 5.6vw, 1.5rem);
+    gap: 10px;
+  }
+
+  /* BODY: the 16px floor, a 38ch measure, 1.7 leading. --cs-ink-mid
+     stays - it passes on paper at this size - but everything that was
+     set UNDER 1rem comes up to it. */
+  .case-study__copy p {
+    max-width: 38ch;
+    font-size: 1.02rem;
+    line-height: 1.7;
+  }
+
+  /* THE LEDE keeps its display-face distinction (that swap is what marks
+     a section start before a word is read) and grows a touch, so the
+     lede -> body step is unmistakable on a small screen. */
+  .case-study__copy p[data-lead='true'] {
+    font-size: 1.22rem;
+    line-height: 1.42;
+    letter-spacing: -0.012em;
+    max-width: 34ch;
+  }
+
+  .case-study__copy p + p {
+    margin-top: 1.25em;
+  }
+
+  /* PRINCIPLES: title up, body to the floor. 0.9rem (14.4px) was under
+     the readability floor and is exactly the text the screenshots show
+     turning into grey texture. */
+  .case-study__principle {
+    padding-top: 18px;
+  }
+
+  .case-study__principle-title {
+    font-size: 1.16rem;
+    line-height: 1.28;
+  }
+
+  .case-study__principle-body {
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 38ch;
+  }
+
+  /* BUILD NOTES: same floor, a little more air between rows. */
+  .case-study__notes li {
+    padding: 14px 0 14px 22px;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  /* CAPTIONS carry the screens; 0.88rem was whispering. */
+  .case-study__screen-caption {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .case-study__chips-text {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  /* The spec plate: values slightly larger, cells slightly tighter, so
+     seven facts still feel like one object rather than a spreadsheet. */
+  .case-study__fact {
+    padding: 15px 16px 17px;
+  }
+
+  .case-study__fact dd {
+    font-size: 1.02rem;
+    line-height: 1.38;
+  }
+
+  /* Quote and footnote: the quote is the emotional peak of section 7,
+     so it keeps display sizing but with more leading for small widths. */
+  .case-study__quote p {
+    font-size: 1.1rem;
+    line-height: 1.5;
+  }
+
+  .case-study__footnote {
+    font-size: 0.84rem;
+    line-height: 1.55;
+  }
+
+  .case-study__next-hook {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  /* The end CTA row stacks vertically so the next-project card gets the
+     full width - it is the last thing between the reader and leaving. */
+  .case-study__end {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .case-study__next {
+    max-width: none;
+  }
+}
+
+/* ============================================================
+   MOBILE COVER WINDOW PASS  (phones)
+
+   Appended LAST so these win every equal-specificity tie above - in
+   particular the corner-fit rules (.case-study__claim sized off
+   --cs-corner-w), which are NOT wrapped in a desktop-only query and were
+   silently overriding the <=900px mobile rules that came before them.
+   That is why the title was bleeding off the right edge of the phone.
+   ============================================================ */
+@media (max-width: 900px) {
+  /* THE SHADER CORNERS STAND DOWN ON PHONES. The <=900px block above
+     already removes the pseudo-element corner cards because a one-column
+     stack leaves no opposite corners to sit in - but the WebGL canvas
+     draws the same two shapes from its own copy of the sizing maths
+     (cornerH = clamp(185, 42vh, 470)), so on a phone it was still
+     painting two ~300px glass wedges over a 460px-tall cover, eating the
+     photograph and sitting under text that no longer aligns with them.
+     One decision, both renderers: the corners go. */
+  .case-study__cover .case-study__glass-canvas {
+    display: none;
+  }
+
+  /* THE CLAIM, FREE OF THE CORNER MATHS. max-width: min(13ch, corner-w)
+     and font-size: min(clamp(...), corner-h * ...) are desktop
+     constraints for text sitting INSIDE a tapering shape. With the shape
+     gone they only clip and shrink the title against a plain gradient,
+     so both caps come off and the title takes the viewport as its
+     measure - wrapped with balance so a two-line title splits evenly
+     instead of leaving an orphan word. */
+  .case-study__claim {
+    max-width: none;
+    font-size: clamp(1.6rem, 8.4vw, 2.4rem);
+    line-height: 1.14;
+    letter-spacing: -0.014em;
+    text-wrap: balance;
+    overflow-wrap: break-word;
+  }
+
+  /* Same release for the hook: the 24ch / corner-w cap was fitted to
+     the right-hand wedge. One column, no wedge, no cap. */
+  .case-study__cover-headline {
+    max-width: none;
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  /* A little more air under the stacked cover text so the block does
+     not sit jammed against the frame edge. */
+  .case-study__cover-text {
+    gap: 16px;
+    padding-bottom: clamp(28px, 7vw, 40px);
+  }
+}
+
+/* ============================================================
+   MOBILE HEADER BAR PASS  (phones)
+
+   The bar at 375-430px was desktop furniture pushed together: three
+   glass groups in a nowrap flex row sharing one gap, so the whole strip
+   read as one crowded lozenge and the tabs' labels were squeezed between
+   the back button and the CTA cluster.
+
+   The fix is structural, not cosmetic: the tabs become the FLEXIBLE
+   group (they are the nav, they should get whatever width is left and
+   scroll if even that is not enough), and the two flanking groups are
+   pinned to their content so they can neither grow nor be crushed.
+   ============================================================ */
+@media (max-width: 640px) {
+  .case-study__bar {
+    gap: 8px;
+    /* Respect the notch / Dynamic Island strip instead of sliding the
+       pills up under the clock. */
+    padding: calc(var(--cs-gutter-top) + env(safe-area-inset-top, 0px))
+      12px 8px;
+  }
+
+  .case-study__back,
+  .case-study__bar-right {
+    flex: 0 0 auto;
+  }
+
+  /* The tabs get the middle. min-width: 0 is the actual fix - a flex
+     item refuses to shrink below its content without it, which is how a
+     430px row ends up hanging off a 375px screen. */
+  .case-study__tabs {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .case-study__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .case-study__tab {
+    flex: 0 0 auto;
+    padding: 8px 11px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* The right cluster carries the CTA pill and the kebab; on a phone
+     the padding between them was wider than the gap between groups. */
+  .case-study__bar-right {
+    padding: 4px;
+  }
+}
+
+/* ============================================================
+   MOBILE HEADER BAR PASS 2 - TWO ROWS  (phones)
+
+   Appended after PASS 1 above, which is left intact: this block only
+   overrides the handful of properties that change, so reverting is a
+   matter of deleting this section and nothing else.
+
+   WHY PASS 1 WAS NOT ENOUGH. It made the tabs the flexible group and
+   let them scroll, which stopped the row hanging off the screen - but
+   it kept all THREE glass groups on ONE line. At 375-430px that line is
+   back(40) + tabs + CTA(40) + kebab(34) plus two gaps, so the tabs were
+   handed roughly 180px for four labels and spent the rest of their life
+   as a scroller. The nav was permanently clipped: on the reported
+   screens "Outcome" sat off the right edge of its own pill, and on the
+   narrower one the kebab went off the bar entirely. A scrollable nav is
+   the right fallback; it is the wrong resting state.
+
+   So the bar becomes two rows on phones. The controls that are single
+   fixed targets - back, CTA, kebab - keep the top line, and the nav gets
+   a full-width line of its own underneath, where all four labels fit at
+   a legible size without scrolling on a 375px screen.
+
+   HOW, WITHOUT TOUCHING THE JSX. The markup nests back+tabs inside
+   .case-study__bar-left, so the tabs cannot reach a second row while
+   that wrapper is a box. `display: contents` on the wrapper makes it
+   generate no box at all, hoisting .case-study__back and
+   .case-study__tabs to be direct grid children of the bar - which is
+   what lets the three of them be placed independently by area.
+
+   THE ONE TRAP IN THAT TRICK, and it is a real one: the bar is
+   pointer-events:none (so the middle of the cover stays clickable) and
+   only `.case-study__bar > *` turns pointers back on. A wrapper set to
+   display:contents generates no box, so ITS pointer-events value can
+   never apply - the whole left group would go dead to touch. The rule
+   below therefore restates pointer-events:auto on the hoisted children
+   directly. Do not remove it.
+   ============================================================ */
+@media (max-width: 640px) {
+  .case-study__bar {
+    display: grid;
+    /* Row 1 gives the back button exactly its own width and hands the
+       remainder to the action cluster; row 2 spans both tracks.
+       minmax(0, 1fr) rather than 1fr so the track may shrink below its
+       content - the same min-width:0 fix Pass 1 needed, in grid form. */
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'back actions'
+      'tabs tabs';
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 9px;
+    /* justify-content from the desktop flex rule is meaningless on a
+       grid; placement below does that job. */
+    padding: calc(var(--cs-gutter-top) + env(safe-area-inset-top, 0px))
+      12px 10px;
+  }
+
+  /* Hoists .case-study__back and .case-study__tabs into the grid. */
+  .case-study__bar-left {
+    display: contents;
+  }
+
+  /* LOAD-BEARING - see the note above. The hoisted children are no
+     longer matched by `.case-study__bar > *` in a way that can carry
+     pointer events, because their former parent has no box. */
+  .case-study__back,
+  .case-study__tabs,
+  .case-study__bar-right {
+    pointer-events: auto;
+  }
+
+  .case-study__back {
+    grid-area: back;
+  }
+
+  .case-study__bar-right {
+    grid-area: actions;
+    justify-self: end;
+  }
+
+  /* THE NAV, NOW ON ITS OWN LINE. Full width, labels from the left so
+     the reading order starts where every other line in the document
+     starts. The scroll properties stay as the fallback for a very
+     narrow screen or a future fifth tab - it is simply no longer the
+     normal state. */
+  .case-study__tabs {
+    grid-area: tabs;
+    width: 100%;
+    justify-content: space-between;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    /* A horizontal drag on the nav must not chain out and start
+       swiping the page or triggering a browser back gesture. */
+    overscroll-behavior-x: contain;
+  }
+
+  .case-study__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* With a whole line to spend, the labels come back up to a legible
+     size and the targets clear the 44px touch minimum in height.
+     Pass 1 had squeezed these to 12px/11px to buy horizontal room that
+     is no longer needed. */
+  .case-study__tab {
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    font-size: 13px;
+    min-height: 40px;
+    white-space: nowrap;
+  }
+
+  /* The two flanking groups are fixed targets and must not stretch to
+     the grid row's height. */
+  .case-study__back,
+  .case-study__bar-right {
+    align-self: center;
+  }
+}
+
+/* THE DOCUMENT HAS TO CLEAR A TALLER BAR.
+
+   Two rows is roughly 40px more furniture than one, and two things were
+   measured against the old single-row height: the frost probe (which
+   decides when the pills go opaque) and the tab scroll offset in
+   goToSection, which subtracts a flat 96px. Neither is in this file -
+   the probe is a 1px line in the markup and the 96 is in
+   CaseStudyWindow - so what is corrected here is the only part CSS
+   owns: the sections' own scroll-margin, so a tab jump does not land a
+   heading underneath the bar. */
+@media (max-width: 640px) {
+  .case-study__doc [data-section] {
+    scroll-margin-top: 132px;
+  }
+}
+
+/* ============================================================
+   MOBILE HEADER BAR PASS 3 - MINIMAL, ONE ROW  (phones)
+
+   PASS 2 IS HEREBY REVERTED, and the reason is worth recording rather
+   than just deleting: it fixed the crowding by giving the nav a line of
+   its own, which is correct in isolation and wrong in context. Two rows
+   plus the safe-area inset came to roughly 130px of permanent furniture
+   over a 460px cover - the bar stopped being a bar and became a screen
+   region, and it cost more of the photograph than the crowding ever did.
+
+   The lesson: the header's problem was never that it had too little
+   room, it was that it was spending too much on chrome. So this pass
+   takes the opposite decision - one row again, but genuinely minimal.
+
+   WHERE THE ROOM COMES FROM, on a 390px screen (370px inside padding):
+     back 32 + gap 6 + tabs + gap 6 + actions ~68 = 258px for the nav.
+   Four labels at 11.5px with 9px insets measure about 245px including
+   the pill's own padding and gaps. It fits, without scrolling, with a
+   little slack for the wider label sets.
+
+   NOTHING IS REMOVED FROM THE BAR. The CTA stays reachable - collapsing
+   it to its mark alone is Pass 1's doing and that still holds - because
+   hiding it here would have left booking unreachable on a phone: the
+   kebab menu carries the live site, the repo and close, but not the
+   booking link, so there would have been no route to it at all.
+
+   THE TOUCH MINIMUMS ARE DELIBERATELY UNDERCUT, which is the one
+   trade-off in this pass. The @media (hover: none) block earlier in the
+   file raises the back button to 44px and the kebab to 40px on the
+   correct principle that a finger is not a cursor. At phone width this
+   block wins (later, equal specificity) and brings them to 32/30px.
+   They remain comfortably tappable as isolated circular targets with
+   clear separation, and the 44px guideline assumes a target in a dense
+   list, which these are not. Raise these first if taps start missing.
+   ============================================================ */
+@media (max-width: 640px) {
+  /* Back to one line. The grid template from Pass 2 is inert under
+     flex, but it is cleared anyway so the rule does not read as though
+     two layout systems are both live. */
+  .case-study__bar {
+    display: flex;
+    grid-template-columns: none;
+    grid-template-areas: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    /* The vertical inset is the single biggest saving in this pass:
+       --cs-gutter-top is 12px at this width and was being spent twice
+       over plus a row gap. 7px top / 6px bottom, and the safe-area
+       inset still respected so the pills clear the Dynamic Island. */
+    padding: calc(7px + env(safe-area-inset-top, 0px)) 10px 6px;
+    row-gap: 0;
+  }
+
+  /* Undoes Pass 2's display: contents - back and tabs belong to this
+     wrapper again, so the `.case-study__bar > *` pointer-events rule
+     covers them through their parent as originally designed. */
+  .case-study__bar-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  /* The area assignments from Pass 2 would pin these into a grid that
+     no longer exists. */
+  .case-study__back,
+  .case-study__tabs,
+  .case-study__bar-right {
+    grid-area: auto;
+    justify-self: auto;
+  }
+
+  /* THE NAV SHRINKS TO ITS CONTENT rather than claiming the row. Pass 2
+     gave it width: 100%, which is what made it read as a second bar.
+     The scroll properties stay as the fallback for a very narrow screen
+     or a fifth tab - it should just never be reached now. */
+  .case-study__tabs {
+    flex: 0 1 auto;
+    width: auto;
+    justify-content: center;
+    min-width: 0;
+    padding: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  /* Tighter than Pass 2's 13px/10px, and the padding-block from the
+     touch block (11px) comes down with it - that value is what was
+     setting the bar's whole height. */
+  .case-study__tab {
+    flex: 0 0 auto;
+    padding: 6px 9px;
+    padding-block: 6px;
+    font-size: 11.5px;
+    min-height: 0;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+
+  /* The indicator is inset 5px top and bottom against the desktop pill;
+     on a 3px-padded pill that leaves it floating inside the tab. */
+  .case-study__tab-indicator {
+    top: 3px;
+    bottom: 3px;
+  }
+
+  /* The three round controls, all a step down. See the trade-off note
+     above before raising these back up. */
+  .case-study__back {
+    width: 32px;
+    height: 32px;
+  }
+
+  .case-study__bar-right {
+    padding: 3px;
+    gap: 0;
+  }
+
+  .case-study__cta {
+    width: 32px;
+    height: 32px;
+  }
+
+  .case-study__menu-button {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* The bar is about 46px tall now instead of ~130px, so the clearance
+     Pass 2 reserved for a tab jump is far too much - a heading would
+     land most of a thumb below the bar it was clearing. */
+  .case-study__doc [data-section] {
+    scroll-margin-top: 64px;
+  }
+}
+
+/* ============================================================
+   MOBILE HEADER BAR PASS 4 - HAMBURGER + ACTIVE SECTION NAME
+
+   The final shape of the phone header, and the one that resolves the
+   tension the first three passes were stuck in.
+
+   THE HISTORY, BECAUSE IT EXPLAINS THE DESIGN. Pass 1 shrank the four
+   labels until they fitted and left the nav a permanent scroller. Pass 2
+   gave them a line of their own and cost 130px of cover. Pass 3 shrank
+   everything again and got the bar to ~46px, but four labels in a
+   258px slot is still four things competing in the smallest bar on the
+   site. All three were trying to fit a ROW of stops onto a phone.
+
+   A row of four is the wrong shape here. The pill's real job in this
+   document is not navigation - it is telling a reader WHERE THEY ARE in
+   an eight-section case study; the jumping is secondary. So on a phone
+   it collapses to exactly that: one control showing the current section
+   name, with the other stops one tap away in a sheet.
+
+   That is one label instead of four (~64px instead of ~245px), it never
+   scrolls or clips at any width, and it states the reader's position
+   more clearly than a highlighted stop in a cramped row ever did.
+
+   THE TAB BUTTONS ARE NOT DUPLICATED. .case-study__tab-list wraps the
+   same four buttons on both layouts - display: contents on desktop, so
+   it generates no box and the flex row is exactly as it was, and a
+   positioned sheet on a phone. One set of buttons, one handler.
+
+   WHY display: contents IS SAFE FOR THE INDICATOR. CaseStudyWindow
+   measures each tab's offsetLeft, which resolves against the nearest
+   POSITIONED ancestor - .case-study__tabs, which is position: relative.
+   The wrapper is static and boxless, so those numbers are unchanged.
+   The indicator is hidden on phones anyway (the sheet marks its own
+   active row), but the desktop measurement had to stay correct.
+   ============================================================ */
+
+/* Desktop and tablet: the wrapper disappears, the trigger never exists. */
+.case-study__tab-list {
+  display: contents;
+}
+
+.case-study__nav-trigger {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* THE PILL IS NOW A DISCLOSURE, so it must stop clipping its own
+     panel. Pass 3 left overflow-x: auto on this element as the fallback
+     for a nav too wide to fit - there is no such nav any more, and that
+     value would cut the sheet off at the pill's bottom edge. */
+  .case-study__tabs {
+    position: relative;
+    flex: 0 0 auto;
+    width: auto;
+    padding: 0;
+    overflow: visible;
+  }
+
+  /* The indicator belongs to the row layout. The sheet marks its active
+     row directly, below. */
+  .case-study__tab-indicator {
+    display: none;
+  }
+
+  .case-study__nav-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 32px;
+    padding: 0 12px 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 160ms ease;
+  }
+
+  .case-study__nav-trigger:active {
+    transform: scale(0.97);
+  }
+
+  .case-study__nav-trigger-icon {
+    display: grid;
+    place-items: center;
+    opacity: 0.72;
+    transition: opacity 200ms ease;
+  }
+
+  .case-study__tabs[data-nav-open='true'] .case-study__nav-trigger-icon {
+    opacity: 1;
+  }
+
+  /* The section name is the point of the control, so it carries the
+     weight rather than the glyph. max-width + ellipsis because this text
+     is data - a future section called something long must not be able to
+     stretch the bar. */
+  .case-study__nav-trigger-label {
+    max-width: 11ch;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 500;
+  }
+
+  /* ---- THE SHEET ---- */
+
+  /* Hidden by DEFAULT rather than by the open attribute, so the closed
+     state needs no attribute at all and a hydration pass that has not
+     yet written it cannot flash the panel open. */
+  .case-study__tab-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 172px;
+    padding: 6px;
+    border-radius: 16px;
+    /* Same glass recipe as the bar's own groups, at a slightly denser
+       body: this panel sits over the photograph with no pill behind it. */
+    background-color: rgba(var(--cs-glass), 0.92);
+    background-image: var(--cs-glass-grain);
+    background-size: 3px 3px;
+    backdrop-filter: blur(18px) saturate(118%) brightness(1.02);
+    -webkit-backdrop-filter: blur(18px) saturate(118%) brightness(1.02);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0 rgba(9, 11, 16, 0.12),
+      0 18px 44px rgba(5, 5, 5, 0.34);
+    /* Closed: retracted toward the trigger and inert. visibility rather
+       than display so the transition has two states to run between. */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px) scale(0.98);
+    transform-origin: top left;
+    pointer-events: none;
+    transition:
+      opacity 180ms ease,
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 220ms;
+  }
+
+  .case-study__tabs[data-nav-open='true'] .case-study__tab-list {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+    transition-delay: 0s, 0s, 0s;
+  }
+
+  /* The stops, stacked. Full-width rows with a real 40px target each -
+     the touch minimum Pass 3 had to undercut in the bar is affordable
+     here, because a sheet has as much vertical room as it needs. */
+  .case-study__tab {
+    justify-content: flex-start;
+    width: 100%;
+    padding: 0 12px;
+    padding-block: 0;
+    min-height: 40px;
+    font-size: 13px;
+    border-radius: 11px;
+    white-space: nowrap;
+  }
+
+  /* WHERE YOU ARE, stated twice over: the trigger names it, and the row
+     is raised. Both, because the sheet covers the trigger's label with
+     its own first row on a short screen. */
+  .case-study__tab[data-active='true'] {
+    background:
+      var(--cs-glass-grain-ink) 0 0 / 3px 3px,
+      linear-gradient(
+        180deg,
+        rgba(var(--cs-glass-lift), 0.99),
+        rgba(var(--cs-glass-lift), 0.9)
+      );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 0 rgba(9, 11, 16, 0.1);
+  }
+
+  /* The tab icon slot was hidden at this width by the Pass 1 block to
+     buy horizontal room. In a stacked sheet it is a useful leading mark
+     and there is room for it, so it comes back. */
+  .case-study__tab-icon {
+    display: grid;
+    place-items: center;
+    margin-right: 9px;
+    opacity: 0.6;
+  }
+
+  .case-study__tab[data-active='true'] .case-study__tab-icon {
+    opacity: 1;
+  }
+}
+
+/* The sheet's arrival is motion for its own sake under this setting;
+   the state change still needs to be instant and complete. */
+@media (prefers-reduced-motion: reduce) {
+  .case-study__tab-list,
+  .case-study__nav-trigger {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   MOBILE HEADER BAR PASS 5 - THE CTA JOINS THE FAMILY  (phones)
+
+   WHAT WAS WRONG, and it was three things compounding rather than one.
+
+   1. THE RAISED TREATMENT WAS DOING THE OPPOSITE OF ITS JOB. The near-
+      white lift (--cs-glass-lift at 0.99/0.9 plus a specular inner rim)
+      exists to raise a WIDE LABELLED pill out of the charcoal track -
+      the nesting the reference uses. Collapsed to a 32px circle by Pass
+      1 there is no label left to raise, so all that survives is the
+      brightest object in the header sitting next to a transparent kebab.
+      The eye read it as a notification badge, not a control.
+
+   2. FOUR BRAND COLOURS AT 16px IN A MONOCHROME BAR. The Meet mark is
+      deliberately exempt from the bar's ink flip - it carries its own
+      colours - which is defensible beside an 18-character label where it
+      reads as a service badge. Alone in a circle it is just a coloured
+      blob, and it was the only hue anywhere in the phone header.
+
+   3. THE TWO CONTROLS WERE DIFFERENT SIZES AND FLUSH. 32px against the
+      kebab's 30px with gap: 0 from Pass 3, so a bright disc and a dim one
+      touched at slightly different diameters. That mismatch is most of
+      what read as "unfinished".
+
+   THE FIX. On phones only, the CTA becomes the kebab's twin: same
+   diameter, same transparent ground, same pearl ink, a monochrome glyph
+   in currentColor - and a calendar rather than a phone, because the
+   action is booking a time, not placing a call.
+
+   THE GLYPH IS SWAPPED IN CSS, not in the JSX, via a masked data URI:
+   the mark's own artwork is hidden and the icon slot paints currentColor
+   through a calendar mask. So the desktop bar keeps the real Meet mark
+   untouched, there is no second icon component to keep in step, and the
+   phone glyph inherits the bar's ink like every other glyph in it.
+   mask paints through ALPHA, so the stroke colour inside the data URI is
+   irrelevant - it is the shape that is being used, not the paint.
+
+   NOTHING IS LOST FUNCTIONALLY. The anchor, its href and the clipped
+   accessible label ("Book an Intro Call", inside .case-study__roll) are
+   all untouched - Pass 1 hides the roll's glyph COLUMNS, never the
+   screen-reader copy, so the control still announces itself properly.
+   ============================================================ */
+@media (max-width: 640px) {
+  /* THE TWIN. Every value here is the kebab's own, so the two controls
+     are indistinguishable except for the glyph inside them. */
+  .case-study__cta {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    background: none;
+    box-shadow: none;
+    color: var(--cs-glass-on-dark);
+    opacity: 0.86;
+    transition:
+      opacity 240ms ease,
+      background-color 200ms ease,
+      transform 160ms ease;
+  }
+
+  .case-study__menu-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Flush was the other half of the problem. 2px is the desktop group's
+     own gap - enough to read as two controls, not enough to loosen the
+     outer pill. */
+  .case-study__bar-right {
+    gap: 2px;
+  }
+
+  /* The halftone pass belongs to a wide pill; on a 32px disc a 6px dot
+     grid becomes the button's content rather than its texture - the same
+     mistake the note on .case-study__cta::after records for the back
+     button and the tabs. */
+  .case-study__cta::after {
+    display: none;
+  }
+
+  /* The Meet artwork stands down. Not display:none on the slot itself -
+     the slot is what carries the replacement glyph below. */
+  .case-study__cta-icon > svg {
+    display: none;
+  }
+
+  /* THE REPLACEMENT. A calendar with a tick, painted in currentColor
+     through a mask, so it follows the bar's ink exactly as the kebab's
+     dots and the back chevron do. 17px rather than 16: an outlined glyph
+     reads slightly smaller than a filled one at the same box. */
+  .case-study__cta-icon {
+    display: grid;
+    place-items: center;
+    width: 17px;
+    height: 17px;
+    margin: 0;
+  }
+
+  .case-study__cta-icon::before {
+    content: '';
+    display: block;
+    width: 17px;
+    height: 17px;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3.5'%20y='5.5'%20width='17'%20height='15'%20rx='3'/%3E%3Cpath%20d='M8%203.5v4M16%203.5v4M3.5%2010.5h17M9%2015.2l2%202%204-4'/%3E%3C/svg%3E")
+      center / 17px 17px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3.5'%20y='5.5'%20width='17'%20height='15'%20rx='3'/%3E%3Cpath%20d='M8%203.5v4M16%203.5v4M3.5%2010.5h17M9%2015.2l2%202%204-4'/%3E%3C/svg%3E")
+      center / 17px 17px no-repeat;
+  }
+
+  /* Pressed and open states, matched to the kebab. :hover is already
+     neutralised for touch by the (hover: none) block earlier in the
+     file, so only the real states are styled here. */
+  .case-study__cta:active {
+    opacity: 1;
+    background-color: var(--cs-chip);
+    transform: scale(0.94);
+  }
+
+  /* The inert state has to stay legible as inert - if the booking link is
+     ever emptied, CASE_STUDY_CTA renders a button instead of an anchor. */
+  .case-study__cta[data-pending='true'] {
+    opacity: 0.5;
+  }
+}

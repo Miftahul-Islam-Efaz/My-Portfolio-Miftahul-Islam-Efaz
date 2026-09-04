@@ -1,0 +1,868 @@
+/*
+ * ADMIN PANEL SKIN.
+ *
+ * Palette is the site palette: eerie ground, pearl type, ONE terracotta accent
+ * spent only on single points - a status dot, the active tab underline, a focus
+ * ring. Never on fills or borders. If everything is accented, nothing is.
+ *
+ * TYPE PAIR (all three already load with the site; see styles/fonts.css):
+ *   --font-display  Bespoke Serif   headings only
+ *   --font-sans     Satoshi         body, inputs, buttons
+ *   IBM Plex Mono                   uppercase micro-labels only
+ *
+ * Scoped under .adm so nothing here leaks into the portfolio, which runs GSAP
+ * and WebGL and does not need a stray global rule.
+ */
+.adm {
+  --adm-bg: #050505;
+  --adm-panel: #26282d;
+  --adm-hair: #38393f;
+  --adm-pearl: #f5f1e8;
+  --adm-mist: #d8d4c8;
+  /* 0.68 not 0.46: at 11-12px on near-black, 46% opacity fails contrast and is
+     the main reason small print here felt unreadable. */
+  --adm-low: rgba(216, 212, 200, 0.68);
+  --adm-faint: rgba(216, 212, 200, 0.5);
+  --adm-ember: #b56c4b;
+  --adm-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --adm-serif: var(--font-display, ui-serif), Georgia, serif;
+  --adm-sans: var(--font-sans, ui-sans-serif), system-ui, sans-serif;
+  --adm-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  min-height: 100vh;
+  background: var(--adm-bg);
+  color: var(--adm-mist);
+  font-family: var(--adm-sans);
+  font-size: 15px;
+  line-height: 1.65;
+  letter-spacing: 0.002em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.adm *,
+.adm *::before,
+.adm *::after { box-sizing: border-box; }
+
+/* --- login ---------------------------------------------------------------- */
+.adm-gate { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.adm-gate-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--adm-panel);
+  border: 1px solid var(--adm-hair);
+  border-radius: 14px;
+  padding: 36px 32px;
+}
+.adm-gate-eyebrow {
+  font-family: var(--adm-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--adm-low);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.adm-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--adm-ember); flex: none; }
+.adm-gate-title {
+  font-family: var(--adm-serif);
+  font-weight: 500;
+  color: var(--adm-pearl);
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 16px 0 28px;
+}
+
+/* --- shell --------------------------------------------------------------- */
+.adm-shell { max-width: 1120px; margin: 0 auto; padding: 32px 24px 120px; }
+.adm-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--adm-hair);
+}
+.adm-brand {
+  font-family: var(--adm-serif);
+  font-weight: 500;
+  color: var(--adm-pearl);
+  font-size: 25px;
+  letter-spacing: -0.012em;
+}
+.adm-sub { font-size: 13.5px; color: var(--adm-low); margin-top: 5px; }
+
+/* --- tabs ---------------------------------------------------------------- */
+.adm-tabs { display: flex; gap: 2px; overflow-x: auto; padding: 20px 0 0; scrollbar-width: none; }
+.adm-tabs::-webkit-scrollbar { display: none; }
+.adm-tab {
+  position: relative;
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--adm-low);
+  font-family: var(--adm-sans);
+  font-size: 14px;
+  letter-spacing: 0.004em;
+  padding: 10px 15px 13px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.24s var(--adm-ease), background 0.24s var(--adm-ease);
+}
+.adm-tab:hover { color: var(--adm-pearl); background: rgba(245, 241, 232, 0.045); }
+.adm-tab[data-active="true"] { color: var(--adm-pearl); }
+.adm-tab-underline { position: absolute; left: 13px; right: 13px; bottom: 2px; height: 1.5px; background: var(--adm-ember); }
+
+.adm-blurb {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--adm-low);
+  max-width: 70ch;
+  margin: 24px 0 20px;
+}
+
+/* --- filters -------------------------------------------------------------- */
+/* Visuals only. It sits between the Add button and the list, so it reads as
+   acting ON the list rather than as another field of the form. */
+.adm-filters {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+/* The search takes the slack, the select stays the width of its longest
+   option. A category name is short and fixed; a query is neither. */
+.adm-filter-search { flex: 1 1 260px; min-width: 200px; }
+.adm-filter-cat { flex: 0 0 auto; width: auto; padding-right: 34px; }
+.adm-filter-count {
+  font-family: var(--adm-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  color: var(--adm-faint);
+  white-space: nowrap;
+}
+/* Cancels the type-zoom guard inherited from .adm-input on small screens -
+   this row is chrome, not a field being filled in. */
+@media (max-width: 560px) {
+  .adm-filter-search, .adm-filter-cat { font-size: 15px; }
+}
+
+/* --- rows ---------------------------------------------------------------- */
+.adm-list { display: flex; flex-direction: column; gap: 10px; }
+.adm-card {
+  background: var(--adm-panel);
+  border: 1px solid var(--adm-hair);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.24s var(--adm-ease);
+}
+.adm-card:hover { border-color: rgba(245, 241, 232, 0.2); }
+.adm-card-head { display: flex; align-items: center; gap: 13px; padding: 14px 16px; cursor: pointer; user-select: none; }
+.adm-thumb { width: 46px; height: 35px; border-radius: 6px; object-fit: cover; background: #1a1c20; flex: none; }
+.adm-card-title {
+  color: var(--adm-pearl);
+  font-size: 15.5px;
+  font-weight: 500;
+  letter-spacing: -0.006em;
+  line-height: 1.35;
+}
+.adm-card-meta {
+  font-family: var(--adm-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--adm-faint);
+  letter-spacing: 0.03em;
+  margin-top: 4px;
+}
+.adm-spacer { flex: 1; }
+.adm-chev { color: var(--adm-low); font-size: 12px; transition: transform 0.3s var(--adm-ease); }
+.adm-card-body { padding: 6px 16px 20px; border-top: 1px solid var(--adm-hair); }
+
+/* --- fields -------------------------------------------------------------- */
+.adm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 20px;
+  padding-top: 20px;
+}
+.adm-field.is-wide { grid-column: 1 / -1; }
+.adm-label {
+  display: block;
+  font-family: var(--adm-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--adm-low);
+  margin-bottom: 8px;
+}
+.adm-input,
+.adm-textarea,
+.adm-select {
+  width: 100%;
+  background: #1b1d21;
+  border: 1px solid var(--adm-hair);
+  border-radius: 8px;
+  color: var(--adm-pearl);
+  /* 15px minimum: iOS zooms the viewport when a focused input is under 16px,
+     and 15 plus the mobile bump below avoids that without shouting. */
+  font-size: 15px;
+  font-family: var(--adm-sans);
+  line-height: 1.55;
+  padding: 11px 13px;
+  outline: none;
+  transition: border-color 0.2s var(--adm-ease), box-shadow 0.2s var(--adm-ease);
+}
+.adm-textarea {
+  resize: vertical;
+  min-height: 104px;
+  line-height: 1.68;
+  /* Prose past ~74 characters per line is measurably harder to scan. */
+  max-width: 74ch;
+}
+.adm-input::placeholder, .adm-textarea::placeholder { color: rgba(216, 212, 200, 0.36); }
+.adm-input:focus,
+.adm-textarea:focus,
+.adm-select:focus {
+  border-color: rgba(245, 241, 232, 0.36);
+  box-shadow: 0 0 0 2px rgba(181, 108, 75, 0.24);
+}
+.adm-hint {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--adm-faint);
+  margin-top: 7px;
+  max-width: 64ch;
+}
+
+.adm-media-row { display: flex; gap: 8px; align-items: center; }
+.adm-media-row .adm-input { flex: 1; }
+.adm-preview {
+  margin-top: 11px;
+  border: 1px solid var(--adm-hair);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 268px;
+  background: #1a1c20;
+}
+.adm-preview img, .adm-preview video { display: block; width: 100%; height: auto; }
+
+.adm-check { display: flex; align-items: center; gap: 10px; cursor: pointer; padding-top: 4px; }
+.adm-check input { accent-color: var(--adm-ember); width: 16px; height: 16px; }
+.adm-check span { font-size: 14.5px; color: var(--adm-mist); }
+
+/* --- buttons ------------------------------------------------------------- */
+.adm-btn {
+  appearance: none;
+  border: 1px solid var(--adm-hair);
+  background: transparent;
+  color: var(--adm-mist);
+  font-family: var(--adm-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.004em;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s var(--adm-ease), color 0.2s var(--adm-ease),
+    border-color 0.2s var(--adm-ease), opacity 0.2s var(--adm-ease);
+}
+.adm-btn:hover:not(:disabled) {
+  color: var(--adm-pearl);
+  border-color: rgba(245, 241, 232, 0.32);
+  background: rgba(245, 241, 232, 0.055);
+}
+.adm-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+.adm-btn.is-primary { background: var(--adm-pearl); color: #050505; border-color: var(--adm-pearl); }
+.adm-btn.is-primary:hover:not(:disabled) { background: #fff; color: #050505; }
+.adm-btn.is-danger:hover:not(:disabled) { color: #e08b6a; border-color: rgba(224, 139, 106, 0.45); }
+.adm-btn.is-small { padding: 7px 11px; font-size: 12.5px; }
+.adm-btn-full { width: 100%; }
+
+.adm-actions {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: 20px;
+  margin-top: 6px;
+  border-top: 1px solid var(--adm-hair);
+}
+
+/* --- feedback ------------------------------------------------------------ */
+.adm-msg { font-size: 13.5px; line-height: 1.55; }
+.adm-msg.is-error { color: #e08b6a; }
+.adm-msg.is-ok { color: var(--adm-mist); }
+.adm-empty {
+  border: 1px dashed var(--adm-hair);
+  border-radius: 12px;
+  padding: 38px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--adm-low);
+}
+.adm-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  background: var(--adm-panel);
+  border: 1px solid var(--adm-hair);
+  color: var(--adm-pearl);
+  font-size: 14px;
+  padding: 12px 19px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 60;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 640px) {
+  .adm-shell { padding: 22px 16px 100px; }
+  /* Full 16px on mobile so focusing a field never zooms the viewport. */
+  .adm-input, .adm-textarea, .adm-select { font-size: 16px; }
+  .adm-gate-title { font-size: 26px; }
+  .adm-brand { font-size: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm *, .adm *::before, .adm *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+/* ==========================================================================
+ * THE VISUAL CASE STUDY EDITOR.
+ *
+ * The real CaseStudyBody is mounted inside a card here, wearing the real
+ * work-case-study.css. Three things have to be undone for that to work in a
+ * panel, and each is undone as narrowly as possible:
+ *
+ *   1. The window root is a full-screen fixed overlay. Inside [data-adm-preview]
+ *      it becomes an ordinary block.
+ *   2. The cover section is a full viewport tall. Capped, or one card would be
+ *      taller than the screen before you reach the prose.
+ *   3. Everything animates in from opacity 0 on a ladder the parent window
+ *      normally triggers. Nothing triggers it here, so the ladder is settled
+ *      rather than left invisible.
+ * ========================================================================== */
+.adm-cs { padding: 8px 16px 20px; border-top: 1px solid var(--adm-hair); }
+
+.adm-cs-tip { margin: 0 0 12px; max-width: 68ch; }
+
+.adm-cs-frame {
+  position: relative;
+  border: 1px solid var(--adm-hair);
+  border-radius: 10px;
+  overflow: hidden auto;
+  background: #0a0a0a;
+  /* Tall enough to judge the cover, short enough to stay a panel element. */
+  max-height: 76vh;
+  overscroll-behavior: contain;
+}
+
+/* 1. De-overlay the window root. */
+.adm-cs-frame [data-adm-preview] {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  z-index: auto !important;
+  overflow: visible !important;
+  transform: none !important;
+  clip-path: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background: transparent;
+}
+
+/* 2. The cover is 100vh by design. Not in here. */
+.adm-cs-frame .case-study__cover {
+  height: 58vh !important;
+  min-height: 340px !important;
+  max-height: 620px !important;
+}
+
+/* 3. Settle the reveal ladder and the per-character claim sweep. */
+.adm-cs-frame [data-rise],
+.adm-cs-frame .case-study__claim-char {
+  opacity: 1 !important;
+  transform: none !important;
+  clip-path: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* --- the editable regions themselves --------------------------------------
+ * Affordance without decoration: a hairline on hover, the one accent hue on
+ * focus. The type must look exactly as it will on the site, so nothing here is
+ * allowed to change its colour, size or weight. */
+.adm-cs-frame [data-adm-editable] {
+  cursor: text;
+  border-radius: 3px;
+  outline: 1px dashed transparent;
+  outline-offset: 4px;
+  transition: outline-color 0.18s var(--adm-ease), background 0.18s var(--adm-ease);
+}
+.adm-cs-frame [data-adm-editable]:hover {
+  outline-color: rgba(245, 241, 232, 0.34);
+}
+.adm-cs-frame [data-adm-editable]:focus {
+  outline: 1px solid var(--adm-ember);
+  outline-offset: 4px;
+  background: rgba(245, 241, 232, 0.05);
+}
+.adm-cs-frame [data-adm-editable]:empty::before {
+  content: "Click to write";
+  opacity: 0.4;
+}
+
+.adm-cs-media {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  padding: 22px 0 4px;
+}
+
+.adm-cs-more { margin: 4px 0 14px; }
+/* ------------------------------------------------------------------
+   BIG MEDIA PREVIEWS
+
+   On the image-slot tabs the picture IS the content, so the thumbnail
+   strip is useless - you cannot tell two crops of the same portrait
+   apart at 64px, which is exactly the mistake the two footer photos
+   invite. Contain, never cover: a cropped preview would hide the very
+   mismatch this is here to reveal.
+   ------------------------------------------------------------------ */
+.adm .adm-media-big .adm-preview {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+  object-fit: contain;
+  background: #0b0b0c;
+  border-radius: 4px;
+}
+
+.adm .adm-media-big .adm-media-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* ------------------------------------------------------------------
+   CONTACT SUBMISSIONS - the inbox tab.
+
+   Reuses .adm-card / .adm-card-head / .adm-list so the inbox rows line
+   up with every other list in the panel. What is new here is the status
+   dot (which takes the slot the CMS cards use for a thumbnail) and the
+   key/value detail grid, because a submission has no media and no form.
+   ------------------------------------------------------------------ */
+.adm-sub-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.adm-sub-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--adm-low);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.adm-sub-chip:hover {
+  color: #f5f1e8;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.adm-sub-chip[data-active='true'] {
+  color: #050505;
+  background: #f5f1e8;
+  border-color: #f5f1e8;
+}
+
+.adm-sub-count {
+  font-size: 11px;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The status dot sits where the CMS cards put their thumbnail, which is
+   what keeps the two kinds of row aligned. */
+.adm-sub-badge {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin: 0 13px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.adm-sub-badge[data-status='new'] {
+  background: var(--adm-ember);
+  box-shadow: 0 0 0 4px rgba(181, 108, 75, 0.16);
+}
+
+.adm-sub-badge[data-status='read'] {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.adm-sub-badge[data-status='replied'] {
+  background: #6f9c72;
+}
+
+.adm-sub-badge[data-status='archived'] {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.adm-sub-kind {
+  margin-left: 9px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--adm-low);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.adm-sub-kind[data-kind='project'] {
+  color: var(--adm-ember);
+  border-color: rgba(181, 108, 75, 0.4);
+}
+
+.adm-sub-detail {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.adm-sub-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.adm-sub-key {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--adm-low);
+}
+
+.adm-sub-val {
+  font-size: 14px;
+  color: #f5f1e8;
+  overflow-wrap: anywhere;
+}
+
+.adm-sub-link {
+  color: var(--adm-ember);
+  text-decoration: none;
+}
+
+.adm-sub-link:hover {
+  text-decoration: underline;
+}
+
+.adm-sub-prose {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 4px 0 16px;
+}
+
+/* pre-wrap: the brief is typed in a textarea, so the paragraph breaks the
+   visitor made are part of what they said. */
+.adm-sub-prose p {
+  margin: 0;
+  padding: 13px 15px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 14px;
+  line-height: 1.6;
+  color: #f5f1e8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.adm-sub-context {
+  margin-bottom: 16px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--adm-low);
+  opacity: 0.7;
+  overflow-wrap: anywhere;
+}
+
+.adm-sub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .adm-sub-row {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}
+
+/* ============================================================
+   SHELL v2 - a rail and a working pane.
+
+   What was wrong was composition, not colour. The old shell was a
+   1120px centred column with nine peer tabs in a horizontal strip:
+
+     - nine equally-weighted tabs said nothing about the fact that
+       Hero is a setting and Submissions is a mailbox;
+     - a centred column left a screen-height of black underneath a
+       one-row table;
+     - the section blurb, four lines of prose, sat between you and
+       your content on every single visit.
+
+   Everything below is the same palette and the same type scale. Only
+   the arrangement changed.
+   ============================================================ */
+.adm-shell {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* --- the rail --- */
+.adm-side {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 26px 18px 22px;
+  border-right: 1px solid var(--adm-hair);
+  /* A shade under the page so the rail reads as chrome, not content. */
+  background: #08090a;
+}
+
+.adm-side-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 8px;
+  font-family: var(--adm-serif);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--adm-pearl);
+}
+
+.adm-nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 22px;
+  overflow-y: auto;
+}
+
+.adm-nav-group { display: flex; flex-direction: column; gap: 1px; }
+
+.adm-nav-label {
+  padding: 0 8px 7px;
+  font-family: var(--adm-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--adm-faint);
+}
+
+.adm-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--adm-low);
+  font-family: var(--adm-sans);
+  font-size: 14px;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: color 0.2s var(--adm-ease), background 0.2s var(--adm-ease);
+}
+
+.adm-nav-item:hover { color: var(--adm-pearl); background: rgba(245, 241, 232, 0.05); }
+.adm-nav-item[data-active='true'] { color: var(--adm-pearl); background: rgba(245, 241, 232, 0.08); }
+
+/* The one point of accent per screen, same rule as before - it just moved
+   from under a tab to beside a nav item. */
+.adm-nav-bar {
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--adm-ember);
+}
+
+.adm-nav-badge {
+  margin-left: auto;
+  min-width: 19px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--adm-ember);
+  color: #0a0908;
+  font-family: var(--adm-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-side-out { width: 100%; }
+
+/* --- the working pane --- */
+.adm-main {
+  min-width: 0;
+  max-width: 1240px;
+  padding: 26px 34px 120px;
+}
+
+.adm-head {
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--adm-hair);
+}
+
+.adm-head-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.adm-head-title {
+  margin: 0;
+  font-family: var(--adm-serif);
+  font-size: 27px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.014em;
+  color: var(--adm-pearl);
+}
+
+.adm-head-count {
+  font-family: var(--adm-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--adm-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tools sit hard right, so the primary action lands in the same place on
+   every section instead of moving with the length of the heading. */
+.adm-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.adm-head-search { flex: 0 1 250px; min-width: 160px; }
+
+.adm-note-toggle {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 13px 0 0;
+  font-family: var(--adm-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--adm-faint);
+  cursor: pointer;
+  transition: color 0.2s var(--adm-ease);
+}
+.adm-note-toggle:hover { color: var(--adm-pearl); }
+
+.adm-head .adm-blurb { margin: 11px 0 2px; font-size: 13.5px; max-width: 84ch; }
+
+/* --- denser rows ---
+   63px of chrome per row meant four rows to a screen on a nine-section CMS.
+   Same information, less air. */
+.adm-card-head { gap: 12px; padding: 11px 14px; }
+.adm-thumb { width: 40px; height: 30px; }
+
+/* Status was appended to the meta line as "  ·  HIDDEN", which read as part
+   of the sentence. A flag is a different kind of fact, so it gets a
+   different shape. */
+.adm-flag {
+  margin-left: 9px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--adm-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--adm-faint);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* --- the rail folds down --- */
+@media (max-width: 900px) {
+  .adm-shell { grid-template-columns: minmax(0, 1fr); }
+  .adm-side {
+    position: static;
+    height: auto;
+    gap: 16px;
+    padding: 18px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--adm-hair);
+  }
+  /* Groups become one scrolling row. The headings are dropped rather than
+     stacked: at this width they would cost more height than they explain. */
+  .adm-nav { flex-direction: row; gap: 16px; overflow-x: auto; scrollbar-width: none; }
+  .adm-nav::-webkit-scrollbar { display: none; }
+  .adm-nav-group { flex-direction: row; align-items: center; gap: 2px; }
+  .adm-nav-label { display: none; }
+  .adm-nav-item { white-space: nowrap; }
+  .adm-nav-bar { top: auto; bottom: 0; left: 10px; right: 10px; width: auto; height: 2px; }
+  .adm-main { max-width: none; padding: 20px 16px 100px; }
+  .adm-head-tools { margin-left: 0; width: 100%; }
+  .adm-head-search { flex: 1 1 auto; }
+}

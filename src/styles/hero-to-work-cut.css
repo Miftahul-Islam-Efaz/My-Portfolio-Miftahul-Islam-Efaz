@@ -50,6 +50,10 @@
   --cut-flare-open: 0.18;
   --cut-burn: 0;
   --cut-curtain: 0;
+  --cut-line-out: 1;
+  /* Written on refresh, not per frame. Neutral enough for a first paint:
+     the slices are off-screen until the wipe starts. */
+  --cut-frame-w: 100vw;
 }
 
 /* The held frame.
@@ -284,5 +288,227 @@
   .cut-burn,
   .cut-curtain {
     display: none;
+  }
+}
+
+/* ---------- The slate ----------
+   THE END CARD, UNCOVERED BY THE WIPE.
+
+   ===========================================================================
+   HOW THE REVEAL WORKS
+   ===========================================================================
+   There is no reveal animation. There is one window per column.
+
+   Each .cut-slate-slice is a window the width of one column, and each holds a
+   copy of the same centred card at .cut-slate-inner. The slice rises exactly
+   as its black column does - same --cut-curtain channel, same --d delay, same
+   easing - and the inner is translated by the NEGATIVE of that amount. Net
+   movement of the type: zero. Movement of the window over it: the full height
+   of the frame.
+
+   So the staircase edge that takes the hero away is the same edge that carves
+   out the words, and the type is only ever painted on the black the columns
+   have already laid down.
+
+   WHY WINDOWS AND NOT A MASK. A per-column mask needs sixteen custom
+   properties written every frame, and an animated clip-path or mask-position
+   repaints - over a playing video, in sixteen places. This is two composited
+   transforms per slice and nothing else, which is the same bargain the columns
+   themselves already make.
+
+   WHY --cut-frame-w. Slices are laid out in px off the frame's measured width
+   rather than in percentages of their own width. A percentage would resolve
+   against a fractional column width, the inner copies would land on slightly
+   different offsets, and the type would TEAR at the seams. The hook writes
+   that width on refresh only.
+
+   ===========================================================================
+   TYPOGRAPHY: "TWO VOICES, ONE HUE"
+   ===========================================================================
+   The concept is documented in full at CUT_LINE in
+   config/heroToWorkCut.ts. The short version, because it is the thing most
+   likely to get "tidied" later:
+
+     - The STATEMENT is Boreck caps, off-white - the hero's own face. Stone.
+     - The CODA is OPTIMA ITALIC, terracotta. Hand.
+
+   The hierarchy is a contrast of FORM, not of size. Setting the coda in
+   Boreck at 45% was an earlier version, and two lines of the same caps face
+   is a label, not a card. Do not put them back in the same voice.
+
+   THE HUE IS THE TYPE. There is no marker dot and no hairline rule any more.
+   The terracotta is spent on LETTERFORMS instead of on furniture - the same
+   move the EFAZ wordmark makes - so the card carries no ornament whatsoever:
+   two lines of type, nothing else. The tier break is carried by face, size
+   and colour at once, with no divider to lean on, which is exactly why one
+   should not be added back.
+
+   Measures narrow going down - 54rem then 34rem - so the card tapers into the
+   work section rather than sitting in a box. */
+
+.cut-slate {
+  position: absolute;
+  inset: 0;
+  /* Beat 5. Neutral at 1, so a first paint before the hook mounts cannot hide
+     the card. */
+  opacity: var(--cut-line-out);
+  pointer-events: none;
+}
+
+/* One window per column. Geometry mirrors .cut-col exactly, in px. */
+.cut-slate-slice {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Half a pixel of bleed each side, so a fractional frame width cannot leave
+     a hairline of unpainted type between neighbours. The inner copy takes the
+     same offset back out below, so the bleed costs no alignment. */
+  left: calc(var(--i) * var(--cut-frame-w) / var(--cut-cols) - 0.5px);
+  width: calc(var(--cut-frame-w) / var(--cut-cols) + 1px);
+  overflow: hidden;
+
+  /* This slice's own progress - identical expression to .cut-col, on purpose.
+     The window and the black it uncovers must never disagree by a frame. */
+  --col: clamp(0, calc(var(--cut-curtain) * var(--cut-col-span) - var(--d)), 1);
+
+  transform: translate3d(0, calc((1 - var(--col)) * 100%), 0);
+  will-change: transform;
+}
+
+/* The card, held still while its window travels. The counter-translate is the
+   whole effect; the +0.5px cancels the slice's bleed. */
+.cut-slate-inner {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  left: calc(-1 * var(--i) * var(--cut-frame-w) / var(--cut-cols) + 0.5px);
+  width: var(--cut-frame-w);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transform: translate3d(0, calc((1 - var(--col)) * -100%), 0);
+  will-change: transform;
+}
+
+.cut-slate-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-inline: clamp(1.5rem, 7vw, 8rem);
+}
+
+/* ---- The statement. Stone. Off-white. ---- */
+.cut-slate-lead {
+  max-width: min(90vw, 54rem);
+  font-family: var(--font-hero-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 5.4vw, 4.6rem);
+  line-height: 1.02;
+  letter-spacing: 0.012em;
+  color: var(--color-primary);
+  text-wrap: balance;
+}
+
+/* ---- The coda. Hand. Terracotta. ----
+   Optima italic, and nothing below 400 - fonts.css explains why. The measure
+   is deliberately narrower than the statement's, and the top margin is the
+   old rule's spacing, kept: the gap is what separates the tiers now. */
+.cut-slate-coda {
+  max-width: min(86vw, 34rem);
+  margin-top: clamp(1.1rem, 3.2vh, 2.2rem);
+  font-family: var(--font-optima);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(1.05rem, 2.05vw, 1.9rem);
+  line-height: 1.34;
+  letter-spacing: 0.015em;
+  /* Lifted a touch off the raw ember: terracotta at this size, in an italic
+     with modulated stems, needs the extra luminance to hold its contrast
+     against pure black. */
+  color: color-mix(in srgb, var(--cut-ember) 86%, var(--color-primary));
+  text-wrap: balance;
+}
+
+/* The one readable copy. Visually hidden - the sliced card above is
+   aria-hidden, because sixteen identical copies of a sentence is not a
+   document. */
+.cut-slate-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Phones. The coda's measure widens before its size drops - a flared italic
+   broken into three short lines stops reading as one breath. */
+@media (max-width: 640px) {
+  .cut-slate-stack {
+    padding-inline: 1.35rem;
+  }
+
+  .cut-slate-lead {
+    max-width: 94vw;
+    font-size: clamp(1.6rem, 8.4vw, 2.6rem);
+    line-height: 1.08;
+  }
+
+  .cut-slate-coda {
+    max-width: 90vw;
+    margin-top: 1.1rem;
+    font-size: clamp(0.95rem, 4.1vw, 1.25rem);
+    line-height: 1.4;
+  }
+}
+
+/* Short viewports - landscape phones, split screens. Both tiers come down
+   together so the ratio between them survives. */
+@media (max-height: 620px) {
+  .cut-slate-lead {
+    font-size: clamp(1.35rem, 5vw, 2.1rem);
+  }
+
+  .cut-slate-coda {
+    margin-top: 0.7rem;
+    font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+  }
+}
+
+/* Motion off: the hook never mounts, --cut-curtain stays 0, and every slice
+   would sit off-screen below the frame forever. The sliced card is switched
+   off and the sentence is shown as plain static type in normal flow instead -
+   it is content, not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  .cut-slate {
+    display: none;
+  }
+
+  .cut-slate-sr {
+    position: relative;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+
+    padding: clamp(3rem, 10vh, 6rem) clamp(1.5rem, 7vw, 8rem);
+    max-width: min(90vw, 54rem);
+    margin-inline: auto;
+    text-align: center;
+
+    font-family: var(--font-hero-display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 4vw, 2.75rem);
+    line-height: 1.1;
+    letter-spacing: 0.012em;
+    color: var(--color-primary);
   }
 }

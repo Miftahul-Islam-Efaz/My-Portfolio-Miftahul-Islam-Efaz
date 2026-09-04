@@ -29,9 +29,9 @@ const GREETINGS = [
  * 1000ms is the readable equivalent at this travel distance.
  */
 const WIPE_DURATION_MS = 1000;
-const GREETING_INTERVAL_MS = 220;
-const NAME_REVEAL_DELAY_MS = 350;
-const NAME_HOLD_MS = 1500;
+const GREETING_INTERVAL_MS = 176;
+const NAME_REVEAL_DELAY_MS = 280;
+const NAME_HOLD_MS = 1200;
 
 /* ------------------------------------------------------------------
    THE TRAILING WAVE
@@ -145,11 +145,11 @@ const RevealLoader = ({
       currentProgress = Math.min(100, currentProgress + jump);
       setCounterValue(currentProgress);
 
-      const delay = 40 + Math.random() * (remaining < 15 ? 160 : 80);
+      const delay = 32 + Math.random() * (remaining < 15 ? 128 : 64);
       timeoutId = setTimeout(stepCounter, delay);
     };
 
-    timeoutId = setTimeout(stepCounter, 500);
+    timeoutId = setTimeout(stepCounter, 120);
     return () => {
       clearTimeout(timeoutId);
       clearTimeout(revealTimeoutId);

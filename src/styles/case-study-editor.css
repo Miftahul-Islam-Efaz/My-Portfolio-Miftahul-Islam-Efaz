@@ -1,0 +1,465 @@
+/**
+ * THE CASE STUDY INSPECTOR.
+ *
+ * Two panes: the document in the middle, its fields on the right. Only
+ * CaseStudyEditor draws these, so they live beside it rather than in admin.css
+ * - that file is the panel chrome, and the panel chrome is shared by nine
+ * tables. Mixing one table's editor into it is how a stylesheet starts needing
+ * a table of contents.
+ *
+ * NEUTRAL BY CONSTRUCTION. Every hairline and fill here is mixed from
+ * currentColor rather than a hardcoded rgba, so the chrome reads correctly
+ * whichever way the panel's palette goes. A fixed rgba(255,255,255,0.1) rule is
+ * invisible on a light surface - the kind of bug that only shows up the day the
+ * theme changes.
+ *
+ * SELECTION IS DRAWN WITH OUTLINES, NOT AN OVERLAY. `outline` does not
+ * participate in layout, so highlighting a region cannot nudge the document it
+ * is highlighting. An absolutely positioned overlay would have to recompute
+ * rectangles on every resize, scroll and reflow; this recomputes nothing.
+ */
+
+.adm-ins {
+  display: flex;
+  flex-direction: column;
+  /* Fills the panel card rather than growing with the document - the canvas
+     scrolls internally, so the page itself must not. */
+  height: min(86vh, 1040px);
+  margin: -4px 0;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ---- Top bar ---- */
+
+.adm-ins-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+.adm-ins-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.adm-ins-id,
+.adm-ins-zoom {
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.5;
+}
+
+.adm-ins-bar .adm-btn.is-active {
+  border-color: color-mix(in srgb, currentColor 45%, transparent);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+/* ---- The two panes ---- */
+
+.adm-ins-body {
+  display: grid;
+  /* The panel is a fixed reading width; the canvas takes the rest. minmax(0,1fr)
+     and not 1fr, or a wide scaled stage would force the grid open. */
+  grid-template-columns: minmax(0, 1fr) 360px;
+  min-height: 0;
+  flex: 1;
+}
+
+.adm-ins-canvas {
+  position: relative;
+  overflow: auto;
+  padding: 24px;
+  min-height: 0;
+  overscroll-behavior: contain;
+  /* A neutral field so the paper-toned document reads as an object on a
+     surface rather than as the surface itself. */
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      color-mix(in srgb, currentColor 7%, transparent),
+      transparent 60%
+    ),
+    color-mix(in srgb, currentColor 3%, transparent);
+}
+
+/**
+ * The stage is sized with `zoom` rather than `transform: scale()`.
+ *
+ * A transform-scaled box still RESERVES its unscaled size, so a 1180x5000
+ * document shown at 40% would reserve 5000px of height and leave 3000px of
+ * empty canvas underneath it. `zoom` participates in layout, so the reserved
+ * box shrinks with the content and `margin: 0 auto` can centre it.
+ */
+.adm-ins-stage {
+  margin: 0 auto;
+  /* Belongs to the document, not the panel: the case study is drawn on paper. */
+  background: #f5f1e8;
+  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.45);
+}
+
+/* ==========================================================================
+ * MOUNTING THE REAL WINDOW INSIDE A PANEL.
+ *
+ * The site's own work-case-study.css is loaded here on purpose - the type must
+ * be the real type, or the preview is a lie. But the window was built to be a
+ * full-screen overlay, and three of its properties have to be undone for it to
+ * behave as an element. Each is undone as narrowly as possible.
+ *
+ * THIS BLOCK IS LOAD-BEARING. It previously lived in admin.css scoped to
+ * `.adm-cs-frame`. When the wrapper was renamed to `.adm-ins-stage` these rules
+ * silently stopped matching, and the result was not a cosmetic regression: the
+ * window root is `position: fixed`, so the document escaped the canvas entirely
+ * and painted itself over the sidebar. Renaming the wrapper means renaming
+ * these selectors WITH it.
+ * ========================================================================== */
+
+/* 1. De-overlay the window root. Without this the preview is a fixed overlay
+ *    positioned against the viewport, not against the canvas. */
+.adm-ins-stage [data-adm-preview] {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  z-index: auto !important;
+  overflow: visible !important;
+  transform: none !important;
+  clip-path: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background: transparent;
+}
+
+/* 2. The cover is 100vh by design. Not in here - one card would be taller than
+ *    the screen before you reached the prose. */
+.adm-ins-stage .case-study__cover {
+  height: 58vh !important;
+  min-height: 340px !important;
+  max-height: 620px !important;
+}
+
+/* 3. Settle the reveal ladder and the per-character claim sweep. Everything
+ *    animates in from opacity 0 on a ladder the parent window normally
+ *    triggers; nothing triggers it here, so it must be settled rather than
+ *    left invisible. It would also replay on every keystroke, since a
+ *    re-render remounts it. */
+.adm-ins-stage [data-rise],
+.adm-ins-stage .case-study__claim-char {
+  opacity: 1 !important;
+  transform: none !important;
+  clip-path: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* The preview is a control surface now, so nothing inside it should behave like
+   a document: no caret, no text drag, no link cursor. */
+.adm-ins-stage [data-adm-preview] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.adm-ins-stage a {
+  cursor: inherit;
+}
+
+/* ---- Hover and selection ---- */
+
+.adm-ins-stage [data-adm-target] {
+  position: relative;
+  cursor: pointer;
+  /* Transparent rather than absent, so gaining an outline on hover cannot
+     shift the offset and make the box appear to twitch. */
+  outline: 1.5px solid transparent;
+  outline-offset: 4px;
+  border-radius: 2px;
+  transition: outline-color 120ms linear, background-color 120ms linear;
+}
+
+/**
+ * THE ONE TARGET THAT MUST NOT BE RELATIVE.
+ *
+ * `position: relative` above exists so the hover badge has an ancestor to
+ * anchor to, and it is safe for every region the site leaves static. The cover
+ * media is the exception: the site fills the hero with it using
+ * `position: absolute; inset: 0`, and `[data-adm-target]` (attribute + class)
+ * outranks a single class - so the rule above collapsed the anchor out of its
+ * fill, and the next/image `fill` inside it was left with a zero-height box to
+ * fill. The photograph vanished, which is a strange way for a positioning rule
+ * to fail and worth the comment.
+ *
+ * It is already positioned, so the badge still anchors correctly.
+ */
+.adm-ins-stage .case-study__cover-media[data-adm-target] {
+  position: absolute !important;
+  inset: 0 !important;
+}
+
+.adm-ins-stage [data-adm-target]:hover {
+  outline-color: color-mix(in srgb, #4c8dff 70%, transparent);
+  background-color: color-mix(in srgb, #4c8dff 7%, transparent);
+}
+
+.adm-ins-stage [data-adm-target]:focus-visible {
+  outline-color: #4c8dff;
+  outline-style: dashed;
+}
+
+/**
+ * The floating name badge.
+ *
+ * COUNTER-SCALED. The stage may be at 35%, and a label rendered at 35% would be
+ * unreadable - exactly when you most need it, since that is the zoom at which
+ * you cannot identify a region by eye. Dividing by --adm-zoom keeps it at its
+ * true size at every zoom level. The variable is published by the component as
+ * an inline style.
+ */
+.adm-ins-stage [data-adm-target]::before {
+  content: attr(data-adm-label);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  transform: translateY(-100%) scale(calc(1 / var(--adm-zoom, 1)));
+  transform-origin: bottom left;
+  margin-top: -6px;
+  padding: 3px 7px;
+  border-radius: 3px;
+  background: #4c8dff;
+  color: #fff;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* The cover badge would sit above the top edge of the document and be clipped
+   by the hero's own `overflow: hidden`. Tuck it inside instead. */
+.adm-ins-stage .case-study__cover-media[data-adm-target]::before {
+  top: auto;
+  bottom: 8px;
+  transform: scale(calc(1 / var(--adm-zoom, 1)));
+  transform-origin: bottom left;
+  margin: 0 0 0 8px;
+}
+
+.adm-ins-stage [data-adm-target]:hover::before,
+.adm-ins-stage [data-adm-target]:focus-visible::before {
+  opacity: 1;
+}
+
+/* The selected region stays marked after the pointer leaves, so the link
+   between document and panel survives moving the mouse to the panel. */
+.adm-ins-stage[data-selected-group="cover"] [data-adm-target="cover"],
+.adm-ins-stage[data-selected-group="facts"] [data-adm-target="facts"],
+.adm-ins-stage[data-selected-group="problem"] [data-adm-target="problem"],
+.adm-ins-stage[data-selected-group="build"] [data-adm-target="build"],
+.adm-ins-stage[data-selected-group="delivery"] [data-adm-target="delivery"],
+.adm-ins-stage[data-selected-group="credits"] [data-adm-target="credits"] {
+  outline-color: color-mix(in srgb, #4c8dff 55%, transparent);
+  background-color: color-mix(in srgb, #4c8dff 5%, transparent);
+}
+
+/* Indexed regions: only the selected ITEM is marked, not every sibling. */
+.adm-ins-stage[data-selected-group="screens"][data-selected-index="0"] [data-adm-target="screens"][data-adm-index="0"],
+.adm-ins-stage[data-selected-group="screens"][data-selected-index="1"] [data-adm-target="screens"][data-adm-index="1"],
+.adm-ins-stage[data-selected-group="screens"][data-selected-index="2"] [data-adm-target="screens"][data-adm-index="2"],
+.adm-ins-stage[data-selected-group="screens"][data-selected-index="3"] [data-adm-target="screens"][data-adm-index="3"],
+.adm-ins-stage[data-selected-group="screens"][data-selected-index="4"] [data-adm-target="screens"][data-adm-index="4"],
+.adm-ins-stage[data-selected-group="screens"][data-selected-index="5"] [data-adm-target="screens"][data-adm-index="5"],
+.adm-ins-stage[data-selected-group="screens"][data-selected-index="6"] [data-adm-target="screens"][data-adm-index="6"],
+.adm-ins-stage[data-selected-group="screens"][data-selected-index="7"] [data-adm-target="screens"][data-adm-index="7"],
+.adm-ins-stage[data-selected-group="direction"][data-selected-index="0"] [data-adm-target="direction"][data-adm-index="0"],
+.adm-ins-stage[data-selected-group="direction"][data-selected-index="1"] [data-adm-target="direction"][data-adm-index="1"],
+.adm-ins-stage[data-selected-group="direction"][data-selected-index="2"] [data-adm-target="direction"][data-adm-index="2"],
+.adm-ins-stage[data-selected-group="direction"][data-selected-index="3"] [data-adm-target="direction"][data-adm-index="3"],
+.adm-ins-stage[data-selected-group="direction"][data-selected-index="4"] [data-adm-target="direction"][data-adm-index="4"] {
+  outline-color: #4c8dff;
+  background-color: color-mix(in srgb, #4c8dff 8%, transparent);
+}
+
+/* ---- Right panel ---- */
+
+.adm-ins-panel {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 12px;
+  border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  overscroll-behavior: contain;
+}
+
+.adm-ins-tip {
+  margin: 0 0 10px;
+}
+
+.adm-ins-group + .adm-ins-group {
+  margin-top: 6px;
+}
+
+.adm-ins-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 120ms linear;
+}
+
+.adm-ins-group-head:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.adm-ins-group[data-open="true"] .adm-ins-group-head {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* Selected but collapsed: the document region is still outlined, so the header
+   has to keep saying which group that outline belongs to. */
+.adm-ins-group[data-selected="true"] .adm-ins-group-head {
+  box-shadow: inset 2px 0 0 #4c8dff;
+}
+
+.adm-ins-group-index {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.45;
+}
+
+.adm-ins-group-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.adm-ins-group .adm-chev {
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  opacity: 0.45;
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.adm-ins-group[data-open="true"] .adm-chev {
+  transform: rotate(-135deg);
+}
+
+.adm-ins-group-body {
+  padding: 4px 8px 14px;
+}
+
+.adm-ins-group-body .adm-field + .adm-field {
+  margin-top: 12px;
+}
+
+/* ---- Repeater items (screens, principles) ---- */
+
+.adm-cs-item {
+  margin-top: 12px;
+  padding: 12px 0 12px 12px;
+  /* The left rule is the cheapest way to say "all of this is one screen"
+     without a heavier box inside an already-nested panel. */
+  border-left: 2px solid color-mix(in srgb, currentColor 18%, transparent);
+  transition: border-color 120ms linear;
+}
+
+.adm-cs-item + .adm-cs-item {
+  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* Mirrors the document highlight, so it is obvious which card belongs to the
+   region outlined in the middle. */
+.adm-cs-item[data-selected="true"] {
+  border-left-color: #4c8dff;
+}
+
+.adm-cs-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.adm-cs-item-num {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.55;
+}
+
+.adm-cs-item-flag {
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, #4c8dff 22%, transparent);
+  color: #4c8dff;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* A disabled Up/Down at the ends of a list is information, not an error - dim
+   it rather than hiding it, so the buttons do not move as you reorder. */
+.adm-cs-item-head .adm-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.adm-cs-item .adm-field {
+  margin-top: 10px;
+}
+
+/* ---- Narrow ---- */
+
+@media (max-width: 1100px) {
+  /* Side by side stops being legible well before the panel itself does: the
+     canvas would be scaled below readability to keep 360px for the fields. */
+  .adm-ins {
+    height: auto;
+  }
+
+  .adm-ins-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .adm-ins-canvas {
+    height: 60vh;
+  }
+
+  .adm-ins-panel {
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    overflow: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-ins-stage [data-adm-target],
+  .adm-ins-group-head,
+  .adm-ins-group .adm-chev,
+  .adm-cs-item {
+    transition: none;
+  }
+}

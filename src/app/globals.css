@@ -1,6 +1,20 @@
 @import '../styles/fonts.css';
 @import '../styles/hero-theme.css';
 @import '../styles/work-theme.css';
+@import '../styles/work-card-cue.css';
+@import '../styles/work-case-study.css';
+@import '../styles/case-study-video.css';
+@import '../styles/rake.css';
+@import '../styles/vault-teaser.css';
+@import '../styles/vault-window.css';
+@import '../styles/vault-gallery.css';
+@import '../styles/contact.css';
+@import '../styles/footer.css';
+@import "../styles/nav-menu.css";
+@import "../styles/work-gallery.css";
+@import "../styles/work-gallery-filters.css";
+@import "../styles/seo-abstract.css";
+
 @import url('https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 @import "tailwindcss";
 
@@ -12,6 +26,16 @@
    PixelatedElegance -> pixel micro-labels (ties into the dither work)
    Faces are declared in ../styles/fonts.css and served from /public/Fonts.
    ------------------------------------------------------------------ */
+
+@font-face {
+  font-family: 'Comico';
+  src:
+    url('/Fonts/comico/comico-regular.woff2') format('woff2'),
+    url('/Fonts/comico/comico-regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 @font-face {
   font-family: 'PixelatedElegance';
@@ -200,4 +224,32 @@ html.menu-open video {
     background: var(--color-accent);
     color: var(--color-background);
   }
+}
+
+/* ------------------------------------------------------------------
+   WORDMARK (header EFAZ)
+
+   Set in Boreck, served from /public/Fonts. No hover font swap.
+   ------------------------------------------------------------------ */
+
+@font-face {
+  font-family: 'Boreck';
+  src: url('/Fonts/boreck/boreckdisplay-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+.wordmark {
+  font-family: 'Boreck', var(--font-serif);
+  display: inline-block;
+  line-height: 1;
+}
+
+@font-face {
+  font-family: 'Monare';
+  src: url('/Fonts/monare/monare.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }

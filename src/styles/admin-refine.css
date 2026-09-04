@@ -1,0 +1,409 @@
+/*
+ * ADMIN PANEL - LAYOUT & DENSITY REFINEMENTS
+ *
+ * Loaded AFTER admin.css so it wins on source order. Nothing here changes the
+ * palette, the type pair or the shell composition - the arrangement and the
+ * density of the controls is the whole of it.
+ *
+ * Rules are prefixed with .adm on purpose. admin.css contains a
+ * `@media (max-width: 640px)` block that bumps inputs to 16px to stop iOS
+ * zooming a focused field. That block sits ABOVE this file, so an unprefixed
+ * `.adm-input` here would outrank it at every width and quietly reintroduce
+ * the zoom bug. The extra .adm keeps this file's specificity above the base
+ * rules while the mobile bump is restored explicitly at the bottom.
+ */
+
+/* ==========================================================================
+   1. THE HEADER TOOLBAR
+
+   THE BUG: `.adm-select { width: 100% }` is declared in the fields section of
+   admin.css, BELOW `.adm-filter-cat { width: auto }` in the filters section.
+   Equal specificity, so the later rule won and the category dropdown rendered
+   full-width. That pushed the search box, the dropdown and the Add button onto
+   three separate rows, and because `.adm-head-line` centres its items the
+   title ended up vertically stranded beside a three-storey toolbar.
+
+   THE FIX: controls in the toolbar size to their content, share one height,
+   and stay on one line.
+   ========================================================================== */
+.adm .adm-head-line {
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.adm .adm-head-title { flex: 0 0 auto; }
+
+.adm .adm-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.adm .adm-head-tools .adm-input,
+.adm .adm-head-tools .adm-select,
+.adm .adm-head-tools .adm-btn {
+  height: 34px;
+  min-height: 34px;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 8px;
+}
+
+.adm .adm-head-tools .adm-input,
+.adm .adm-head-tools .adm-select { padding: 0 11px; }
+
+.adm .adm-head-tools .adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.adm .adm-head-search {
+  flex: 0 1 230px;
+  min-width: 148px;
+}
+
+/* The actual override. A category name is short and fixed - the control has no
+   business being elastic. */
+.adm .adm-head-tools .adm-select {
+  width: auto;
+  flex: 0 0 auto;
+  max-width: 190px;
+  padding-right: 30px;
+}
+
+/* ==========================================================================
+   2. SELECTS GET A REAL CHEVRON
+   ========================================================================== */
+.adm .adm-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23d8d4c8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M1 1.75 6 6.25l5-4.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 7px;
+  padding-right: 30px;
+  cursor: pointer;
+}
+
+/* The popup list is OS-drawn: without this it inherits a white background in
+   most browsers and flashes against the dark panel. */
+.adm .adm-select option {
+  background: #1b1d21;
+  color: var(--adm-pearl);
+}
+
+/* ==========================================================================
+   3. THE FORM - SMALLER CONTROLS, TIGHTER GROUPS
+
+   The controls were sized like a landing-page form: 15px type in a 46px-tall
+   box, 20px grid gutters, hints running 60 characters. In a CMS you are
+   scanning a dozen fields at once, not filling in a signup, so the whole block
+   comes down a step.
+
+   Grouping matters more than size here. A label, its control and its hint are
+   one thing, so the space INSIDE that trio is now smaller than the space
+   between one field and the next - which is what makes a form legible at a
+   glance rather than reading as an undifferentiated stack of boxes.
+   ========================================================================== */
+.adm .adm-grid {
+  grid-template-columns: repeat(auto-fit, minmax(224px, 1fr));
+  /* row-gap > the internal spacing of a field, so fields read as units. */
+  gap: 18px 16px;
+  padding-top: 14px;
+}
+
+.adm .adm-card-body { padding: 4px 14px 16px; }
+
+.adm .adm-label {
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  margin-bottom: 5px;
+  color: var(--adm-low);
+}
+
+.adm .adm-input,
+.adm .adm-select,
+.adm .adm-textarea {
+  font-size: 13.5px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  line-height: 1.45;
+}
+
+/* Fixed height on the single-line controls so a text box and a dropdown in
+   adjacent columns line up instead of missing each other by 2px. */
+.adm .adm-input,
+.adm .adm-select {
+  height: 34px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.adm .adm-select { padding-right: 30px; }
+
+.adm .adm-textarea {
+  min-height: 78px;
+  height: auto;
+  padding: 8px 10px;
+  max-width: 66ch;
+  line-height: 1.6;
+}
+
+/* The hint is support, not content. It was competing with the value above it. */
+.adm .adm-hint {
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin-top: 4px;
+  max-width: 48ch;
+  color: var(--adm-faint);
+}
+
+/* A field spanning the full grid still should not span the full monitor. */
+.adm .adm-field.is-wide > .adm-input,
+.adm .adm-field.is-wide > .adm-select {
+  max-width: 520px;
+}
+
+.adm .adm-check { padding-top: 0; gap: 8px; }
+.adm .adm-check input { width: 15px; height: 15px; }
+.adm .adm-check span { font-size: 13.5px; }
+
+.adm .adm-actions {
+  gap: 8px;
+  padding-top: 14px;
+  margin-top: 2px;
+}
+
+.adm .adm-actions .adm-btn {
+  height: 34px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   4. MEDIA FIELDS
+
+   `.adm-media-big .adm-media-row` was `column` + `align-items: stretch`, which
+   turned the FILE row into a full-width input with a full-width Upload slab
+   underneath. A URL and its upload button are one action and belong on one
+   line.
+
+   The preview is a CHECK, not the subject. It only has to be big enough to
+   confirm you picked the right file, and at 440x300 it was pushing the next
+   field off the screen.
+   ========================================================================== */
+.adm .adm-media-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  max-width: 520px;
+}
+
+.adm .adm-media-row .adm-input { flex: 1 1 auto; min-width: 0; }
+
+.adm .adm-media-row .adm-btn {
+  flex: 0 0 auto;
+  height: 34px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  line-height: 1;
+}
+
+.adm .adm-media-big .adm-media-row {
+  flex-direction: row;
+  align-items: center;
+}
+
+/* Contain, never cover: a cropped preview would hide the very mismatch the
+   preview exists to reveal. It just does not need 300px of height to do it. */
+.adm .adm-preview {
+  max-width: 168px;
+  margin-top: 8px;
+  border-radius: 6px;
+}
+
+.adm .adm-media-big .adm-preview {
+  width: auto;
+  max-width: 260px;
+  max-height: 180px;
+}
+
+.adm .adm-media-big .adm-preview img,
+.adm .adm-media-big .adm-preview video {
+  max-height: 180px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   5. ROW CHROME
+   ========================================================================== */
+.adm .adm-card-head .adm-btn.is-small {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.adm .adm-card-head { gap: 12px; padding: 9px 13px; }
+
+.adm .adm-chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  flex: 0 0 auto;
+}
+
+.adm .adm-main { max-width: 1180px; }
+
+/* ==========================================================================
+   6. CONTACT SUBMISSIONS - READABILITY
+
+   The values were never the problem. The KEYS were: 11px uppercase at 68%
+   opacity, 150px away from the value they label. Two separate failures at
+   once - too faint to read, and too far away to pair with anything.
+
+   So: the key column narrows, the gap closes, and the key gets enough weight
+   and contrast to be read rather than guessed at. The value stays 14px,
+   because that half of the row was already fine.
+   ========================================================================== */
+.adm .adm-sub-row {
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 16px;
+  padding: 7px 0;
+  align-items: baseline;
+}
+
+.adm .adm-sub-key {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
+  /* 0.68 -> 0.88. At 10px uppercase on near-black, 68% is under the AA floor
+     and is the single reason this panel felt unreadable. */
+  color: rgba(216, 212, 200, 0.88);
+}
+
+.adm .adm-sub-val {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--adm-pearl);
+}
+
+.adm .adm-sub-detail { margin-bottom: 12px; }
+
+/* The brief is the one piece of long-form prose in the panel, so it keeps a
+   comfortable measure and a looser line height than anything else here. */
+.adm .adm-sub-prose { gap: 6px; margin: 2px 0 14px; }
+
+.adm .adm-sub-prose p {
+  font-size: 13.5px;
+  line-height: 1.7;
+  padding: 12px 14px;
+  max-width: 76ch;
+}
+
+.adm .adm-sub-chip {
+  height: 32px;
+  padding: 0 13px;
+  font-size: 12.5px;
+  line-height: 1;
+}
+
+.adm .adm-sub-filters { gap: 6px; margin-bottom: 14px; }
+
+.adm .adm-sub-actions .adm-btn {
+  height: 34px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.adm .adm-sub-context { font-size: 11.5px; opacity: 0.8; }
+
+/* ==========================================================================
+   7. FOCUS
+
+   Keyboard focus was only ever styled on inputs, so tabbing through the rail
+   and the buttons was invisible.
+   ========================================================================== */
+.adm .adm-btn:focus-visible,
+.adm .adm-nav-item:focus-visible,
+.adm .adm-note-toggle:focus-visible,
+.adm .adm-sub-chip:focus-visible {
+  outline: 2px solid var(--adm-ember);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   8. MOBILE
+
+   Restores the iOS zoom guard that section 3 would otherwise outrank, and
+   lets the toolbar stack deliberately rather than by accident.
+   ========================================================================== */
+@media (max-width: 900px) {
+  .adm .adm-head-tools {
+    flex-wrap: wrap;
+    margin-left: 0;
+    width: 100%;
+  }
+  .adm .adm-head-search { flex: 1 1 200px; }
+  .adm .adm-main { max-width: none; }
+}
+
+@media (max-width: 640px) {
+  /* 16px, and the boxes grow to match - a 34px control with 16px type inside
+     it would clip the descenders. */
+  .adm .adm-input,
+  .adm .adm-select,
+  .adm .adm-textarea { font-size: 16px; }
+
+  .adm .adm-input,
+  .adm .adm-select { height: 42px; }
+
+  .adm .adm-textarea { height: auto; }
+
+  .adm .adm-head-tools .adm-input,
+  .adm .adm-head-tools .adm-select {
+    font-size: 16px;
+    height: 42px;
+  }
+
+  .adm .adm-head-tools .adm-btn,
+  .adm .adm-media-row .adm-btn,
+  .adm .adm-actions .adm-btn { height: 42px; }
+
+  .adm .adm-media-row { flex-wrap: wrap; max-width: none; }
+
+  /* Key over value rather than beside it - 112px of label column is not worth
+     it at this width. */
+  .adm .adm-sub-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
+}

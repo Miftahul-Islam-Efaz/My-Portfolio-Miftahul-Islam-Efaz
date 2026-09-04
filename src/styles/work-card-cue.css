@@ -1,0 +1,107 @@
+/* ==========================================================================
+   THE OPEN CUE
+   --------------------------------------------------------------------------
+   The minimal square that follows the cursor while a card is hovered. Owned by
+   src/components/work/CardOpenCue.tsx; sizes, timings and colours arrive as
+   custom properties from config/caseStudy.ts and workTheme.ts.
+
+   TRACED FROM THE REFERENCE CLIP: a small hard-edged square, no radius, no
+   shadow, holding a hairline plus. It arrives by scaling up from just over
+   half size while turning a quarter turn - a plus rotated 90 degrees is still
+   a plus, so the turn is felt as motion rather than seen as a change. Pressing
+   turns it again and shrinks it slightly, which is the only feedback there is
+   before the window takes the screen.
+
+   TRANSFORM DISCIPLINE. The outer element's transform belongs to the RAF lerp
+   in CardOpenCue - CSS must never touch it, or the follow and the entrance
+   fight over the same property. Everything animated here lives on the inner
+   __box instead. That split is the whole reason there are two elements.
+   ========================================================================== */
+
+.work-cue {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* Above the pinned canvas and the project list, below the case study window
+     (99992) and the nav (9999) - a cue over the open menu would be nonsense. */
+  z-index: 40;
+  /* NEVER interactive. The canvas owns the pointer; see the note in
+     CardOpenCue.tsx about what happens if this element can take it. */
+  pointer-events: none;
+  will-change: transform;
+}
+
+.work-cue__box {
+  display: grid;
+  place-items: center;
+  width: var(--cue-size);
+  height: var(--cue-size);
+  background-color: var(--cue-paper);
+  border: 1px solid var(--cue-paper);
+  border-radius: var(--cue-radius);
+  opacity: 0;
+  transform: scale(var(--cue-from-scale)) rotate(calc(var(--cue-spin) * -1));
+  transition:
+    opacity var(--cue-out) ease,
+    transform var(--cue-out) cubic-bezier(0.64, 0, 0.78, 0);
+}
+
+.work-cue[data-visible='true'] .work-cue__box {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  transition:
+    opacity var(--cue-in) ease,
+    transform var(--cue-in) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Press. Held short - the window's own wipe is what carries the click. */
+.work-cue[data-pressed='true'] .work-cue__box {
+  transform: scale(0.88) rotate(var(--cue-spin));
+  transition:
+    opacity var(--cue-press) ease,
+    transform var(--cue-press) cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* The plus: two hairlines, drawn in the void colour so it reads as cut out of
+   the square rather than printed on it. */
+.work-cue__plus {
+  position: relative;
+  width: 11px;
+  height: 11px;
+}
+
+.work-cue__plus::before,
+.work-cue__plus::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  background-color: var(--cue-ink);
+}
+
+.work-cue__plus::before {
+  width: 100%;
+  height: 1px;
+}
+
+.work-cue__plus::after {
+  width: 1px;
+  height: 100%;
+}
+
+/* Touch pointers have no hover state to cue, and a square that chases a finger
+   reads as lag. The cards remain tappable; only the mark is dropped. */
+@media (hover: none), (pointer: coarse) {
+  .work-cue {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .work-cue__box,
+  .work-cue[data-visible='true'] .work-cue__box,
+  .work-cue[data-pressed='true'] .work-cue__box {
+    transition: opacity 120ms linear;
+    transform: none;
+  }
+}

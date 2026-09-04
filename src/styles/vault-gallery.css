@@ -1,0 +1,1258 @@
+﻿/* ==================================================================
+   THE VAULT GALLERY
+
+   A sheared three-column lattice that travels along one diagonal as
+   the window scrolls, and smears along that diagonal while it moves.
+   All numbers arrive as custom properties from config/vaultGallery.ts
+   - there are no tunable values in this file.
+
+   ------------------------------------------------------------------
+   THE STRUCTURE, AND WHY IT HAS THIS MANY LAYERS
+
+     .vault-gallery            vars live here; --vg-p and --vg-v too
+       svg.vault-gallery__defs   the shared motion-blur filter
+       .vault-gallery__field     clips the diagonal excursion
+         .vault-gallery__viewport  caps the width; IS the cq container
+           .vault-gallery__grid      the one element that translates
+             .vault-gallery__item      lattice offset (shear)
+               .vault-gallery__frame     reveal + crop + the smear
+       .vault-gallery__toggle    fixed, sibling of the field
+
+   Four elements deep is not decoration - each one owns exactly one
+   transform or one clip, and collapsing any two of them puts two
+   different animations on the same property:
+
+     grid  = the diagonal drift        (driven every frame)
+     item  = the static shear offset   (set once, per position)
+     frame = the arrival               (one keyframe run, per card)
+
+   Merge item into grid and the shear scrolls away. Merge frame into
+   item and the arrival fights the shear for `transform`.
+   ------------------------------------------------------------------ */
+
+.vault-gallery {
+	position: relative;
+
+	/* CLEARANCE UNDER THE HERO. The hero is a full-bleed photograph and
+	   the first row's tallest card is lifted TOWARD it, so without this
+	   the field starts hard against the image with no shoulder. */
+	padding-block-start: var(--vg-lead);
+
+	/* Room for the toggle to sit over the field's last row without
+	   covering it. */
+	padding-block-end: clamp(3rem, 10vh, 7rem);
+}
+
+/* The filter lives in the DOM but must never occupy any of it. */
+.vault-gallery__defs {
+	position: absolute;
+	width: 0;
+	height: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+/* ------------------------------------------------------------------
+   THE CLIP.
+
+   A safety net, not a layout tool. The drift is sized to stay inside
+   the vault body's own gutter (see driftX in config/vaultGallery.ts),
+   so in normal use nothing should reach this boundary - but the drift
+   is in vw and the gutter clamps, so at extreme widths the two can
+   disagree by a few pixels, and this keeps that from becoming a
+   horizontal scrollbar on the window.
+
+   `clip` and NOT `hidden`: overflow: hidden would make this element a
+   scroll container, which would (a) capture any horizontal overflow
+   as a real scrollbar and (b) become a clipping ancestor for the
+   toggle below, which is fixed now and has to answer to the window
+   rather than to this box. `clip` paints the same and does neither.
+   The toggle is a sibling rather than a child as well, so this
+   element has no say over it from either direction - belt and
+   braces, deliberately. */
+.vault-gallery__field {
+	overflow-x: clip;
+	/* The clip would otherwise crop the reveal's upward travel, the
+	   drift's vertical component, and the blur's spill. */
+	overflow-y: visible;
+}
+
+/* The width cap, and the container query context.
+
+   THE CONTAINER MUST BE THE GRID'S PARENT, NOT THE GRID. Every gap
+   and every shear step below is expressed in cqw - a percentage of
+   this element's inline size. A container cannot query itself, so if
+   `container-type` sat on the grid, its own cqw gaps would be
+   resolving against a width those gaps help determine. */
+.vault-gallery__viewport {
+	max-width: var(--vg-max);
+	margin-inline: auto;
+	container-type: inline-size;
+}
+
+/* ------------------------------------------------------------------
+   THE DIAGONAL.
+
+   One transform, on one element, driven by one variable. As --vg-p
+   runs -1 -> +1 (field below the viewport -> field above it) the
+   whole lattice travels up and to the left. Both components are
+   negated together, which is what keeps the travel on a single axis:
+   the ratio driftY/driftX IS the angle, and it cannot drift out of
+   true because neither term varies independently.
+
+   ---------------------------------------------------------------
+   BOTH PADDINGS ARE LOAD-BEARING. DO NOT REMOVE THEM.
+
+   transform does not affect layout, so every pixel the shear and the
+   drift borrow has to be reserved here or it escapes the grid's box.
+
+   VERTICAL. The lattice lifts its right-hand columns UP by as much as
+   --vg-lift-reserve and the drift moves the field up or down by
+   another --vg-drift-y, but the box is only as tall as its
+   untransformed content. Without the reserve the top row rises into
+   the hero, the bottom row leaves a hole beneath itself, and the
+   section ends before its own last row does - which is why a row
+   could not be scrolled fully into view. Top needs the lift AND the
+   drift; bottom needs only the drift, since nothing is pushed down.
+
+   HORIZONTAL. Every other row is shifted RIGHT by one gap, and a
+   shifted row needs somewhere to be shifted to. With no reserve the
+   unshifted rows already span the full width, so the shifted ones ran
+   off the right edge and were cut in half. The reference leaves a
+   fifth of its viewport empty for exactly this reason - its field is
+   79% of the frame, not 100%.
+
+   Reserving it as trailing padding is what keeps the FIELD centred
+   while its rows are not: unshifted rows sit flush left of the grid
+   box, shifted rows reach flush right, so their union is the full box
+   and the box is centred. Centring each row instead would put the
+   shift half off one edge and half off the other.
+   --------------------------------------------------------------- */
+.vault-gallery__grid {
+	display: grid;
+	grid-template-columns: repeat(var(--vg-columns), 1fr);
+	column-gap: var(--vg-gap-col);
+	row-gap: var(--vg-gap-row);
+
+	padding-block-start: calc(var(--vg-lift-reserve) + var(--vg-drift-y));
+	padding-block-end: var(--vg-drift-y);
+	padding-inline-end: var(--vg-shift-room);
+
+	transform: translate3d(
+		calc(
+			(var(--vg-p, 0) * var(--vg-drift-x) * -1) -
+					(var(--vg-row-shift) * var(--vg-row-float, 0))
+		),
+		calc(var(--vg-p, 0) * var(--vg-drift-y) * -1),
+		0
+	);
+	will-change: transform;
+}
+
+/* ------------------------------------------------------------------
+   THE SHEAR.
+
+   --c-lift and --r-shift are plain indices, set per card by the
+   component from the column count it is actually rendering. Two
+   offsets, and between them the whole reference layout:
+
+     x  +=  row index in cycle  x  one gap    (rows step right)
+     y  -=  column index        x  one step   (columns step up)
+
+   Set once at mount. Nothing rewrites these during scroll. */
+.vault-gallery__item {
+	content-visibility: auto;
+	contain-intrinsic-size: auto 100%;
+	display: block;
+	text-decoration: none;
+	color: inherit;
+	-webkit-tap-highlight-color: transparent;
+
+	transform: translate3d(
+		calc(var(--r-shift, 0) * var(--vg-row-shift)),
+		calc(var(--c-lift, 0) * var(--vg-lift-step) * -1),
+		0
+	);
+}
+
+/* The crop. Fixed box: the image scales INSIDE this, so neither a
+   hover nor the motion swell can change the lattice's geometry. */
+.vault-gallery__frame {
+	position: relative;
+	display: block;
+	aspect-ratio: var(--vg-aspect);
+	overflow: hidden;
+	border-radius: var(--vg-radius);
+	background-color: color-mix(in srgb, var(--vw-base) 80%, #fff 20%);
+
+	/* The pre-arrival state. Held here and not on the item so the
+	   arrival's transform and the shear's transform never collide. */
+	opacity: 0;
+}
+
+/* ------------------------------------------------------------------
+   THE SMEAR.
+
+   Attached to the FRAME rather than to the image, so the whole card -
+   crop, rounded corners, caption - smears together and blurs out into
+   the page's black, which is what motion blur looks like. Filtering
+   the image alone would blur it into the frame's own background and
+   draw a bright halo just inside each card's edge.
+
+   Applied only while the field is actually moving. An element
+   carrying a filter is promoted to its own surface and re-rasterised
+   every frame, so a permanently attached url(#...) would tax a
+   perfectly still field for no visible effect. The component drops
+   data-moving below a threshold at which the blur is sub-pixel, so
+   nothing pops when it detaches. */
+.vault-gallery[data-moving='true'] .vault-gallery__grid {
+	/* ONE SURFACE, NOT THIRTY. The smear used to hang on every card's
+	   frame, which promoted each card to its own layer and forced the
+	   browser to re-rasterise every one of them on every frame of a
+	   scroll - that was the lag. Filtering the GRID instead rasterises
+	   a single surface per frame. The blur is the same directional
+	   filter driven by the same --vg-v write, so the effect is
+	   visually identical; only the cost moved. */
+	filter: url(#vg-motion);
+	/* A filtered element must be its own compositing context for the
+	   one-surface win to hold. */
+	isolation: isolate;
+}
+
+.vault-gallery__item[data-visible='true'] .vault-gallery__frame {
+	/* A keyframe run, not a transition - the house rule. `both` holds
+	   the from-state until the delay elapses, so a card that is already
+	   on screen at mount still rises rather than snapping. */
+	animation: vg-arrive var(--vg-reveal) var(--vg-ease) both;
+	animation-delay: calc(var(--i, 0) * var(--vg-stagger));
+}
+
+@keyframes vg-arrive {
+	from {
+		opacity: 0;
+		transform: translate3d(0, var(--vg-rise), 0);
+	}
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0);
+	}
+}
+
+.vault-gallery__image {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+
+	/* THE SWELL. In the reference the cards do not only blur while they
+	   travel, they grow very slightly - the pair together is what reads
+	   as weight rather than as a lens going soft.
+
+	   This is the independent `scale` property, NOT a transform, and
+	   that is the whole trick: the hover below owns `transform` and is
+	   transitioned over more than a second. Were the swell also a
+	   transform it would inherit that transition and lag the scroll by
+	   a second. As separate properties they compose without either
+	   inheriting the other's timing. */
+	scale: calc(1 + var(--vg-v, 0) * var(--vg-vel-scale));
+
+	/* Slow, and the only movement a card is allowed on hover. */
+	transition: transform 1200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.vault-gallery__item:hover .vault-gallery__image,
+.vault-gallery__item:focus-visible .vault-gallery__image {
+	transform: scale(1.04);
+}
+
+.vault-gallery__item:focus-visible .vault-gallery__frame {
+	outline: 1px solid var(--vw-ember);
+	outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------
+   THE CAPTION. Two lines, inside the card, bottom-left, over a
+   gradient that covers the FOOT of the frame only - the reference's
+   images are legible right up to their top edge and a full-card
+   scrim would flatten them. */
+.vault-gallery__caption {
+	position: absolute;
+	inset-inline: 0;
+	inset-block-end: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.15em;
+	padding: clamp(0.75rem, 1.6cqw, 1.25rem);
+	padding-block-start: clamp(2rem, 6cqw, 3.5rem);
+	background: linear-gradient(
+		to top,
+		rgb(0 0 0 / 62%) 0%,
+		rgb(0 0 0 / 34%) 45%,
+		rgb(0 0 0 / 0%) 100%
+	);
+	pointer-events: none;
+}
+
+.vault-gallery__title,
+.vault-gallery__sub {
+	font-family: var(--font-sans);
+	font-size: clamp(0.8rem, 1.55cqw, 1rem);
+	line-height: 1.28;
+	font-weight: 400;
+	letter-spacing: 0.01em;
+}
+
+.vault-gallery__title {
+	color: var(--vw-text-hi);
+}
+
+.vault-gallery__sub {
+	color: var(--vw-text-mid);
+}
+
+/* ------------------------------------------------------------------
+   THE TOGGLE.
+
+   It floats over the field while the field is on screen and leaves
+   with it.
+
+   That reasoning is why it was sticky: fixed cannot leave on its own.
+   Which was true - but sticky could not STAY either, and staying is
+   the harder half. See the rule below for what replaced it.
+
+   It is a sibling of __field, not a child, so the field's clip has no
+   say over it. */
+.vault-gallery__toggle {
+	/* FIXED, NOT STICKY.
+
+	   It was sticky, and a sticky element is bounded by its own
+	   parent: it can never be pushed outside the padding box of the
+	   thing it lives in. So it held the bottom of the window only
+	   while the field still had room beneath it, and then rode UPWARD
+	   with the section's own bottom edge as the last row went past.
+	   Worse on the `tools` set, which is shorter, so it started
+	   climbing almost at once. Nothing was animating it - it was
+	   running out of parent.
+
+	   Fixed has no such bound, so it is genuinely locked to the bottom
+	   of the window. The one thing sticky gave for free - leaving when
+	   the field leaves - now has to be said out loud, which is the
+	   data-field rule below.
+
+	   Its containing block is .vault-window__panel, which carries a
+	   clip-path and is therefore the containing block for fixed
+	   descendants. The panel is the whole window, so this resolves to
+	   the viewport in the overlay and on /vault alike. */
+	position: fixed;
+	inset-block-end: var(--vg-toggle-bottom);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 3;
+
+	display: flex;
+	justify-content: center;
+	gap: 0.25rem;
+	width: fit-content;
+	padding: 0.3rem;
+
+	border: 1px solid rgb(255 255 255 / 10%);
+	border-radius: 999px;
+	background-color: rgb(18 18 18 / 72%);
+	backdrop-filter: blur(14px) saturate(140%);
+	-webkit-backdrop-filter: blur(14px) saturate(140%);
+
+	/* Hidden until the field is on screen. Sticky used to handle this
+	   by simply not existing outside its parent; a fixed control has to
+	   be told, or it floats over the hero photograph and over whatever
+	   is put below the gallery later. */
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--vg-swap) var(--vg-ease);
+}
+
+.vault-gallery[data-field='in'] .vault-gallery__toggle {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.vault-gallery__tab {
+	appearance: none;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+
+	padding: 0.5rem 1.4rem;
+	border-radius: 999px;
+
+	/* Lowercase, per the reference. Everything else in this window is
+	   set in wide caps, and that contrast is what keeps these reading
+	   as controls rather than as two more labels. */
+	font-family: var(--font-sans);
+	font-size: clamp(0.8rem, 1.4vw, 0.95rem);
+	text-transform: lowercase;
+	letter-spacing: 0.02em;
+	color: var(--vw-text-mid);
+
+	transition:
+		background-color 260ms ease,
+		color 260ms ease;
+}
+
+.vault-gallery__tab[data-active='true'] {
+	background-color: rgb(255 255 255 / 12%);
+	color: var(--vw-text-hi);
+}
+
+.vault-gallery__tab:hover:not([data-active='true']) {
+	color: var(--vw-text-hi);
+}
+
+/* The press. The one place movement is allowed on a control. */
+.vault-gallery__tab:active {
+	transform: scale(0.97);
+}
+
+/* ------------------------------------------------------------------
+   NARROW WIDTHS
+
+   Note what is NOT here: the column count. It arrives as an inline
+   --vg-columns from the component, and inline styles outrank media
+   queries, so a breakpoint could not override it even if it tried.
+   That is deliberate - the component decides the count, because it
+   computes each card's row and column FROM that count. A breakpoint
+   changing it here would leave every card holding the coordinates of
+   a lattice it is no longer part of.
+
+   The gaps and steps need no breakpoints at all: they are in cqw, so
+   they are already proportional to the field at every width. */
+
+@media (max-width: 560px) {
+	/* TWO COLUMNS, FLAT. The component runs a 2x2 here and drops the
+	   shear with it, so it zeroes both the indices and the trailing
+	   reserve - see shearMobile in config/vaultGallery.ts.
+
+	   The drift is still worth softening. It is the one thing left
+	   moving sideways, and a phone has no gutter to spend on it: at full
+	   excursion the outer column would ride under the window's edge
+	   padding. A third of it still bends the travel off the vertical,
+	   which is all the diagonal is here to do. */
+	.vault-gallery__grid {
+		transform: translate3d(
+			calc(var(--vg-p, 0) * var(--vg-drift-x) * -0.35),
+			calc(var(--vg-p, 0) * var(--vg-drift-y) * -1),
+			0
+		);
+	}
+}
+
+/* ------------------------------------------------------------------
+   REDUCED MOTION
+
+   The lattice STAYS. It is layout, not motion - the staggered heights
+   are what the field looks like, and flattening them would serve a
+   different design. What stops is everything that moves: the diagonal
+   and the smear (the component never starts its loop, so --vg-p and
+   --vg-v both hold at 0), the arrival, and the hover scale.
+
+   Both padding reserves stay too. They are holding space for a shear
+   that is still there. */
+/* THE SHIFT GOES, BUT THE LIFT STAYS.
+
+   The row shift is unbounded and the rail that keeps it on screen is
+   driven from the ticker - which never starts here. Left in place the
+   staircase would simply walk off the right edge with nothing to pull
+   it back. The column lift is bounded and static, so it stays: the
+   field still reads as a lattice, just an unsheared one. */
+@media (prefers-reduced-motion: reduce) {
+	.vault-gallery__item {
+		transform: translate3d(
+			0,
+			calc(var(--c-lift, 0) * var(--vg-lift-step) * -1),
+			0
+		);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vault-gallery__frame {
+		opacity: 1;
+	}
+
+	.vault-gallery__item[data-visible='true'] .vault-gallery__frame {
+		animation: none;
+	}
+
+	/* Belt and braces - the loop never runs, so data-moving is never
+	   set, but a filter must not be one refactor away from returning
+	   here. */
+	.vault-gallery[data-moving='true'] .vault-gallery__frame {
+		filter: none;
+	}
+
+	.vault-gallery__image {
+		scale: 1;
+	}
+
+	.vault-gallery__image,
+	.vault-gallery__tab {
+		transition: none;
+	}
+
+	.vault-gallery__item:hover .vault-gallery__image,
+	.vault-gallery__item:focus-visible .vault-gallery__image {
+		transform: none;
+	}
+}
+
+/* ==================================================================
+   THE APPROACH FROM THE HERO
+
+   The hero is a full-bleed photograph and the interior below it is
+   flat black, so the seam between them was a hard horizontal cut
+   across the window - the photograph did not end, it stopped.
+
+   This is one band, owned by the gallery rather than by the hero,
+   that reaches back UP over the foot of the photograph and dissolves
+   it into the interior's black. The photograph appears to run out of
+   light on its way into the room the cards are in.
+
+   WHY THE GALLERY OWNS IT AND NOT THE HERO. The depth is a gallery
+   tunable (--vg-dawn) and custom properties only travel down: the
+   hero is the gallery's UNCLE in the tree, not its ancestor, so a
+   rule on .vault-window__hero could not read it. Reaching up out of
+   the gallery is what keeps the number and the thing it sizes in the
+   same place.
+
+   THIS PAINTS OVER THE HERO, WHICH IS ALLOWED. .vault-window__body
+   follows the hero in the DOM and sets no overflow, so a positioned
+   child of the body may paint outside it, above a sibling that came
+   earlier. Nothing here is clipped.
+
+   WHY IT CANNOT SWALLOW A CARD. Its bottom edge sits exactly on the
+   gallery box's top edge, and the grid's padding-block-start already
+   reserves the drift's vertical excursion - so the topmost card, at
+   the very top of its travel, arrives exactly at that line and never
+   crosses it. If that reserve is ever removed, the first row will
+   slide up under this band and vanish.
+   ================================================================== */
+.vault-gallery__dawn {
+	position: absolute;
+
+	/* Full window width, not the padded body's. The seam runs edge to
+	   edge, so a band inset by the body's gutter would leave the two
+	   corners of the photograph still hard-cut. 100vw is safe here
+	   because the window's scroller hides its scrollbar. */
+	left: 50%;
+	width: 100vw;
+	transform: translateX(-50%);
+
+	/* Above this section's own box, reaching back over the photograph.
+	   The body's top padding is zeroed for this section (see the rule
+	   at the foot of this file) precisely so that this edge and the
+	   photograph's bottom edge are the same line. */
+	inset-block-end: 100%;
+	height: var(--vg-dawn);
+
+	/* ONE FLAT COLOUR, SHAPED BY A MASK - not a gradient between two
+	   colours.
+
+	   This was a linear-gradient of color-mix() stops, which meant the
+	   fade depended on color-mix being supported: if it is not, the
+	   whole background declaration is dropped and the dissolve does not
+	   merely degrade, it VANISHES. A mask carries the ramp in its alpha
+	   channel instead, so the only colour involved is the surface's own
+	   var(--vw-base) and there is nothing to mix.
+
+	   SIX STOPS, NOT TWO, AND DELIBERATELY. See the note on
+	   .vault-window__scrim: a two-stop ramp bands visibly across an
+	   area this large and this dark, which is why that scrim is flat.
+	   The extra stops bend the curve so most of the transition happens
+	   low, where the photograph is already nearly black and a step
+	   cannot be seen. Note the ramp reaches FULL opacity at 100% - its
+	   own bottom edge, which is the photograph's bottom edge. Any
+	   short of that and the image's last pixels are only half covered,
+	   which leaves the hard line still visible through it. */
+	background-color: var(--vw-base);
+
+	-webkit-mask-image: linear-gradient(
+		to bottom,
+		rgb(0 0 0 / 0%) 0%,
+		rgb(0 0 0 / 8%) 22%,
+		rgb(0 0 0 / 26%) 42%,
+		rgb(0 0 0 / 54%) 60%,
+		rgb(0 0 0 / 82%) 78%,
+		rgb(0 0 0 / 100%) 100%
+	);
+	mask-image: linear-gradient(
+		to bottom,
+		rgb(0 0 0 / 0%) 0%,
+		rgb(0 0 0 / 8%) 22%,
+		rgb(0 0 0 / 26%) 42%,
+		rgb(0 0 0 / 54%) 60%,
+		rgb(0 0 0 / 82%) 78%,
+		rgb(0 0 0 / 100%) 100%
+	);
+
+	pointer-events: none;
+	/* Under the toggle, over the photograph. */
+	z-index: 1;
+}
+
+/* ==================================================================
+   THE SET CHANGING
+
+   The old set LEAVES, then the new one arrives on the reveal's own
+   per-card stagger. Two phases, not a crossfade.
+
+   WHY NOT A CROSSFADE. A true crossfade needs both sets in the DOM
+   at once, stacked - which means every image of the incoming set on
+   the wire before anything moves, and two lattices overlapping while
+   they trade opacity. The exit is 320ms; the arrival is already
+   built, already staggered, and already the language the field uses
+   when it is first scrolled into view. Reusing it makes a tab change
+   read like the field being dealt again rather than like a slide
+   swapping out.
+
+   OPACITY ONLY. The grid is also carrying the diagonal's transform,
+   rewritten every frame. An exit that touched transform would be
+   overwritten by the next tick - and would fight the drift for the
+   same property in the meantime. */
+.vault-gallery__grid[data-departing='true'] {
+	animation: vg-depart var(--vg-swap) var(--vg-ease) both;
+}
+
+@keyframes vg-depart {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+/* The component commits the new set immediately under reduced motion,
+   so data-departing is never set - this is the belt and braces. */
+@media (prefers-reduced-motion: reduce) {
+	.vault-gallery__grid[data-departing='true'] {
+		animation: none;
+	}
+}
+/* ==================================================================
+   THE GAP BETWEEN THE PHOTOGRAPH AND THIS SECTION, CLOSED
+
+   This is what was leaving a hard line at the foot of the hero even
+   with the dissolve in place.
+
+   The dissolve is anchored to the TOP EDGE of this section and
+   reaches upward, and it only finishes - reaches full black - at its
+   own bottom edge. .vault-window__body was padding that edge away
+   from the photograph by clamp(4rem, 12vh, 10rem), so the ramp was
+   completing in the empty black BELOW the image and crossing the
+   image's actual bottom edge at roughly half opacity. Half-covering
+   a hard edge does not soften it; it dims it and leaves it exactly
+   as sharp, which is what was on screen.
+
+   Zeroing that padding puts the two edges on the same line, so the
+   ramp finishes on the photograph's last row of pixels.
+
+   NO SHOULDER IS LOST. The gallery brings its own clearance -
+   --vg-lead, inside the section - which is where that space should
+   have been coming from anyway: it belongs to the field, it is
+   stated in the field's config, and it is the knob to turn if the
+   room under the hero ever needs to change.
+
+   Scoped with :has() rather than applied to the body outright, so a
+   second section added later keeps its own top padding.
+   ================================================================== */
+.vault-window__body:has(> .vault-window__section > .vault-gallery) {
+	padding-block-start: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vault-gallery__toggle {
+		transition: none;
+	}
+}
+/* =========================================================================
+   THE FILTERS, THE COPY PILL AND THE OPENED TILE
+   -------------------------------------------------------------------------
+   Appended rather than woven in: everything above is load-bearing for the
+   diagonal and the smear, and none of this touches transform, filter or
+   will-change on any element that already carries them.
+
+   The terracotta is used on single points only - an active chip, a focus
+   ring - never as a fill or a border run.
+   ========================================================================= */
+
+.vault-gallery__filters {
+	/* Fixed like the pill, and stacked directly above it. Not sticky: its
+	   parent is the field, which is clipped, and a sticky control inside a
+	   clipped ancestor is a control that vanishes. */
+	position: fixed;
+	left: 50%;
+	bottom: calc(var(--vg-toggle-bottom) + 4.25rem);
+	transform: translateX(-50%) translateY(0.5rem);
+
+	z-index: 12;
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+
+	width: min(46rem, calc(100vw - 2.5rem));
+
+	/* Invisible until the field is genuinely on screen, on the same flag the
+	   pill uses, so the two never disagree about whether the vault is here. */
+	opacity: 0;
+	pointer-events: none;
+	transition:
+		opacity 0.42s var(--vg-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+		transform 0.42s var(--vg-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.vault-gallery[data-field='in'] .vault-gallery__filters {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translateX(-50%) translateY(0);
+}
+
+.vault-gallery__search {
+	width: min(20rem, 100%);
+
+	padding: 0.5rem 0.9rem;
+
+	font-family: var(--font-sans, inherit);
+	font-size: 0.8125rem;
+	letter-spacing: 0.01em;
+	color: #f5f1e8;
+
+	background: rgba(38, 40, 45, 0.72);
+	-webkit-backdrop-filter: blur(14px);
+	backdrop-filter: blur(14px);
+
+	border: 1px solid rgba(245, 241, 232, 0.14);
+	border-radius: 999px;
+
+	transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.vault-gallery__search::placeholder {
+	color: rgba(216, 212, 200, 0.5);
+}
+
+.vault-gallery__search:focus {
+	outline: none;
+	border-color: #b56c4b;
+	background: rgba(38, 40, 45, 0.9);
+}
+
+/* Chrome draws its own clear button in a colour that fights the panel. */
+.vault-gallery__search::-webkit-search-cancel-button {
+	-webkit-appearance: none;
+	height: 0.7rem;
+	width: 0.7rem;
+	background: rgba(216, 212, 200, 0.55);
+	clip-path: polygon(
+		20% 0%, 0% 20%, 30% 50%, 0% 80%, 20% 100%,
+		50% 70%, 80% 100%, 100% 80%, 70% 50%,
+		100% 20%, 80% 0%, 50% 30%
+	);
+	cursor: pointer;
+}
+
+.vault-gallery__chips {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.375rem;
+}
+
+.vault-gallery__chip {
+	padding: 0.3125rem 0.75rem;
+
+	font-family: var(--font-sans, inherit);
+	font-size: 0.6875rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: rgba(216, 212, 200, 0.72);
+
+	background: rgba(38, 40, 45, 0.62);
+	-webkit-backdrop-filter: blur(14px);
+	backdrop-filter: blur(14px);
+
+	border: 1px solid rgba(245, 241, 232, 0.1);
+	border-radius: 999px;
+
+	cursor: pointer;
+	transition: color 0.22s ease, background-color 0.22s ease,
+		border-color 0.22s ease;
+}
+
+.vault-gallery__chip:hover:not([data-active='true']) {
+	color: #f5f1e8;
+	background: rgba(38, 40, 45, 0.85);
+}
+
+.vault-gallery__chip[data-active='true'] {
+	color: #050505;
+	background: #f5f1e8;
+	border-color: #f5f1e8;
+}
+
+.vault-gallery__none {
+	font-family: var(--font-sans, inherit);
+	font-size: 0.75rem;
+	letter-spacing: 0.04em;
+	color: rgba(216, 212, 200, 0.6);
+}
+
+/* ---------------------------------------------------------------------- */
+/* HOVER TO COPY                                                          */
+/* ---------------------------------------------------------------------- */
+
+.vault-gallery__copy {
+	position: absolute;
+	top: 0.625rem;
+	right: 0.625rem;
+	z-index: 3;
+
+	padding: 0.3125rem 0.625rem;
+
+	font-family: var(--font-sans, inherit);
+	font-size: 0.625rem;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+	color: #f5f1e8;
+
+	background: rgba(5, 5, 5, 0.62);
+	-webkit-backdrop-filter: blur(10px);
+	backdrop-filter: blur(10px);
+
+	border: 1px solid rgba(245, 241, 232, 0.18);
+	border-radius: 999px;
+
+	cursor: pointer;
+
+	/* Hidden until the tile is hovered or focused, and not clickable while
+	   hidden - an invisible button over a photograph is a trap. */
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-0.25rem);
+	transition: opacity 0.24s ease, transform 0.24s ease,
+		background-color 0.24s ease;
+}
+
+.vault-gallery__item:hover .vault-gallery__copy,
+.vault-gallery__item:focus-visible .vault-gallery__copy,
+.vault-gallery__copy:focus-visible {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translateY(0);
+}
+
+.vault-gallery__copy:hover {
+	background: rgba(181, 108, 75, 0.85);
+}
+
+/* Touch has no hover, so the pill would never appear. The window behind the
+   tap carries its own copy button, which is the whole reason it exists. */
+@media (hover: none) {
+	.vault-gallery__copy {
+		display: none;
+	}
+}
+
+/* ---------------------------------------------------------------------- */
+/* THE OPENED TILE                                                        */
+/* ---------------------------------------------------------------------- */
+
+.vault-detail {
+	position: fixed;
+	inset: 0;
+	/* Above the pill and the filters, below nothing else in the vault. */
+	z-index: 40;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: clamp(1rem, 4vw, 3rem);
+
+	background: rgba(5, 5, 5, 0.82);
+	-webkit-backdrop-filter: blur(18px);
+	backdrop-filter: blur(18px);
+
+	animation: vault-detail-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes vault-detail-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.vault-detail__panel {
+	position: relative;
+
+	display: grid;
+	/* Media beside prose on a wide screen, stacked on a narrow one. */
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+	gap: clamp(1rem, 2.5vw, 2rem);
+	align-items: start;
+
+	width: min(64rem, 100%);
+	max-height: min(86vh, 46rem);
+	overflow: hidden auto;
+	/* Contained so reaching the end of the prose does not hand the scroll to
+	   the vault's own nested Lenis behind it. */
+	overscroll-behavior: contain;
+
+	padding: clamp(1rem, 2.5vw, 1.75rem);
+
+	background: #26282d;
+	border: 1px solid #38393f;
+	border-radius: 1rem;
+
+	animation: vault-detail-rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes vault-detail-rise {
+	from {
+		opacity: 0;
+		transform: translateY(1.25rem) scale(0.985);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.vault-detail__media {
+	overflow: hidden;
+	border-radius: 0.625rem;
+	background: #050505;
+}
+
+.vault-detail__media img,
+.vault-detail__media video {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-height: 70vh;
+	object-fit: contain;
+}
+
+.vault-detail__body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding-right: 3.5rem;
+}
+
+.vault-detail__eyebrow,
+.vault-detail__label {
+	margin: 0;
+	font-family: 'IBM Plex Mono', ui-monospace, monospace;
+	font-size: 0.625rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: #b56c4b;
+}
+
+.vault-detail__label {
+	margin-top: 0.625rem;
+	color: rgba(216, 212, 200, 0.55);
+}
+
+.vault-detail__title {
+	margin: 0;
+	font-family: var(--font-display, serif);
+	font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+	line-height: 1.15;
+	color: #f5f1e8;
+}
+
+.vault-detail__caption {
+	margin: 0;
+	font-family: var(--font-sans, inherit);
+	font-size: 0.875rem;
+	color: rgba(216, 212, 200, 0.78);
+}
+
+.vault-detail__prompt {
+	margin: 0;
+
+	font-family: var(--font-sans, inherit);
+	font-size: 0.9375rem;
+	line-height: 1.6;
+	color: #d8d4c8;
+
+	/* Selectable on purpose: if the clipboard is refused - an insecure
+	   origin will refuse it - reading and selecting still works. */
+	-webkit-user-select: text;
+	user-select: text;
+	white-space: pre-wrap;
+}
+
+.vault-detail__empty {
+	margin: 0.375rem 0 0;
+	font-family: var(--font-sans, inherit);
+	font-size: 0.8125rem;
+	font-style: italic;
+	color: rgba(216, 212, 200, 0.5);
+}
+
+.vault-detail__btn {
+	align-self: flex-start;
+	margin-top: 0.75rem;
+	padding: 0.5rem 1rem;
+
+	font-family: var(--font-sans, inherit);
+	font-size: 0.6875rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	text-decoration: none;
+	color: #050505;
+
+	background: #f5f1e8;
+	border: 1px solid #f5f1e8;
+	border-radius: 999px;
+
+	cursor: pointer;
+	transition: background-color 0.22s ease, color 0.22s ease,
+		border-color 0.22s ease;
+}
+
+.vault-detail__btn:hover {
+	color: #f5f1e8;
+	background: #b56c4b;
+	border-color: #b56c4b;
+}
+
+.vault-detail__close {
+	position: absolute;
+	top: clamp(1rem, 2.5vw, 1.75rem);
+	right: clamp(1rem, 2.5vw, 1.75rem);
+	z-index: 2;
+
+	padding: 0.4375rem 0.8125rem;
+
+	font-family: var(--font-sans, inherit);
+	font-size: 0.625rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: rgba(216, 212, 200, 0.8);
+
+	background: rgba(5, 5, 5, 0.5);
+	border: 1px solid rgba(245, 241, 232, 0.16);
+	border-radius: 999px;
+
+	cursor: pointer;
+	transition: color 0.22s ease, border-color 0.22s ease;
+}
+
+.vault-detail__close:hover {
+	color: #f5f1e8;
+	border-color: #b56c4b;
+}
+
+@media (max-width: 860px) {
+	.vault-detail__panel {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.vault-detail__media img,
+	.vault-detail__media video {
+		max-height: 44vh;
+	}
+
+	.vault-detail__body {
+		padding-right: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vault-detail,
+	.vault-detail__panel {
+		animation: none;
+	}
+
+	.vault-gallery__filters,
+	.vault-gallery__copy {
+		transition: none;
+	}
+}
+/* ---------------------------------------------------------------------------
+   vault search / pill parity
+   The field was styled in its own language: a terracotta focus ring and a
+   lighter panel fill, sitting next to toggle pills that use a near-black fill,
+   a hairline white border and lavender accents. One shelf, two design systems.
+   These rules restage the field in the pill language. Appended last so they win
+   on the cascade without disturbing the original block.
+   --------------------------------------------------------------------------- */
+
+.vault-gallery__search {
+	-webkit-appearance: none;
+	appearance: none;
+
+	padding: 0.55rem 1.05rem;
+
+	font-size: 0.75rem;
+	letter-spacing: 0.08em;
+	color: #f1edfb;
+
+	background: rgb(18 18 18 / 72%);
+	-webkit-backdrop-filter: blur(14px) saturate(140%);
+	backdrop-filter: blur(14px) saturate(140%);
+
+	border: 1px solid rgb(255 255 255 / 10%);
+	border-radius: 999px;
+	outline: none;
+	box-shadow: none;
+
+	transition: border-color 0.25s ease, background-color 0.25s ease,
+		box-shadow 0.25s ease, color 0.25s ease;
+}
+
+.vault-gallery__search::placeholder {
+	color: rgb(241 237 251 / 38%);
+	letter-spacing: 0.08em;
+}
+
+.vault-gallery__search:hover {
+	background: rgb(18 18 18 / 82%);
+	border-color: rgb(255 255 255 / 18%);
+}
+
+.vault-gallery__search:focus,
+.vault-gallery__search:focus-visible {
+	color: #f1edfb;
+	background: rgb(18 18 18 / 88%);
+	border-color: rgb(220 214 242 / 55%);
+	box-shadow: 0 0 0 3px rgb(157 142 217 / 18%);
+	outline: none;
+}
+/* ---------------------------------------------------------------------------
+   opened tile / type and motion
+
+   THE TYPE. The window was drawn entirely in the UI faces: the eyebrow in IBM
+   Plex Mono, the prompt in Satoshi. Both are correct for chrome and wrong for
+   the two things here that are actually content. The prompt is now Comico, the
+   eyebrow is ARK_ES - the face this site already uses for micro-labels - and
+   the title carries the weight it was always missing.
+
+   THE SCROLLER. A long prompt used to grow the panel until the copy button was
+   below the fold. It is now a fixed well that scrolls on its own, so the button
+   never moves and the panel never grows past the media beside it.
+
+   THE EXIT. Opening was animated and closing was not - the window just ceased.
+   Same curve, same distance, reversed and slightly quicker, which is how every
+   other overlay on this site leaves.
+   --------------------------------------------------------------------------- */
+
+.vault-detail__eyebrow {
+	font-family: var(--font-ark-es), ui-monospace, monospace;
+	font-weight: 700;
+	font-size: 0.6875rem;
+	letter-spacing: 0.2em;
+}
+
+.vault-detail__label {
+	font-family: var(--font-ark-es), ui-monospace, monospace;
+	font-weight: 700;
+	letter-spacing: 0.2em;
+}
+
+.vault-detail__title {
+	font-weight: 700;
+	letter-spacing: -0.015em;
+}
+
+.vault-detail__prompt {
+	font-family: var(--font-comico), var(--font-sans), sans-serif;
+	font-size: 1rem;
+	line-height: 1.75;
+
+	/* The well. Short prompts sit at their natural height and show no
+	   scrollbar at all; only a long one earns the track. */
+	max-height: 13.5rem;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding-right: 0.85rem;
+
+	scrollbar-width: thin;
+	scrollbar-color: rgb(157 142 217 / 45%) rgb(255 255 255 / 5%);
+}
+
+.vault-detail__prompt::-webkit-scrollbar {
+	width: 6px;
+}
+
+.vault-detail__prompt::-webkit-scrollbar-track {
+	background: rgb(255 255 255 / 5%);
+	border-radius: 999px;
+}
+
+.vault-detail__prompt::-webkit-scrollbar-thumb {
+	background: rgb(157 142 217 / 45%);
+	border-radius: 999px;
+}
+
+.vault-detail__prompt::-webkit-scrollbar-thumb:hover {
+	background: rgb(157 142 217 / 75%);
+}
+
+/* Smoother arrival: the panel is promoted before it moves, so the first frame
+   of the rise is not also the frame that creates its layer. */
+.vault-detail__panel {
+	will-change: opacity, transform;
+}
+
+.vault-detail[data-closing='true'] {
+	animation: vault-detail-out 0.26s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.vault-detail[data-closing='true'] .vault-detail__panel {
+	animation: vault-detail-sink 0.26s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* Nothing in a closing window should still be inviting a click. */
+.vault-detail[data-closing='true'] .vault-detail__panel {
+	pointer-events: none;
+}
+
+@keyframes vault-detail-out {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes vault-detail-sink {
+	from {
+		opacity: 1;
+		transform: none;
+	}
+	to {
+		opacity: 0;
+		transform: translateY(0.75rem) scale(0.985);
+	}
+}
+
+@media (max-width: 860px) {
+	.vault-detail__prompt {
+		max-height: 9.5rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vault-detail[data-closing='true'],
+	.vault-detail[data-closing='true'] .vault-detail__panel {
+		animation: none;
+	}
+}

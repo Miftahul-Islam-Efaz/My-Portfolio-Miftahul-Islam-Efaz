@@ -1,0 +1,279 @@
+/* ------------------------------------------------------------------
+   THE REDUCTION
+
+   The site's only light section, deliberately: black hero, paper here,
+   black work helix. One inversion in the whole page is a structure the
+   viewer can feel, and it is what stops three dark sections in a row
+   from reading as one long dark section.
+
+   THE DEFAULTS IN THIS FILE ARE THE FINISHED STATE.
+
+   Nothing is hidden unless the hook has armed the section by setting
+   `data-reduction-state="armed"` on the root. That means a viewer with
+   reduced motion enabled, or a JS failure, or a bot, all get a fully
+   set, readable section instead of a blank paper rectangle. Never move
+   a hidden default out of the `[data-reduction-state="armed"]` block.
+   ------------------------------------------------------------------ */
+
+.reduction {
+	--rd-paper: #ede7da;
+	--rd-paper-deep: #e1d8c6;
+	--rd-ink: #26282d;
+	--rd-ember: #b56c4b;
+	--rd-void: #050505;
+	--rd-edge: 14%;
+
+	position: relative;
+	width: 100%;
+	background-color: var(--rd-void);
+}
+
+/* The pinned screen. `overflow: hidden` keeps the drifting field and the
+   edge fades inside the stage while it is pinned. */
+.reduction__stage {
+	position: relative;
+	height: 100svh;
+	width: 100%;
+	overflow: hidden;
+	background:
+		radial-gradient(
+			120% 90% at 50% 42%,
+			var(--rd-paper) 0%,
+			var(--rd-paper-deep) 100%
+		);
+}
+
+/* The fragment field. Behind the type, above the paper. */
+.reduction__field {
+	position: absolute;
+	inset: 0;
+	display: block;
+	pointer-events: none;
+}
+
+/* Seam killers. Both ends melt into the void the sections either side
+   are painted in, so no divider is ever drawn. */
+.reduction__edge {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: var(--rd-edge);
+	pointer-events: none;
+	z-index: 2;
+}
+
+.reduction__edge--top {
+	top: 0;
+	background: linear-gradient(to bottom, var(--rd-void), transparent);
+}
+
+.reduction__edge--bottom {
+	bottom: 0;
+	background: linear-gradient(to top, var(--rd-void), transparent);
+}
+
+.reduction__inner {
+	position: relative;
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	height: 100%;
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 0 1.5rem;
+	gap: clamp(1.75rem, 4vh, 3.25rem);
+}
+
+@media (min-width: 768px) {
+	.reduction__inner {
+		padding: 0 3rem;
+	}
+}
+
+@media (min-width: 1024px) {
+	.reduction__inner {
+		padding: 0 5rem;
+	}
+}
+
+/* ---------------- eyebrow ---------------- */
+
+.reduction__eyebrow {
+	font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+	font-size: 0.6875rem;
+	font-weight: 500;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: color-mix(in srgb, var(--rd-ink) 52%, transparent);
+}
+
+/* ---------------- the statement ----------------
+   Extreme scale contrast is the whole typographic idea: one very large
+   line, everything else quiet. `text-wrap: balance` keeps the line
+   breaks even without hand-tuning them per breakpoint. */
+
+.reduction__statement {
+	font-family: var(--font-heading, 'Cabinet Grotesk', sans-serif);
+	font-size: clamp(2.25rem, 7.2vw, 6.25rem);
+	font-weight: 700;
+	line-height: 0.98;
+	letter-spacing: -0.02em;
+	color: var(--rd-ink);
+	max-width: 22ch;
+	text-wrap: balance;
+	margin: 0;
+}
+
+/* Words are inline-block so they can be transformed individually. The
+   right margin is the word space - a real space would collapse. */
+.reduction__word {
+	position: relative;
+	display: inline-block;
+	margin-right: 0.26em;
+	will-change: transform, opacity;
+}
+
+.reduction__word--accent {
+	color: var(--rd-ember);
+	margin-right: 0;
+}
+
+/* The one accent rule on the page. Sits under the last word only. */
+.reduction__underline {
+	position: absolute;
+	left: 0;
+	right: 0.06em;
+	bottom: 0.06em;
+	height: 0.055em;
+	background-color: var(--rd-ember);
+	transform-origin: left center;
+}
+
+/* ---------------- proof ---------------- */
+
+.reduction__proof {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 1.5rem;
+	max-width: 62rem;
+}
+
+@media (min-width: 768px) {
+	.reduction__proof {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 2.5rem;
+	}
+}
+
+.reduction__column {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	will-change: transform, opacity;
+}
+
+.reduction__column-rule {
+	display: block;
+	height: 1px;
+	width: 100%;
+	background-color: color-mix(in srgb, var(--rd-ink) 26%, transparent);
+	transform-origin: left center;
+}
+
+.reduction__column-head {
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+	font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+	font-size: 0.6875rem;
+	font-weight: 500;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+}
+
+.reduction__column-index {
+	color: var(--rd-ember);
+}
+
+.reduction__column-label {
+	color: var(--rd-ink);
+}
+
+.reduction__column-body {
+	font-family: var(--font-sans, 'Satoshi', sans-serif);
+	font-size: clamp(0.875rem, 1.05vw, 1rem);
+	line-height: 1.5;
+	color: color-mix(in srgb, var(--rd-ink) 78%, transparent);
+	margin: 0;
+	max-width: 26ch;
+}
+
+/* ---------------- sign-off ---------------- */
+
+.reduction__signoff {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.5rem 1.25rem;
+	font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+	font-size: 0.6875rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.reduction__place {
+	margin: 0;
+	color: color-mix(in srgb, var(--rd-ink) 50%, transparent);
+}
+
+/* The hand-off. Points at the work section, and is the last thing read
+   before the page goes black again. */
+.reduction__handoff {
+	margin: 0;
+	color: var(--rd-ink);
+}
+
+.reduction__handoff::after {
+	content: ' \2193';
+	color: var(--rd-ember);
+}
+
+/* ------------------------------------------------------------------
+   ARMED STATE - the only place anything is hidden.
+   ------------------------------------------------------------------ */
+
+.reduction[data-reduction-state='armed'] .reduction__word {
+	opacity: 0;
+}
+
+.reduction[data-reduction-state='armed'] .reduction__underline {
+	transform: scaleX(0);
+}
+
+.reduction[data-reduction-state='armed'] .reduction__column,
+.reduction[data-reduction-state='armed'] .reduction__place,
+.reduction[data-reduction-state='armed'] .reduction__handoff {
+	opacity: 0;
+}
+
+.reduction[data-reduction-state='armed'] .reduction__column-rule {
+	transform: scaleX(0);
+}
+
+/* Safety net: if the viewer's OS asks for reduced motion, the hook
+   returns before arming, but state that a stale attribute could leave
+   behind is cleared here too. */
+@media (prefers-reduced-motion: reduce) {
+	.reduction .reduction__word,
+	.reduction .reduction__column,
+	.reduction .reduction__place,
+	.reduction .reduction__handoff {
+		opacity: 1 !important;
+	}
+
+	.reduction .reduction__underline,
+	.reduction .reduction__column-rule {
+		transform: none !important;
+	}
+}

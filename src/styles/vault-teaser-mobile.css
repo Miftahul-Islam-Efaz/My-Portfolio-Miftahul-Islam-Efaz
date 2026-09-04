@@ -1,0 +1,120 @@
+/* ------------------------------------------------------------------
+   THE VAULT TEASER - MOBILE LAYER
+
+   Everything is inside `@media (max-width: 768px)`, mirroring
+   VAULT_MOBILE_BREAKPOINT, so a desktop viewport matches nothing in
+   this file. Same isolation as desk-stage-mobile.css and
+   work-carousel-mobile.css.
+
+   WHAT IS IN HERE AND WHAT IS NOT
+
+   This file holds ONLY static presentation - type size, wrapping,
+   touch behaviour, and the two heights. Every position that depends on
+   measurement is written inline by hooks/useVaultTeaser.ts, exactly as
+   the base stylesheet's header demands, and that includes the caption's
+   vertical anchor. Trying to place the caption from here would lose to
+   the hook's inline write on the very next frame.
+
+   WHY THE SELECTORS LOOK LIKE THIS
+
+   `section.vault-teaser` is 0,1,1 - element plus class - which beats
+   the base sheet's `.vault-teaser` at 0,1,0 without depending on an
+   ancestor that might not be there, and without !important. The
+   descendant rules qualify with the section's class for the same
+   reason: 0,2,0 against 0,1,0, so this file wins regardless of which
+   order the bundler emits the two stylesheets in. That ordering is not
+   knowable from the source and has already caused one silent no-op on
+   this site.
+   ------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+	/* THE SCROLL BUDGET. Mirrors VAULT_MOBILE_SCROLL.vhPerScreen (1.9),
+	   duplicated here for the same reason the base sheet duplicates 2.8:
+	   the hook overwrites it inline on mount, and without a matching
+	   static value the section would be laid out at the wrong height for
+	   the first paint and shift the whole page under the reader. If one
+	   of these two moves, move both. */
+	section.vault-teaser {
+		height: 190vh;
+	}
+
+	/* svh, NOT vh.
+
+	   `vh` resolves against the LARGE viewport - the one with the browser
+	   toolbar hidden - so a sticky stage sized in vh is taller than the
+	   screen for as long as the toolbar is on show, and the bottom of it
+	   is simply not visible. The caption lives at the bottom of this
+	   stage, so that is the difference between a caption with a gutter
+	   under it and a caption jammed against the browser chrome.
+
+	   `svh` is the SMALL viewport - toolbar visible - so the stage is
+	   always fully on screen and never changes height when the toolbar
+	   collapses. The rake's stage is sized the same way and for the same
+	   reason; see rake.css, which notes explicitly that it is not dvh,
+	   because dvh would resize mid-scroll and animate the layout. */
+	.vault-teaser .vault-teaser__stage {
+		height: 100svh;
+	}
+
+	/* THE CAPTION.
+
+	   `font-size: clamp(0.95rem, 1.35vw, 1.15rem)` collapses to its
+	   MINIMUM here: 1.35vw is 5.3px at 390px wide, so every phone gets
+	   0.95rem / 15.2px. In a bold display face with letterspacing that
+	   wraps to three lines, which is what put it in the dead band under
+	   the folder. A vw-based middle term is only doing work across the
+	   range it was chosen for.
+
+	   Smaller, and given an explicit measure so the wrap is chosen rather
+	   than discovered. Two lines is the target. */
+	.vault-teaser .vault-teaser__cue {
+		font-size: clamp(13px, 3.9vw, 17px);
+		line-height: 1.34;
+		max-width: 78vw;
+
+		/* THE VERTICAL HALF OF THIS IS NOT HERE - the hook writes `top`
+		   and `bottom` inline from VAULT_MOBILE_CUE. Only the horizontal
+		   centring survives, because the base rule's
+		   `translate(-50%, -50%)` also pulls the block up by half its own
+		   height, and against a bottom anchor that would make the gutter
+		   depend on how many lines the copy happened to wrap to. */
+		transform: translateX(-50%);
+	}
+
+	/* THE FOLDER IS A BUTTON, AND ON TOUCH IT IS A SMALL ONE.
+
+	   `manipulation` drops the double-tap-to-zoom gesture on this
+	   element, and with it the ~300ms delay the browser otherwise waits
+	   to find out whether a tap was the first half of one. That delay sits
+	   directly in front of the press animation, which is the entire
+	   feedback that the tap registered - see the note on VAULT_PRESS.
+
+	   pan-y is deliberately NOT used: this is a small target inside a
+	   tall scrolling section, and vertical panning that starts on the
+	   folder must keep working. `manipulation` leaves all panning intact
+	   and removes only the zoom gesture. */
+	.vault-teaser .vault-teaser__trigger {
+		touch-action: manipulation;
+	}
+}
+
+/* ------------------------------------------------------------------
+   REDUCED MOTION - AND THIS BLOCK IS NOT REDUNDANT.
+
+   The base sheet collapses the section to one screen for a reduced
+   -motion reader, at `.vault-teaser` / 0,1,0. The rule above is
+   `section.vault-teaser` / 0,1,1, which BEATS it - so without this
+   block, a reduced-motion phone would get the full 190vh of scroll for
+   an animation that is never going to play.
+
+   Re-declared last, at the same specificity as the rule it has to
+   override. Exactly the same trap as the statement blur in
+   desk-stage-mobile.css: raising specificity to win against a base rule
+   also wins against that base rule's accessibility overrides, and they
+   have to be restated at the new weight.
+   ------------------------------------------------------------------ */
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+	section.vault-teaser {
+		height: 100svh;
+	}
+}

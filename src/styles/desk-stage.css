@@ -1,0 +1,307 @@
+/* ------------------------------------------------------------------
+   THE DESK - interpolation
+
+   Every value in this file is a pure function of four scalars written to
+   .desk by useDeskStage.ts:
+
+     --desk-arrive     laptop rising, stars flying in       0..1
+     --desk-displace   laptop stepping aside, statement out 0..1
+     --desk-exit       everything leaving upward            0..1
+     --desk-px/py      smoothed pointer, in px              signed
+
+   The hook writes those four and nothing else. No layer here is ever
+   tweened directly, which is why a section with two images, a canvas and
+   a two-line statement costs four style writes per frame.
+
+   ------------------------------------------------------------------
+   THE FAILURE DIRECTION
+
+   The defaults below are the FINISHED state: stars resting in their
+   corners, statement fully out, nothing displaced. The raw state only
+   exists under [data-desk-state='armed'], which the hook sets
+   synchronously before it builds the trigger.
+
+   Written the other way round, any failure of the hook - or a browser
+   that never fires the observer - would leave a visitor looking at an
+   empty black viewport with the statement clipped to nothing. This way
+   the worst case is a well-composed static frame that happens not to
+   animate. The canvas is the one thing that cannot degrade, so the
+   statement and stars are deliberately readable WITHOUT it.
+   ------------------------------------------------------------------ */
+
+.desk {
+  position: relative;
+  width: 100%;
+  /* The scroll budget. The stage inside is one viewport tall and sticky,
+     so (height - 100vh) is what the three beats are spent out of. Set
+     from DESK_LAYOUT.scrollVh via an inline custom property. */
+  height: var(--desk-scroll-vh, 340vh);
+  background-color: #050505;
+}
+
+/* THE STICKY STAGE, NOT A PIN. See the invariant in config/deskStage.ts.
+   position: sticky holds the frame for the whole section without adding
+   pin spacing, so it cannot shift the pinned helix further down the
+   page. Do not convert this to a ScrollTrigger pin. */
+.desk-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  /* Establishes the containing block for the absolutely-positioned
+     layers and gives the whole stage one compositing root. */
+  isolation: isolate;
+}
+
+/* Composed defaults. */
+.desk {
+  --desk-arrive: 1;
+  --desk-displace: 1;
+  --desk-exit: 0;
+  --desk-px: 0px;
+  --desk-py: 0px;
+}
+
+/* Raw state - what the hook arms before the first frame. */
+.desk[data-desk-state='armed'] {
+  --desk-arrive: 0;
+  --desk-displace: 0;
+  --desk-exit: 0;
+}
+
+/* ------------------------------------------------------------------
+   THE EXIT PLANE
+
+   Every visible layer is a child of this, so the closing beat is one
+   transform on one element rather than the same translate repeated four
+   times. "Everything goes directly upward and disappears", per the
+   brief - so it is a single plane leaving, not four things leaving
+   together.
+   ------------------------------------------------------------------ */
+.desk-plane {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, calc(var(--desk-exit) * -118vh), 0);
+  opacity: calc(1 - var(--desk-exit));
+  /* Promoted for the whole life of the section: this element moves on
+     almost every frame, and letting the browser decide costs a
+     re-rasterise at the moment the exit starts. */
+  will-change: transform, opacity;
+}
+
+/* ------------------------------------------------------------------
+   DEPTH ORDER
+
+   stars (0)  <  statement (1)  <  laptop (2)
+
+   The stars sit BEHIND the laptop, as they do in the reference frames -
+   the machine crops the inner arm of each one, which is most of what
+   makes the three elements read as occupying one space instead of three
+   stacked layers.
+
+   The statement is also behind the canvas, and that is load bearing: it
+   is what lets the type genuinely disappear behind the machine as it
+   slides out, rather than being clipped against an invisible edge.
+   ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------
+   THE CANVAS
+
+   Full-bleed. The laptop's own position within the frame is handled in
+   the GL scene, not here - moving the canvas would move the projection
+   and the perspective would not follow the object.
+   ------------------------------------------------------------------ */
+.desk-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* The canvas is the drag target. `pan-y` keeps a vertical touch swipe
+     scrolling the page as normal; the horizontal axis is surrendered to
+     the rotate gesture. The hook upgrades this to `none` for the
+     duration of an active drag only. */
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.desk-canvas[data-desk-drag='true'] {
+  cursor: grabbing;
+  touch-action: none;
+}
+
+/* ------------------------------------------------------------------
+   THE STARS
+
+   Two copies of one 1600x1600 transparent PNG with a halftone edge.
+   `height: auto` is load bearing - the halftone dots go visibly oval the
+   moment the aspect ratio is forced.
+
+   THEY ARE MEANT TO BE CROPPED. The insets in config are negative, so
+   each star loses its outer arms to the viewport edge exactly as it does
+   in the reference frames. If they ever sit fully inside the frame they
+   stop reading as part of the space and start reading as stickers.
+
+   Each carries --from-x / --from-y (where it flies in from, as a % of
+   its own box), --push-x / --push-y (how far it is shoved outward when
+   the laptop displaces) and --depth (its pointer multiplier).
+   ------------------------------------------------------------------ */
+.desk-star {
+  position: absolute;
+  z-index: 0;
+  width: var(--size);
+  height: auto;
+  opacity: calc(var(--desk-arrive) * var(--star-opacity, 1));
+  transform: translate3d(
+      calc(
+        var(--from-x) * (1 - var(--desk-arrive)) + var(--push-x) *
+          var(--desk-displace) + var(--desk-px) * var(--depth)
+      ),
+      calc(
+        var(--from-y) * (1 - var(--desk-arrive)) + var(--push-y) *
+          var(--desk-displace) + var(--desk-py) * var(--depth)
+      ),
+      0
+    )
+    rotate(calc(var(--rotate) * (0.35 + 0.65 * var(--desk-arrive))));
+  will-change: transform, opacity;
+  /* Decorative. Never intercepts the drag gesture aimed at the laptop. */
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ------------------------------------------------------------------
+   THE STATEMENT
+
+   Comes out from BEHIND the laptop, and it does so for real. The type
+   sits UNDER the canvas in the stacking order (z-index 1 against the
+   canvas's 2) and the canvas is transparent everywhere the machine is
+   not, so the laptop genuinely occludes it.
+
+   ------------------------------------------------------------------
+   NO clip-path HERE. DO NOT REINTRODUCE ONE.
+
+   This block used to carry `clip-path: inset(...)` as a reveal wipe, on
+   the assumption that its leading edge would always be hidden behind
+   the machine. It is not: the statement box is only 46vw wide and sits
+   at the far left, so the clip edge lands in OPEN BLACK several hundred
+   px clear of the laptop, and it reads as a hard vertical window frame
+   slicing the headline in half. It was the most conspicuous artefact in
+   the section.
+
+   Occlusion already does the whole job, so the type is simply PARKED
+   BEHIND THE MACHINE at the start of the beat - 46vw to the right, i.e.
+   under the still-centred laptop - and travels left to its resting mark
+   while the laptop travels right. Two solid objects passing each other.
+   No edge exists to be seen.
+   ------------------------------------------------------------------ */
+.desk-statement {
+  position: absolute;
+  z-index: 1;
+  left: clamp(24px, 7vw, 130px);
+  top: 50%;
+  margin: 0;
+  max-width: min(46vw, 720px);
+  transform: translate3d(
+    calc(
+      (1 - var(--desk-displace)) * 46vw + var(--desk-px) * var(--depth, 0.38)
+    ),
+    calc(-50% + var(--desk-py) * var(--depth, 0.38)),
+    0
+  );
+  /* Full strength by ~40% of the beat, which is still comfortably inside
+     the laptop's silhouette. Fading up any later would mean the type
+     emerging half-transparent in open black; any earlier costs nothing,
+     because it cannot be seen yet. */
+  opacity: calc(min(1, var(--desk-displace) * 2.5));
+  /* A short defocus, cleared by ~60% of the beat. The old 7px lingered
+     long after the type was in open frame, which read as smeared rather
+     than as arriving. */
+  filter: blur(calc((1 - min(1, var(--desk-displace) * 1.6)) * 4px));
+  will-change: transform, opacity, filter;
+  pointer-events: none;
+}
+
+.desk-line {
+  display: block;
+  color: #f5f1e8;
+  font-family: 'Comico', 'Cabinet Grotesk', 'Satoshi', sans-serif;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
+}
+
+/* Line 1 is the lead-in: same family, lighter, smaller. */
+.desk-line--lead {
+  font-size: clamp(28px, 3.4vw, 58px);
+  font-weight: 500;
+}
+
+/* Line 2 carries the claim. */
+.desk-line--main {
+  font-size: clamp(34px, 4.6vw, 78px);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------
+   NARROW VIEWPORTS
+
+   The statement cannot sit beside the laptop under about 900px - there
+   is no room for both, and 46vw of type next to a 3D object is
+   unreadable at either. So the layout stacks: the laptop keeps the upper
+   half of the frame and the type takes the lower.
+
+   The GL scene reads the same breakpoint and reduces its displacement,
+   so the machine moves up rather than right. Change both or neither.
+
+   The emerge-from-behind trick does NOT apply here: the laptop leaves
+   upward, not sideways, so there is nothing to the right to hide behind.
+   The type just rises a little and fades, which is why the offset is a
+   small px value rather than 46vw.
+   ------------------------------------------------------------------ */
+@media (max-width: 900px) {
+  .desk-statement {
+    left: clamp(20px, 6vw, 48px);
+    right: clamp(20px, 6vw, 48px);
+    top: auto;
+    bottom: clamp(48px, 12vh, 130px);
+    max-width: none;
+    transform: translate3d(
+      0,
+      calc((1 - var(--desk-displace)) * 48px + var(--desk-py) * 0.2),
+      0
+    );
+  }
+
+  .desk-star {
+    /* The corners are much closer together on a phone, so a star sized
+       for a desktop frame swallows the machine whole. */
+    width: calc(var(--size) * 0.7);
+  }
+}
+
+/* ------------------------------------------------------------------
+   REDUCED MOTION
+
+   The hook returns early and never arms the section, so the composed
+   defaults above are what renders. Belt and braces here: kill the
+   promotion hints and the blur, both of which are pointless on a static
+   frame. The laptop still loads and still shows its screen - it simply
+   sits open and still, which is a complete version of the section.
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .desk-plane,
+  .desk-star,
+  .desk-statement {
+    will-change: auto;
+  }
+
+  .desk-statement {
+    filter: none;
+  }
+
+  .desk-canvas {
+    cursor: default;
+  }
+}

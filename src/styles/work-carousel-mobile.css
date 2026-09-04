@@ -1,0 +1,130 @@
+/* ------------------------------------------------------------------
+   THE WORK CAROUSEL - MOBILE LAYER
+
+   Every rule is inside `@media (max-width: 768px)`, so a desktop
+   viewport matches nothing in this file. Same isolation as
+   styles/desk-stage-mobile.css: no class to remember to add, no state to
+   keep in sync.
+
+   WHY THE SELECTORS CARRY A PARENT
+
+   The rules here override Tailwind utilities (`bottom-6`, `right-0`,
+   `w-72`, `text-sm`), which are single-class selectors at specificity
+   0,1,0. Tailwind's sheet comes from globals.css at the root layout and
+   this one comes from a client component chunk, and the emitted order of
+   those two is a bundler detail rather than something worth depending
+   on. So every selector here is qualified with an ancestor to reach
+   0,2,0 and win regardless of order. No !important anywhere.
+
+   The class names `work-stage`, `work-project-list` and
+   `work-project-row` were added to DitherCarousel.tsx purely as hooks
+   for this file. They carry no desktop styling, so adding them changed
+   nothing above 768px.
+   ------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+	/* ----------------------------------------------------------------
+	   THE PROJECT LIST
+
+	   STAYS ON THE RIGHT, as it does on desktop. An earlier pass moved
+	   it to a full-width strip along the bottom, which solved the overlap
+	   but cost more than it bought: stretching the block to both gutters
+	   also stretched the ACTIVE ROW, so the centred project's inverted
+	   block became a bar running the full width of the screen - a far
+	   heavier mark than the small tag it is on desktop, and the loudest
+	   thing in the frame.
+
+	   The real fix for the overlap is not the side, it is the WIDTH.
+	   Desktop pins a fixed 288px rail (`w-72`) against the right edge,
+	   which is 74% of a 390px viewport. Releasing that to `max-content`
+	   lets the block hug its longest title - about 140px at this type
+	   size - so it takes a third of the width instead of three quarters
+	   and the card behind it stays readable.
+
+	   That also fixes the inverted block for free: with `items-stretch`
+	   the rows size to the container, so a container that hugs its text
+	   gives an active row that hugs its text too.
+	   ---------------------------------------------------------------- */
+	.work-stage .work-project-list {
+		/* Releases the `w-72` rail so the block can size to its content. */
+		width: max-content;
+		/* A ceiling rather than a width: "Sonapahar Farmhouse" is the longest
+		   label today, and a future project with a longer name should wrap
+		   rather than push the list across the whole frame. */
+		max-width: 58vw;
+		/* Off the hard `right-0` edge and onto the same gutter the rest of
+		   the mobile layout uses. */
+		right: clamp(12px, 4vw, 20px);
+		/* Explicit, because `right-0` alone leaves `left` at auto but the
+		   previous full-width pass set it - this makes the rule
+		   self-contained rather than dependent on what came before it. */
+		left: auto;
+		/* Clear of the home indicator and Safari's toolbar, both of which
+		   overlay the bottom of the viewport. */
+		bottom: calc(clamp(14px, 3vh, 30px) + env(safe-area-inset-bottom, 0px));
+		/* Creates a stacking context, WHICH IS LOAD-BEARING for the scrim
+		   below: the scrim is a pseudo-element at z-index -1, and without a
+		   context of its own to sit inside it would resolve against the
+		   stage and paint BEHIND the canvas, where it does nothing at all. */
+		isolation: isolate;
+	}
+
+	/* THE SCRIM. The list sits directly over the dithered artwork now
+	   rather than beside it. The frame-edge dither darkens the bottom of
+	   the composition, so most of the time the type is legible - but
+	   "most of the time" is decided by whichever project image is passing
+	   behind it, which is not a legibility guarantee.
+
+	   A gradient rather than a flat panel, so it reads as the field
+	   deepening under the type rather than as a box laid on top of the
+	   work. The colour is --color-background (#050505), the same value the
+	   canvas clears to, so at full opacity it is indistinguishable from
+	   the field. */
+	.work-stage .work-project-list::before {
+		content: '';
+		position: absolute;
+		/* Bleeds past the text block so the gradient has room to reach zero
+		   instead of ending on a visible edge. The right side bleeds furthest
+		   - far enough to clear the gutter and run off the side of the
+		   viewport - because a vertical gradient still has two hard vertical
+		   edges, and taking one of them off screen leaves only one to hide. */
+		inset: -14px -28px -22px -18px;
+		background: linear-gradient(
+			to top,
+			rgba(5, 5, 5, 0.86) 0%,
+			rgba(5, 5, 5, 0.66) 48%,
+			rgba(5, 5, 5, 0) 100%
+		);
+		z-index: -1;
+		pointer-events: none;
+	}
+
+	/* ----------------------------------------------------------------
+	   THE ROWS
+
+	   `text-sm` is 14px with the rows at py-0.5, which across eight
+	   projects is about 152px of list - a fifth of a 750px viewport spent
+	   on a caption. Smaller type and tighter rows bring that to ~130px.
+
+	   11px is small, but this is a label rather than reading matter, it
+	   is set in a mono face at font-medium, and it sits on a scrim now.
+	   ---------------------------------------------------------------- */
+	.work-project-list .work-project-row {
+		font-size: 11px;
+		line-height: 1.55;
+		padding-top: 1px;
+		padding-bottom: 1px;
+		/* Slightly more than desktop's px-2, so the active row's inverted
+		   block does not crowd the type at this size. */
+		padding-left: 7px;
+		padding-right: 7px;
+	}
+
+	/* The ember dot marking the active row is parked at -left-2.5, ten
+	   pixels OUTSIDE the row box. Against a block that now hugs its text
+	   and sits on the right gutter there is plenty of frame to its left,
+	   so it needs no nudging - but it must not be allowed to widen the
+	   `max-content` measurement, or the block would grow by the width of
+	   a dot every time the active card changed. It is absolutely
+	   positioned, so it does not, and this rule exists only to say so. */
+}

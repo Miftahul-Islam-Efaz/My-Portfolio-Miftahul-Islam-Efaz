@@ -48,6 +48,13 @@ const mix = (from: number, to: number, t: number) => from + (to - from) * t;
  *   --cut-flare-open  light-leak scaleX
  *   --cut-burn        film-burn opacity, 0-1
  *   --cut-curtain     curtain coverage, 0-1
+ *   --cut-line-out    slate fade before the sticky release, 1-0
+ *
+ * The slate has no channel of its own: it rides --cut-curtain, because the
+ * wipe IS its reveal. It does need one non-scroll value, written on refresh
+ * rather than per frame:
+ *
+ *   --cut-frame-w     the frame's own width in px, for slice alignment
  *
  * ---------------------------------------------------------------------------
  * Why the maths is here and not in CSS
@@ -82,7 +89,7 @@ export default function useHeroToWorkCut({ targetRef }: UseHeroToWorkCutArgs) {
     const write = (p: number) => {
       /* ---- Beat 1: the squeeze ---- */
       const close = ease(ramp(p, 0, CUT.barsClose));
-      const dolly = ease(ramp(p, 0, 0.78));
+      const dolly = ease(ramp(p, 0, 0.45));
 
       /* ---- Beat 2: the flare ---- */
       const spark = bell(p, CUT.flareCenter, CUT.flareWidth);
@@ -95,17 +102,21 @@ export default function useHeroToWorkCut({ targetRef }: UseHeroToWorkCutArgs) {
       /* ---- Beat 3: the wipe ---- */
       const curtain = ease(ramp(p, CUT.curtainStart, CUT.curtainEnd));
 
+      /* ---- Beat 5: the slate goes ----
+         No reveal channel: the slate's slices ride --cut-curtain, above. */
+      const lineOut = 1 - ease(ramp(p, CUT.lineOutFrom, CUT.lineOutTo));
+
       style.setProperty('--cut-bar', close.toFixed(4));
       style.setProperty('--cut-scale', mix(1, CUT.dollyScale, dolly).toFixed(4));
       style.setProperty('--cut-lift', `${mix(0, CUT.dollyLift, dolly).toFixed(2)}px`);
       style.setProperty(
         '--cut-vignette',
-        (CUT.vignetteMax * ease(ramp(p, 0.08, 0.7))).toFixed(4)
+        (CUT.vignetteMax * ease(ramp(p, 0.05, 0.38))).toFixed(4)
       );
 
       style.setProperty(
         '--cut-type-lift',
-        `${mix(0, CUT.typeLift, ease(ramp(p, 0.04, 0.6))).toFixed(2)}px`
+        `${mix(0, CUT.typeLift, ease(ramp(p, 0.02, 0.3))).toFixed(2)}px`
       );
       style.setProperty(
         '--cut-type-out',
@@ -123,6 +134,7 @@ export default function useHeroToWorkCut({ targetRef }: UseHeroToWorkCutArgs) {
       style.setProperty('--cut-burn', (CUT.burnMax * Math.pow(spark, 2.6)).toFixed(4));
 
       style.setProperty('--cut-curtain', curtain.toFixed(4));
+      style.setProperty('--cut-line-out', lineOut.toFixed(4));
     };
 
     const trigger = ScrollTrigger.create({
@@ -131,7 +143,15 @@ export default function useHeroToWorkCut({ targetRef }: UseHeroToWorkCutArgs) {
       end: CUT.end,
       scrub: true,
       onUpdate: (self) => write(self.progress),
-      onRefresh: (self) => write(self.progress),
+      onRefresh: (self) => {
+        /* The slate's sixteen slices are positioned off the frame's own width
+           in px, not off their own percentage width, because a fractional
+           column width would let their alignment drift and tear the type at
+           the seams. Written here only: ScrollTrigger refreshes on resize, and
+           this value cannot change while scrolling. */
+        style.setProperty('--cut-frame-w', `${target.clientWidth}px`);
+        write(self.progress);
+      },
     });
 
     return () => {
@@ -150,6 +170,8 @@ export default function useHeroToWorkCut({ targetRef }: UseHeroToWorkCutArgs) {
         '--cut-flare-open',
         '--cut-burn',
         '--cut-curtain',
+        '--cut-line-out',
+        '--cut-frame-w',
       ].forEach((property) => style.removeProperty(property));
     };
   }, [targetRef]);

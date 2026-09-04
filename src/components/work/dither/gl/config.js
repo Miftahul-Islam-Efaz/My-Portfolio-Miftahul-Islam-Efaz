@@ -177,7 +177,7 @@ export const config = {
   hoverBlurCurve: 1.0,
 
   // Hover dither
-  hoverDither: 0.3,
+  hoverDither: 0,
   hoverDitherCurve: 1.9,
   hoverDitherLevels: 8,
   hoverDitherScale: 10,
@@ -193,7 +193,7 @@ export const config = {
 
   // Click a card to bring it to the focus band. clickSlop is how far the
   // pointer may travel and still count as a click rather than a drag.
-  clickToFocus: true,
+  clickToFocus: false,
   clickSlop: 6,
   // A real duration, not a lerp rate, so the move takes the same time whether
   // it crosses one slot or six.
@@ -279,6 +279,12 @@ export const config = {
   // Cursor trail — a third dither, driven by where the pointer has been rather
   // than by screen position or hover. Its buffer remembers, so the pattern
   // follows the cursor and decays behind it.
+  // BACK ON, BUT SILENT. The trail buffer is the only thing in the pipeline
+  // that remembers pointer velocity, and trailWarp below feeds that velocity
+  // into the composite's uv push - which is what makes the cards bend and
+  // shift like paper under the cursor. Switching this off to remove the
+  // dithered trail took the motion with it. The GRAIN is killed by
+  // trailAmount: 0 instead, which gates the trail's dither and nothing else.
   trail: true,
   // CSS pixels, so the brush is the same physical size on any screen.
   trailRadius: 132,
@@ -305,7 +311,10 @@ export const config = {
   // visible on load and on touch devices.
   trailIdleDrift: false,
 
-  trailAmount: 0.78,
+  // ZERO ON PURPOSE - this is "remove the dither hover effect". It scales the
+  // trail's posterised dither only (composite.js: trailShaped). The warp, the
+  // velocity and the motion all survive it.
+  trailAmount: 0,
   // Floors the faint tail of the mask to zero. Without it the lowest Bayer
   // thresholds fire on residue and scatter stray cells outside the trail.
   trailCutoff: 0.125,

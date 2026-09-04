@@ -20,9 +20,14 @@ import '@/styles/work-title.css';
  * line, so the two read as the same camera rather than two separate effects.
  * Beat sheet and reasoning are in `src/config/workTitle.ts`.
  *
- * There is deliberately NOTHING here but the word. An ember blade used to flare
- * across mid-height before the letters opened; it read as a red glow sitting
- * behind the type and was removed. The aperture is the whole effect.
+ * The word is drawn twice. The DOM letters below are the accessible name, the
+ * no-JS default and the fallback; when WebGL is available and the display font
+ * has loaded, `workTitleScene` takes over the drawing (same beats, same
+ * choreography) and adds what CSS cannot: a hot rim riding the moving aperture
+ * edge, anamorphic chromatic aberration while anything is in motion, film
+ * grain, and an ordered-dither exit that dissolves the word into the same
+ * grain the project cards are made of. The hook arms the GL layer only once
+ * its first frame is real, so the two never disagree and never flash.
  *
  * MARKUP ONLY. Every moving value is a CSS custom property: the static ones are
  * set inline here, the animated ones are written by `useWorkTitle`, and
@@ -37,8 +42,9 @@ import '@/styles/work-title.css';
  */
 export default function WorkTitleReveal() {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  useWorkTitle({ rootRef });
+  useWorkTitle({ rootRef, canvasRef });
 
   return (
     <div
@@ -62,7 +68,7 @@ export default function WorkTitleReveal() {
           the heading as four separate letters - "W", "O", "R", "K" - because
           each glyph is its own inline-block element.
         */}
-        <h2 className="wt-word" aria-label="Work">
+        <h2 className="wt-word" aria-label="Works">
           {WORK_TITLE_LETTERS.map((letter, i) => (
             <span
               key={`${letter}-${i}`}
@@ -74,6 +80,10 @@ export default function WorkTitleReveal() {
             </span>
           ))}
         </h2>
+
+        {/* The GL word. Transparent until the hook arms it via
+            [data-wt-gl='on'] - see work-title.css. */}
+        <canvas ref={canvasRef} className="wt-canvas" aria-hidden="true" />
       </div>
 
       {/*

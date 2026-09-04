@@ -1,0 +1,709 @@
+/* ==================================================================
+   THE COMPOSITOR
+
+   Component-imported by CompositorSection.tsx, NOT registered in
+   globals.css - only palette-wide sheets belong there.
+
+   ------------------------------------------------------------------
+   READ THIS FIRST: EVERY DEFAULT IS THE FINISHED STATE
+
+   Composed type, ember placed, scaffolding already stripped. The raw
+   spec sheet exists ONLY under [data-comp-state='armed'], which
+   useCompositor sets synchronously when it builds.
+
+   That direction is deliberate. If the hook never runs - reduced
+   motion, a JS error, an old browser - the visitor gets a well-set
+   static sentence. Written the other way round, any failure would leave
+   them staring at 13px uppercase mono and a grid, which looks broken.
+
+   ------------------------------------------------------------------
+   THE STICKY STAGE IS NOT A PIN
+
+   The section is 230svh tall and its four planes are `position: sticky`
+   inside it, all sharing one grid cell. The composition therefore plays
+   out while the type is held in the middle of the viewport, which is
+   what a scrollytelling stage needs - but it adds NO pin spacing and
+   does not touch ScrollTrigger's pin ordering.
+
+   That distinction is load-bearing. A pinned trigger here would shift
+   where the helix below starts measuring; it broke the carousel once
+   already. Sticky is invisible to that system. Do not "upgrade" this to
+   a pin. See the invariant in useCompositor.ts.
+
+   ------------------------------------------------------------------
+   THE PAIRING, AND WHAT IT COST
+
+   `font-family` still cannot be interpolated, and swapping it at a
+   threshold mid-scroll still snaps. So the families do not change with
+   scroll - they change with LINE, which is a static decision and reads
+   as typesetting rather than as a glitch:
+
+     line 1  ARK_ES Dense  the spec face anyone would default to
+     line 2  Monare        the display face someone chose
+
+   The cost is the weight axis. Cabinet Grotesk gave us Thin 100 and
+   Black 900; ARK_ES ships 300-700 and Monare ships one weight. So each
+   line now declares its own --w-light / --w-heavy, the ramp narrows on
+   line 1, and line 2 does not ramp at all - its transformation is size,
+   tracking and the ink fill. The readout was retuned to 300 -> 700 so
+   the sheet is not advertising a ramp the type cannot perform.
+   ================================================================== */
+
+.comp {
+	/* ---- Beat inputs. Written by useCompositor via quickSetter. ----
+	   These defaults ARE the finished state. */
+	--comp-grid: 1;
+	--comp-scale: 1;
+	--comp-weight: 1;
+	--comp-accent: 1;
+	--comp-strip: 1;
+
+	/* Parallax offsets, also written by the hook. */
+	--comp-shift-annotation: 0px;
+	--comp-shift-notes: 0px;
+	--comp-shift-statement: 0px;
+	--comp-shift-readout: 0px;
+	--comp-px: 0px;
+	--comp-py: 0px;
+	--comp-sx: 0px;
+
+	/* ---- Material ---- */
+	--comp-ember: #b56c4b;
+	--comp-ink: #f5f1e8;
+	--comp-ink-mid: #d8d4c8;
+	--comp-ink-low: #6f6a62;
+	--comp-bg: #050505;
+
+	/* ---- Type ramp. Mirrors COMPOSITOR_RAW / COMPOSITOR_TYPE. ---- */
+	--comp-size-raw: 13px;
+	--comp-size-set: clamp(34px, 5.4vw, 92px);
+	--comp-lead-raw: 2.1;
+	--comp-lead-set: 1.02;
+
+	/* Stagger spread. How far apart the ends of a staggered group are, as
+	   a fraction of that group's progress. 0 = everything together. */
+	--comp-spread: 0.55;
+
+	position: relative;
+	z-index: 10;
+	width: 100%;
+	background: var(--comp-bg);
+
+	/* The stage. One cell, four overlapping sticky planes, 230svh of
+	   scroll to play the five beats in. */
+	display: grid;
+	grid-template-columns: 1fr;
+	grid-template-rows: 230svh;
+}
+
+/* The armed (raw) state. Inline values from the hook override these the
+   moment the first scroll frame lands. */
+.comp[data-comp-state='armed'] {
+	--comp-grid: 0;
+	--comp-scale: 0;
+	--comp-weight: 0;
+	--comp-accent: 0;
+	--comp-strip: 0;
+}
+
+/* All four planes share the cell and stick together. */
+.comp > * {
+	grid-row: 1;
+	grid-column: 1;
+	position: sticky;
+	top: 0;
+	height: 100svh;
+}
+
+/* ==================================================================
+   ANNOTATION PLANE
+   ================================================================== */
+
+.comp-annotation {
+	pointer-events: none;
+	overflow: hidden;
+	transform: translate3d(var(--comp-px), calc(var(--comp-shift-annotation) + var(--comp-py)), 0);
+	/* The whole plane leaves during RESTRAINT. */
+	opacity: calc(1 - var(--comp-strip));
+}
+
+/* Baseline grid. A gradient, not elements: an 8px rhythm across a
+   full-height section would be ~100 nodes for nothing. baselineEvery=3
+   means one line per 24px so it reads as a grid rather than grey. */
+.comp-grid {
+	position: absolute;
+	inset: 0;
+	background-image: repeating-linear-gradient(
+		to bottom,
+		rgba(216, 212, 200, 0.5) 0 1px,
+		transparent 1px 24px
+	);
+	opacity: calc(var(--comp-grid) * 0.3);
+	/* Wipes downward as it draws, rather than fading in place. The hard
+	   stop is the drawing edge. */
+	-webkit-mask-image: linear-gradient(
+		to bottom,
+		#000 calc(var(--comp-grid) * 118%),
+		transparent calc(var(--comp-grid) * 118%)
+	);
+	mask-image: linear-gradient(
+		to bottom,
+		#000 calc(var(--comp-grid) * 118%),
+		transparent calc(var(--comp-grid) * 118%)
+	);
+}
+
+/* Column rules across the measure. */
+.comp-rules {
+	position: absolute;
+	inset: 0 6vw;
+	display: flex;
+	justify-content: space-between;
+}
+
+.comp-rule {
+	/* Local progress from the group scalar plus this rule's own position.
+	   clamp() with unitless numbers is what makes a CSS-only stagger
+	   possible - the hook never touches these nodes. */
+	--local: clamp(
+		0,
+		calc(
+			var(--comp-grid) * (1 + var(--comp-spread)) - var(--i-frac) *
+				var(--comp-spread)
+		),
+		1
+	);
+
+	width: 1px;
+	height: 100%;
+	background: rgba(216, 212, 200, 0.55);
+	opacity: calc(var(--local) * 0.55);
+	transform: scaleY(var(--local));
+	transform-origin: 50% 0%;
+}
+
+/* ==================================================================
+   THE STATEMENT
+   ================================================================== */
+
+.comp-inner {
+	display: grid;
+	align-content: center;
+	justify-items: start;
+	gap: clamp(1.1rem, 2vw, 2rem);
+	padding: 0 6vw;
+	transform: translate3d(var(--comp-sx), var(--comp-shift-statement), 0);
+}
+
+.comp-eyebrow {
+	font-family: var(--font-ark-es);
+	font-weight: 400;
+	font-size: 10px;
+	letter-spacing: 0.32em;
+	text-transform: uppercase;
+	color: var(--comp-ink-low);
+	margin: 0;
+}
+
+.comp-statement {
+	margin: 0;
+	font-family: var(--font-heading);
+	color: var(--comp-ink);
+
+	/* THE SCALE RAMP. One interpolation feeding size, leading and
+	   tracking, so all three resolve on the same beat - which is what
+	   makes it read as one decision instead of three effects. */
+	font-size: calc(
+		var(--comp-size-raw) +
+			(var(--comp-size-set) - var(--comp-size-raw)) * var(--comp-scale)
+	);
+	line-height: calc(
+		var(--comp-lead-raw) +
+			(var(--comp-lead-set) - var(--comp-lead-raw)) * var(--comp-scale)
+	);
+	letter-spacing: calc(0.24em - 0.258em * var(--comp-scale));
+	/* Negative tracking shrinks the space glyph along with the letters, so
+	   a little word-spacing goes back in at the composed end. Without it
+	   the words read as one long string at display size. */
+	word-spacing: calc(var(--comp-scale) * 0.05em);
+}
+
+.comp-line {
+	display: block;
+}
+
+/* Each line names its family AND its own ends of the fake axis, because
+   the two families do not ship the same cuts. See the pairing note at
+   the top of this file.
+
+   --face-scale is the optical-size knob: two different families at the
+   same px never read as the same size. Tune the pairing here, never on
+   .comp-statement - that font-size is the scale RAMP and touching it
+   would desynchronise the readout. */
+.comp-line--spec {
+	font-family: var(--font-ark-es-dense);
+	--w-light: 300;
+	--w-heavy: 700;
+	/* The small line. This is the whole size contrast of the pairing, and
+	   it lives here rather than on .comp-statement font-size because that
+	   font-size IS the scale ramp the corner readout prints. */
+	--face-scale: 0.416;
+}
+
+.comp-line--display {
+	font-family: var(--font-monare);
+	--w-light: 400;
+	--w-heavy: 400;
+	--face-scale: 1;
+}
+
+.comp-line--spec,
+.comp-line--display {
+	font-size: calc(1em * var(--face-scale, 1));
+}
+
+/* Each word is a stack of cuts over a HIDDEN SIZER.
+
+   The first version sized the box with the Thin layer in normal flow and
+   put the Black layer on top of it absolutely. Cabinet Grotesk Black is
+   WIDER than Thin, so at full weight the Black glyphs overflowed the box
+   to the right and collided with the following word - and the error grew
+   with word length, so long words overlapped badly and short ones barely
+   did.
+
+   Now an aria-hidden Black copy sits in flow to hold the box open at the
+   widest cut, and BOTH visible layers are absolute inside it. The box is
+   therefore always wide enough for whatever the blend is showing, and no
+   value of --local can cause a collision. The cost is that Thin sits in
+   a slightly wide box, which at raw size is invisible. */
+.comp-word {
+	--local: clamp(
+		0,
+		calc(
+			var(--comp-weight) * (1 + var(--comp-spread)) - var(--i-frac) *
+				var(--comp-spread)
+		),
+		1
+	);
+
+	position: relative;
+	display: inline-block;
+	white-space: pre;
+}
+
+/* The trailing space between words, kept as part of the word box so the
+   absolute heavy layer does not inherit it and drift. */
+.comp-word::after {
+	content: ' ';
+}
+
+.comp-w {
+	display: inline-block;
+}
+
+/* Holds the box open. visibility: hidden keeps it out of the accessibility
+   tree and off the screen while still occupying its metrics - display:
+   none or opacity: 0 would either collapse the box or leave it clickable. */
+.comp-w--sizer {
+	visibility: hidden;
+	font-weight: var(--w-heavy, 900);
+}
+
+/* THE FAKE WEIGHT AXIS. Thin and Black cross-faded. Two coincident
+   weights at partial opacity read very close to one weight
+   interpolating; no variable font exists in /public/Fonts, so this is
+   the only way to get a continuous ramp. */
+.comp-w--light {
+	position: absolute;
+	top: 0;
+	left: 0;
+	font-weight: var(--w-light, 100);
+	opacity: calc(1 - var(--local));
+}
+
+.comp-w--heavy {
+	position: absolute;
+	top: 0;
+	left: 0;
+	font-weight: var(--w-heavy, 900);
+	/* Floor of 0.05 - at pure Thin, the 100 cut nearly vanishes at
+	   display sizes against a near-black background. */
+	opacity: calc(0.05 + 0.95 * var(--local));
+}
+
+/* THE ACCENT. One word, one colour, once in the section - the 60/30/10
+   discipline the margin notes claim out loud. color-mix keeps it a real
+   interpolation rather than a class swap at a threshold. */
+.comp-word--accent .comp-w {
+	color: color-mix(
+		in oklab,
+		var(--comp-ink),
+		var(--comp-ember) calc(var(--comp-accent) * 100%)
+	);
+}
+
+/* ==================================================================
+   AFTER THE STRIP
+   The close line arrives as the scaffolding leaves - it is what the
+   cleared space is for.
+   ================================================================== */
+
+.comp-close {
+	/* 62ch, the measure the notes advertise. It applies to READING text,
+	   which this line is - not to a 92px display statement. */
+	max-width: 62ch;
+	margin: 0;
+	opacity: var(--comp-strip);
+	transform: translateY(calc((1 - var(--comp-strip)) * 14px));
+}
+
+.comp-close {
+	font-family: var(--font-sans);
+	font-weight: 300;
+	font-size: clamp(0.95rem, 1.15vw, 1.2rem);
+	line-height: 1.5;
+	color: var(--comp-ink-mid);
+}
+
+
+/* ==================================================================
+   MARGIN NOTES
+   ================================================================== */
+
+.comp-notes {
+	pointer-events: none;
+	list-style: none;
+	margin: 0;
+	padding: clamp(1.5rem, 5vh, 3.5rem) 6vw;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	justify-content: flex-start;
+	gap: 0.55rem;
+	text-align: right;
+
+	font-family: var(--font-ark-es);
+	font-size: 9.5px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--comp-ink-low);
+
+	/* Falls while the grid rises. Opposite signs are what separate the
+	   planes - same-direction parallax just slides. */
+	transform: translate3d(0, var(--comp-shift-notes), 0);
+	opacity: calc(1 - var(--comp-strip));
+}
+
+.comp-note {
+	--local: clamp(
+		0,
+		calc(
+			var(--comp-grid) * (1 + var(--comp-spread)) - var(--i-frac) *
+				var(--comp-spread)
+		),
+		1
+	);
+
+	opacity: var(--local);
+	transform: translateX(calc((1 - var(--local)) * 12px));
+}
+
+/* ==================================================================
+   THE READOUT
+   Names each decision as it happens. This is the usability half of the
+   concept: without it, type changing size is an effect; with it, it is
+   a decision being taken.
+   ================================================================== */
+
+.comp-readout {
+	pointer-events: none;
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-end;
+	gap: 2rem;
+	flex-wrap: wrap;
+	padding: clamp(1.5rem, 5vh, 3.5rem) 6vw;
+
+	font-family: var(--font-ark-es);
+	font-size: 10px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+
+	transform: translate3d(0, var(--comp-shift-readout), 0);
+	opacity: calc(1 - var(--comp-strip));
+}
+
+/* The decision index row lived here. Removed at his request - the
+   measurements at the right are enough of a readout, and the five labels
+   were narrating a transformation that is already legible. */
+
+/* --row is handed in per row by the component as `var(--comp-grid)`,
+   `var(--comp-scale)` and so on, so each row lights in step with the
+   beat it names. */
+.comp-decision {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: color-mix(
+		in oklab,
+		var(--comp-ink-low),
+		var(--comp-ink) calc(var(--row) * 100%)
+	);
+}
+
+.comp-decision-index {
+	color: color-mix(
+		in oklab,
+		var(--comp-ink-low),
+		var(--comp-ember) calc(var(--row) * 100%)
+	);
+}
+
+.comp-decision-label {
+	white-space: nowrap;
+}
+
+/* The dimension line. Draws to full width as its decision completes -
+   this is the drafting gesture, done with a border instead of SVG. */
+.comp-decision-bar {
+	width: clamp(14px, 3vw, 44px);
+	height: 1px;
+	background: var(--comp-ember);
+	transform: scaleX(var(--row));
+	transform-origin: 0% 50%;
+	opacity: 0.8;
+}
+
+/* Live measurements. Tabular so the ticking numbers do not jitter the
+   layout - a proportional figure set would make the whole row breathe
+   on every frame. */
+.comp-dims {
+	margin: 0;
+	display: flex;
+	gap: 1.6rem;
+	color: var(--comp-ink-low);
+}
+
+.comp-dim {
+	display: flex;
+	align-items: baseline;
+	gap: 0.45rem;
+}
+
+.comp-dim-label {
+	color: var(--comp-ink-low);
+}
+
+.comp-dim-value {
+	margin: 0;
+	color: var(--comp-ink-mid);
+	font-variant-numeric: tabular-nums;
+	font-feature-settings: 'tnum' 1;
+	min-width: 5ch;
+}
+
+/* ==================================================================
+   NARROW VIEWPORTS
+   The notes column and the dimension readout are the first things to
+   go: on a phone they would sit on top of the statement, and the
+   statement is the section.
+   ================================================================== */
+
+@media (max-width: 860px) {
+	.comp {
+		grid-template-rows: 200svh;
+	}
+
+	.comp-notes {
+		display: none;
+	}
+
+	.comp-dims {
+		display: none;
+	}
+
+	.comp-rules {
+		inset: 0 6vw;
+	}
+}
+
+/* ==================================================================
+   REDUCED MOTION
+   The hook returns before it arms anything, so the defaults above are
+   already the whole section. This block only removes the parallax
+   offsets in case a stale inline value survives a preference change
+   mid-session.
+   ================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	.comp-annotation,
+	.comp-inner,
+	.comp-notes,
+	.comp-readout {
+		transform: none !important;
+	}
+
+	/* The scaffolding has no reason to exist without the transformation
+	   it was annotating. */
+	.comp-annotation,
+	.comp-notes,
+	.comp-readout {
+		opacity: 0;
+	}
+}
+
+/* ==================================================================
+   INK FILL
+
+   Appended deliberately: the two rules below OVERRIDE earlier ones at
+   equal specificity, which only works from later in the file.
+   ================================================================== */
+
+.comp {
+	/* --comp-fill is driven by scroll; --comp-ink-ready is set to 1 by
+	   the hook ONLY after the plate decodes. Multiplying the two means
+	   every path to a visible fill requires a real image.
+
+	   NAMED --comp-fill, NOT --comp-ink. This scalar used to be called
+	   --comp-ink, which is ALSO the name of the cream text colour
+	   declared at the top of this file - and this block, being later,
+	   won. So every rule reading --comp-ink as a COLOUR was handed the
+	   number 0, became invalid at computed-value time, and silently fell
+	   back to inherited colour. That killed three things at once: the
+	   accent color-mix on the statement (the ember never rendered once,
+	   under a margin note advertising it), the statement colour itself,
+	   and the margin-note row colour. Custom properties do not care
+	   that one is a colour and one is a number - keep the names
+	   disjoint. */
+	--comp-fill: 0;
+	--comp-ink-ready: 0;
+	--comp-ink-shift: 0px;
+
+	/* The lowest value any filled glyph may reach. See the floor note on
+	   .comp-w--ink below. Raise it if the shadowed words still read as
+	   holes; lower it if the plate stops looking like light. */
+	/* Minimum the plate can paint inside a glyph, via background-blend-mode:
+	   lighten. It was #7d766b to rescue the first plate, whose shadows went
+	   to true black - a heavy lift that flattened the darks to grey. The
+	   current plate never goes below a warm charcoal on its own, so this
+	   only has to catch the very bottom and contrast comes back. */
+	--comp-ink-floor: #3a332c;
+
+	/* Was 0.07. The full-bleed copy of the plate read as a soft grey
+	   RECTANGLE behind the type - a radial mask still has an edge against
+	   a #050505 page, which is exactly what it was there to avoid. With
+	   the floor in place the letters no longer need a light source behind
+	   them, so the veil is off and the type is the only place the plate
+	   appears. The element stays, at 0, as the knob. */
+	--comp-veil-max: 0;
+}
+
+/* The filled cut. Same font, same metrics, same position as the heavy
+   layer - the only difference is that the paint comes from the plate. */
+.comp-w--ink {
+	position: absolute;
+	top: 0;
+	left: 0;
+	font-weight: var(--w-heavy, 900);
+	background-image: var(--comp-ink-image);
+	background-size: cover;
+
+	/* THE FLOOR. The plate is ONE continuous fixed image across the whole
+	   statement, so whichever words land in its dark half were painting
+	   near-black glyphs onto a near-black page - half the sentence
+	   disappeared, and it was the middle half. Blending the plate against
+	   a floor colour with `lighten` takes the per-channel maximum: the
+	   beam is untouched, and no glyph can fall below a readable value.
+	   Tune --comp-ink-floor, never the plate. */
+	background-color: var(--comp-ink-floor);
+	background-blend-mode: lighten;
+	/* Viewport-anchored, so ONE continuous plate reads across every word
+	   instead of restarting inside each word box. */
+	background-attachment: fixed;
+	background-position: center calc(50% + var(--comp-ink-shift));
+	background-repeat: no-repeat;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	-webkit-text-fill-color: transparent;
+	opacity: calc(var(--comp-fill) * var(--comp-ink-ready));
+}
+
+/* The flat Black cut retreats as the filled one arrives. Overrides the
+   earlier rule; the (0.05 + 0.95 * --local) term is unchanged. */
+.comp-w--heavy {
+	opacity: calc(
+		(0.05 + 0.95 * var(--local)) *
+		(1 - var(--comp-fill) * var(--comp-ink-ready))
+	);
+}
+
+/* ONE ACCENT, ONE USE. The accent word opts itself out of the fill, so
+   'set' holds the ember while every word around it turns photographic.
+   Scoping the variable rather than the rule means the heavy layer above
+   automatically stays at full opacity for this word - no second
+   override, nothing to keep in sync. */
+.comp-word--accent {
+	--comp-fill: 0;
+}
+
+/* ONE-LETTER WORDS STAY SOLID. The plate is viewport-anchored so that
+   one continuous image reads across the whole line - which means a
+   word only ever samples the slice of plate sitting behind it. A word
+   like "I" is a single thin stem: it samples a sliver, and if that
+   sliver is a dark tone the word is simply not there. The reader loses
+   a word and blames their eyes.
+
+   Same opt-out the accent uses, so these render as the flat cream cut.
+   Threshold is ONE letter - set in the component - so "it." still
+   fills. Raise it there if two-letter words start dropping out too. */
+.comp-word--solid {
+	--comp-fill: 0;
+}
+
+/* The plate itself, full bleed, masked to a soft oval so it never reads
+   as a rectangle with an edge. Sticky in the same grid cell as the other
+   planes - see the stage comment above; it adds no pin spacing. */
+.comp-veil {
+	grid-row: 1;
+	grid-column: 1;
+	position: sticky;
+	top: 0;
+	height: 100svh;
+	background-image: var(--comp-ink-image);
+	background-size: cover;
+	background-position: center calc(50% + var(--comp-ink-shift) * 0.4);
+	-webkit-mask-image: radial-gradient(
+		70% 60% at 50% 45%,
+		rgba(0, 0, 0, 1) 0%,
+		rgba(0, 0, 0, 0) 100%
+	);
+	mask-image: radial-gradient(
+		70% 60% at 50% 45%,
+		rgba(0, 0, 0, 1) 0%,
+		rgba(0, 0, 0, 0) 100%
+	);
+	opacity: calc(
+		var(--comp-fill) * var(--comp-ink-ready) * var(--comp-veil-max)
+	);
+	pointer-events: none;
+}
+
+/* WHERE THE FILL IS TURNED OFF ENTIRELY.
+
+   background-attachment: fixed is ignored on iOS Safari and is expensive
+   on touch hardware generally. Rendering it anyway would restart the
+   plate inside every word - visibly wrong. !important beats the hook's
+   inline value, which is the point: JS cannot switch this back on. */
+@media (max-width: 900px), (hover: none) {
+	.comp {
+		--comp-ink-ready: 0 !important;
+	}
+}
+
+/* Same reasoning as the rest of the section: no motion, no mechanism. */
+@media (prefers-reduced-motion: reduce) {
+	.comp {
+		--comp-ink-ready: 0 !important;
+	}
+}

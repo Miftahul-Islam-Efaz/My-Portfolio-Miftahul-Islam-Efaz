@@ -1,0 +1,841 @@
+/* ------------------------------------------------------------------
+   THE CONTACT SECTION - styles
+
+   Static presentation only. Every transform and opacity that changes
+   over time is written by ContactSection.tsx via GSAP, so nothing here
+   may set `transform` or `opacity` on .contact-head__ink,
+   .contact-card or .contact-card__panel - the first frame would
+   overwrite it and the two would fight.
+
+   The pills, fields and knobs are the exception: their motion is
+   pointer-driven (:hover / :active / [data-selected] /
+   :focus-within), never frame-driven, so they DO want CSS
+   transitions.
+
+   Palette, exactly as specced - flat, no gradients:
+     card              #202226  one flat colour, no light direction
+     option pills      #f5f1e8  ground, with #050505 type
+     back / continue   #d8d4c8  ground, with #050505 type
+     card text         #d8d4c8  everything that is not a button
+     ember             #b56c4b  focus rings only
+
+   Type: the whole section is set in Publica Play, served from
+   /public/Fonts.
+
+   THE CARD GROWS. The foot (GO BACK / CONTINUE) is ordinary in-flow
+   content pinned to the bottom of the flex column, not absolutely
+   positioned - so when a step's options wrap to two rows the card
+   simply expands and the buttons never collide with the options.
+   min-height keeps every step the same size; nothing is fixed.
+
+   TWO DIFFERENT HOVERS, copied from the recordings:
+     - Option pills (.contact-pill): the whole button springs up a
+       size - a scale, not a colour swap.
+     - GO BACK / CONTINUE (.contact-arrow): the button body never
+       moves. The arrow knob slides out a step in the direction of
+       travel, overflowing the button's rounded edge, and springs up
+       a size as it goes.
+
+   THE FIELDS FLOAT. From the form recording: there are no placeholder
+   attributes. Each field's label is a real element sitting inside the
+   box as if it were a placeholder, and the moment the field takes
+   focus - or once it holds text - the label shrinks and slides up to
+   the field's top-left corner, clearing the way for the caret. Focus
+   is :focus-within on the wrapper; the held-text state is the
+   wrapper's data-filled flag, set by the component on change, because
+   CSS cannot see an input's value.
+   ------------------------------------------------------------------ */
+
+@font-face {
+	font-family: 'Publica Play';
+	src: url('/Fonts/publica-play-font-family/facetype-publicaplay-regular.otf')
+		format('opentype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+.contact {
+	position: relative;
+	background-color: var(--color-background);
+	padding: clamp(5rem, 11vh, 9rem) clamp(1rem, 4vw, 4.5rem)
+		clamp(6rem, 13vh, 11rem);
+	overflow: hidden;
+	/* The stacking context the card sits inside. */
+	isolation: isolate;
+	/* One face for the whole section. */
+	font-family: 'Publica Play', var(--font-sans), sans-serif;
+	color: #d8d4c8;
+}
+
+/* Every element inside inherits Publica Play unless it opts out. */
+.contact *,
+.contact *::before,
+.contact *::after {
+	font-family: inherit;
+}
+
+.contact__inner {
+	position: relative;
+	z-index: 1;
+	margin: 0 auto;
+	width: 100%;
+	max-width: 1400px;
+}
+
+/* ---------------- the header ---------------- */
+
+.contact-head {
+	margin-bottom: clamp(2rem, 4.5vw, 4rem);
+}
+
+/* Bold, as requested. Publica Play ships a single weight, so this is a
+   synthetic embolden - the face takes it well at caption size. */
+.contact-head__eyebrow {
+	margin: 0 0 clamp(0.9rem, 1.8vw, 1.6rem);
+	font-weight: 700;
+	font-size: clamp(0.8rem, 1vw, 1rem);
+	letter-spacing: 0.42em;
+	text-transform: uppercase;
+	color: #d8d4c8;
+}
+
+.contact-head__title {
+	margin: 0;
+	max-width: 22ch;
+	font-weight: 700;
+	font-size: clamp(2.3rem, 5.2vw, 5rem);
+	line-height: 1.08;
+	letter-spacing: -0.015em;
+	color: var(--color-primary);
+}
+
+/* One overflow box per word - this is what the rise is masked by, so
+   the words appear to come up out of the line rather than fade in. */
+.contact-head__word {
+	display: inline-block;
+	overflow: hidden;
+	vertical-align: bottom;
+	padding-bottom: 0.06em;
+}
+
+.contact-head__word:not(:last-child)::after {
+	content: ' ';
+	white-space: pre;
+}
+
+.contact-head__ink {
+	display: inline-block;
+	will-change: transform;
+}
+
+/* "touch", set back into the page. */
+.contact-head__ink[data-muted='true'] {
+	color: var(--color-taupe, #8a8279);
+}
+
+/* ---------------- the card ----------------
+
+   ONE FLAT COLOUR. No gradient, no inner highlight - the reference's
+   card is a single even plate, and so is this one.
+
+   The column layout is what makes the card elastic: the eyebrow sits
+   at the top, the panel takes the middle, and the foot drops to the
+   bottom via margin-top: auto. If a step is taller than the minimum,
+   the column just gets taller - the foot is in flow, so it moves
+   down with the content instead of overlapping it. */
+
+.contact-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	/* svh, not vh. 64vh on a phone is measured against the viewport
+	   WITHOUT the browser chrome, so the card is taller than the space
+	   it is actually given and the foot is pushed under the address
+	   bar. Identical on desktop, where the two units agree. */
+	min-height: clamp(460px, 64svh, 680px);
+	padding: clamp(2.4rem, 4.5vw, 4.2rem) clamp(1.5rem, 4.5vw, 4.5rem)
+		clamp(1.5rem, 3vw, 2.6rem);
+	border-radius: clamp(20px, 2vw, 34px);
+	background: #202226;
+	box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55);
+	/* Height animates when a taller step arrives, so the resize reads
+	   as part of the step transition rather than a jump. */
+	transition: min-height 300ms ease;
+	will-change: transform, opacity;
+}
+
+.contact-card__eyebrow {
+	margin: 0 0 clamp(0.9rem, 1.6vw, 1.4rem);
+	min-height: 1em;
+	font-size: clamp(0.72rem, 0.9vw, 0.88rem);
+	letter-spacing: 0.3em;
+	text-transform: uppercase;
+	color: rgba(216, 212, 200, 0.55);
+	text-align: center;
+}
+
+/* The step's contents. Only ever one mounted; GSAP owns its opacity
+   and transform, so neither is declared here. flex: 1 + centering
+   keeps the question and options vertically centered in whatever
+   space is left between the eyebrow and the foot. */
+.contact-card__panel {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	max-width: 880px;
+	will-change: transform, opacity, filter;
+}
+
+.contact-card__question {
+	margin: 0 0 clamp(1.8rem, 3.6vw, 3.2rem);
+	text-align: center;
+	max-width: 26ch;
+	font-weight: 700;
+	font-size: clamp(1.5rem, 2.9vw, 2.8rem);
+	line-height: 1.16;
+	letter-spacing: -0.01em;
+	color: #d8d4c8;
+}
+
+/* The place-name inside the greeting. */
+.contact-card__muted {
+	color: rgba(216, 212, 200, 0.45);
+}
+
+/* ---------------- the option pills ----------------
+
+   THE SWELL. From the recording: hovering an option button grows the
+   WHOLE pill - ground, radius and type together - on a springy ease
+   that overshoots on the way in and settles on the way out. No colour
+   change; the size IS the hover. */
+
+.contact-options {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: clamp(0.7rem, 1.2vw, 1.1rem);
+	max-width: 820px;
+}
+
+.contact-pill {
+	position: relative;
+	padding: clamp(0.9rem, 1.4vw, 1.3rem) clamp(1.5rem, 2.6vw, 2.4rem);
+	border: 1px solid transparent;
+	border-radius: 999px;
+	background: #f5f1e8;
+	color: #050505;
+	font-size: clamp(1.05rem, 1.35vw, 1.35rem);
+	line-height: 1;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+	transform-origin: 50% 50%;
+	transition:
+		transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+		background 220ms ease,
+		color 220ms ease;
+}
+
+.contact-pill:hover {
+	transform: scale(1.08);
+}
+
+/* Compress on contact, exactly like the vault's folder press. */
+.contact-pill:active {
+	transform: scale(0.96);
+	transition-duration: 110ms;
+}
+
+/* THE SELECTED CHIP. Inverts to the dark ground with light type and
+   pops once as it takes. NO BORDER - a selected chip is just the dark
+   pill against its pearl siblings. Both Website and App can be lit at
+   once - selection toggles rather than replaces. */
+.contact-pill[data-selected='true'] {
+	background: #050505;
+	color: #f5f1e8;
+	animation: contact-pop 340ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.contact-pill[data-selected='true']:hover {
+	transform: scale(1.08);
+}
+
+@keyframes contact-pop {
+	0% {
+		transform: scale(0.94);
+	}
+	60% {
+		transform: scale(1.06);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+.contact-pill:focus-visible,
+.contact-arrow:focus-visible,
+.contact-card__dummy {
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(216, 212, 200, 0.35);
+}
+
+/* ---------------- the fields ----------------
+
+   Layout first: the wrap is the positioned box, the input fills it,
+   the label floats inside it. The grid rules from before are
+   unchanged - the wrap simply occupies the cell the bare input used
+   to, so the two-column brief form and the paired Say hi form lay
+   out exactly as they did. */
+
+.contact-form {
+	display: flex;
+	flex-direction: column;
+	gap: clamp(0.6rem, 1vw, 0.9rem);
+	width: min(100%, 600px);
+}
+
+.contact-form__pair,
+.contact-form--grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: clamp(0.6rem, 1vw, 0.9rem);
+}
+
+/* The brief's description spans both columns. The selector names the
+   WRAP now, not the bare field. */
+.contact-form--grid .contact-field-wrap--area {
+	grid-column: 1 / -1;
+}
+
+.contact-field-wrap {
+	position: relative;
+	width: 100%;
+}
+
+/* The input itself carries no label of its own - no placeholder
+   attribute anywhere in this form - so its text starts a little low
+   in the box, leaving the label's floating home clear above it. */
+.contact-field {
+	width: 100%;
+	padding: clamp(1.25rem, 2vw, 1.7rem) clamp(1rem, 1.8vw, 1.5rem)
+		clamp(0.7rem, 1.2vw, 1rem);
+	border: 1px solid transparent;
+	border-radius: clamp(12px, 1.1vw, 18px);
+	background: rgba(5, 5, 5, 0.42);
+	color: #d8d4c8;
+	font-size: clamp(0.95rem, 1.15vw, 1.15rem);
+	resize: none;
+	caret-color: #d8d4c8;
+	transition:
+		background 220ms ease,
+		border-color 220ms ease,
+		box-shadow 220ms ease;
+}
+
+/* The floating label. At rest it sits where a placeholder would:
+   vertically centred in the box, at the input's left padding. */
+.contact-field__label {
+	position: absolute;
+	left: clamp(1rem, 1.8vw, 1.5rem);
+	top: 50%;
+	transform: translateY(-50%);
+	color: rgba(216, 212, 200, 0.55);
+	font-size: clamp(0.95rem, 1.15vw, 1.15rem);
+	line-height: 1;
+	pointer-events: none;
+	transform-origin: left center;
+	transition:
+		transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+		color 240ms ease;
+}
+
+/* A textarea's resting label starts at the top, not the middle -
+   the box is tall, and a centred label would float in the void. */
+.contact-field-wrap--area .contact-field__label {
+	top: clamp(1.25rem, 2vw, 1.7rem);
+	transform: none;
+}
+
+/* THE FLOAT. On focus (:focus-within) or once the field holds text
+   (data-filled), the label shrinks and slides up to the top-left
+   corner, exactly as in the recording. The ember tone marks the
+   focused one; a filled-but-blurred field keeps the quiet tone. */
+.contact-field-wrap:focus-within .contact-field__label,
+.contact-field-wrap[data-filled='true'] .contact-field__label {
+	transform: translateY(-1.35em) scale(0.68);
+}
+
+.contact-field-wrap--area:focus-within .contact-field__label,
+.contact-field-wrap--area[data-filled='true'] .contact-field__label {
+	transform: scale(0.68) translateY(-0.85em);
+}
+
+.contact-field-wrap:focus-within .contact-field__label {
+	color: rgba(216, 212, 200, 0.85);
+}
+
+
+
+.contact-field:focus {
+	outline: none;
+	background: rgba(5, 5, 5, 0.62);
+}
+
+.contact-field--area {
+	min-height: clamp(110px, 15vh, 170px);
+}
+
+/* ---------------- GO BACK / CONTINUE / SUBMIT ----------------
+
+   #d8d4c8 ground with #050505 type - one tone quieter than the option
+   pills so the flow controls read as controls, not choices.
+
+   POSITION. In flow at the card's bottom corners (margin-top: auto),
+   as in the reference: GO BACK on the left edge, CONTINUE / SUBMIT on
+   the right. Never absolute, so they can never sit on top of options.
+
+   THE HOVER, matched to the recording frame by frame. The button body
+   NEVER moves. The knob slides out a step in the direction of travel
+   - left on GO BACK, right on CONTINUE - overflowing the button's
+   rounded edge, and springs up a size as it goes. The single arrow
+   rides inside the knob; there is no glyph swap. On press the whole
+   button dips. */
+
+.contact-card__foot {
+	margin-top: auto;
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding-top: clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
+.contact-arrow {
+	display: inline-flex;
+	align-items: center;
+	gap: clamp(0.55rem, 1vw, 0.9rem);
+	padding: clamp(0.5rem, 0.8vw, 0.7rem) clamp(1.1rem, 1.9vw, 1.7rem);
+	border: 1px solid transparent;
+	border-radius: 999px;
+	background: #d8d4c8;
+	color: #050505;
+	font-size: clamp(0.85rem, 1.05vw, 1.05rem);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	line-height: 1;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+	/* No transform transition here - the button never moves on hover. */
+	transition: opacity 220ms ease;
+}
+
+/* The circular knob. It carries the whole hover: the slide and the
+   spring. The arrow simply rides inside it. */
+.contact-arrow__knob {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: clamp(30px, 2.6vw, 40px);
+	height: clamp(30px, 2.6vw, 40px);
+	flex: none;
+	border-radius: 999px;
+	background: #050505;
+	color: #f5f1e8;
+	transform-origin: 50% 50%;
+	transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* THE HOVER. Left a step on GO BACK, right a step on CONTINUE, a
+   size up either way - the knob slides past the button's rounded
+   edge exactly as in the recording. */
+.contact-arrow[data-dir='back']:hover:not(:disabled) .contact-arrow__knob {
+	transform: translateX(-10px) scale(1.15);
+}
+
+.contact-arrow[data-dir='forward']:hover:not(:disabled) .contact-arrow__knob {
+	transform: translateX(10px) scale(1.15);
+}
+
+/* The label nudges the same way the knob went - a couple of pixels,
+   nothing more. */
+.contact-arrow__label {
+	display: inline-block;
+	transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.contact-arrow[data-dir='back']:hover:not(:disabled) .contact-arrow__label {
+	transform: translateX(-5px);
+}
+
+.contact-arrow[data-dir='forward']:hover:not(:disabled)
+	.contact-arrow__label {
+	transform: translateX(5px);
+}
+
+.contact-arrow__glyph {
+	display: block;
+	font-size: 1.05em;
+}
+
+/* Press: the whole button dips once, fast. */
+.contact-arrow:active:not(:disabled) {
+	opacity: 0.85;
+	transition-duration: 110ms;
+}
+
+/* CONTINUE before anything is chosen. Dimmed rather than hidden, so the
+   card does not change shape when a chip is picked. */
+.contact-arrow:disabled {
+	opacity: 0.34;
+	cursor: not-allowed;
+}
+
+/* ---------------- narrow screens ---------------- */
+
+@media (max-width: 640px) {
+	.contact-form--grid {
+		grid-template-columns: 1fr;
+	}
+
+	.contact-form__pair {
+		grid-template-columns: 1fr;
+	}
+
+	/* A 16px FLOOR ON EVERY INPUT, AND IT IS NOT A TYPE-SIZE DECISION.
+
+	   iOS Safari zooms the page when a field smaller than 16px takes
+	   focus, then does not zoom back out. The form was at 0.95rem -
+	   15.2px - so tapping Name threw the layout sideways and left the
+	   user pinch-zooming their way through the rest of the form. The
+	   label matches the field so the float lands on the same size. */
+	.contact-field,
+	.contact-field__label {
+		font-size: 1rem;
+	}
+
+	/* The section's own gutter. The clamp floor of 1rem is fine; the
+	   vertical padding is not - 11vh top plus 13vh bottom is a quarter
+	   of a phone screen spent on air around a card that already has
+	   its own generous padding. */
+	.contact {
+		padding: clamp(3.5rem, 9vh, 6rem) 1.1rem clamp(4rem, 10vh, 7rem);
+	}
+
+	.contact-head {
+		margin-bottom: clamp(1.5rem, 6vw, 2.25rem);
+	}
+
+	/* The title's clamp floor is 2.3rem, which the 5.2vw term never
+	   reaches on a phone - so the headline was locked at desktop's
+	   minimum and ran to five lines, pushing the card itself below the
+	   fold. Given its own vw term it sets in three. */
+	.contact-head__title {
+		font-size: clamp(1.85rem, 8.4vw, 2.6rem);
+		max-width: 18ch;
+	}
+
+	.contact-head__eyebrow {
+		letter-spacing: 0.3em;
+	}
+
+	/* svh again, and a lower floor: 460px of card plus the headline
+	   above it does not fit a small phone in one view. */
+	.contact-card {
+		min-height: clamp(400px, 68svh, 560px);
+		padding: 1.75rem 1.15rem 1.35rem;
+		border-radius: 18px;
+	}
+
+	.contact-card__question {
+		margin-bottom: clamp(1.3rem, 6vw, 2rem);
+		max-width: 20ch;
+		font-size: clamp(1.2rem, 6vw, 1.6rem);
+	}
+
+	.contact-options {
+		width: 100%;
+		gap: 0.6rem;
+	}
+
+	/* 44px MINIMUM ON EVERYTHING TAPPABLE. The pills and the arrows
+	   were sized off vw terms that collapse to their clamp floors at
+	   this width, which left the arrow's hit area around 34px - under
+	   the platform minimum on both iOS and Android, and the reason a
+	   deliberate tap on CONTINUE can miss. */
+	.contact-pill {
+		min-height: 44px;
+		padding: 0.85rem 1.35rem;
+		font-size: 1rem;
+	}
+
+	.contact-card__foot {
+		padding-top: 1.2rem;
+	}
+
+	.contact-arrow {
+		min-height: 44px;
+		padding: 0.45rem 0.9rem;
+		font-size: 0.85rem;
+	}
+
+	.contact-field--area {
+		min-height: 118px;
+	}
+}
+
+/* ---------------- reduced motion ----------------
+
+   The component skips its GSAP entrance and its blur, so all that is
+   left to silence is the pointer feedback: the states still change,
+   they simply stop travelling. The label float is a state change, not
+   decoration, so it stays instant rather than being removed. */
+@media (prefers-reduced-motion: reduce) {
+	.contact-pill,
+	.contact-arrow__knob,
+	.contact-arrow__label {
+		transition: none;
+	}
+
+	.contact-pill:hover,
+	.contact-pill:active,
+	.contact-arrow:hover:not(:disabled) .contact-arrow__knob,
+	.contact-arrow:hover:not(:disabled) .contact-arrow__label {
+		transform: none;
+	}
+
+	.contact-field__label {
+		transition: none;
+	}
+
+	.contact-pill[data-selected='true'] {
+		animation: none;
+	}
+}
+
+/* ---------------- the fluid ----------------
+
+   PROGRESS MADE PHYSICAL. The card fills as the visitor answers, so what
+   is left is felt rather than counted. By the time the brief form
+   arrives the card is nearly full, which is the whole trick: finishing
+   something almost finished is easy, starting a form is not.
+
+   THE COLOUR IS EMBER (#b56c4b) - the palette's only warm note, until
+   now spent entirely on focus rings. It is the one value in the set that
+   reads as liquid rather than as another surface, and at these alphas
+   the pearl pills and mist type stay fully legible on top of it.
+
+   A GRADIENT, deliberately. The flat-colour rule at the top of this file
+   describes SURFACES; this is not a surface, it is depth - denser at the
+   meniscus, thinning as it falls away beneath.
+
+   The level arrives as --cf-level, written each frame by
+   ContactSection.tsx. Everything else here is transform only, so the
+   waves never touch layout. */
+
+.contact-fluid {
+	--cf-level: 10%;
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	border-radius: inherit;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.contact-fluid__body {
+	position: absolute;
+	/* OVERHANGS on three sides, so the blur below never fades out against
+	   an edge. The top surface still lands exactly on --cf-level: the
+	   negative bottom and the matching extra height cancel out. */
+	inset-inline: -8%;
+	bottom: -8%;
+	height: calc(var(--cf-level) + 8%);
+	background: linear-gradient(
+		180deg,
+		rgba(181, 108, 75, 0.34),
+		rgba(181, 108, 75, 0.1)
+	);
+	/* The glow above the surface. This is what makes the liquid feel lit
+	   from within rather than pasted onto the card. */
+	box-shadow: 0 -22px 46px rgba(181, 108, 75, 0.18);
+
+	/* THE SOFT FOCUS. One blur pass over the body AND its crest - the
+	   wave is a child, so it blurs in the same pass and no seam can open
+	   up between the two. This is the whole difference between a vector
+	   shape and something that looks like it has mass. */
+	filter: blur(clamp(9px, 1.4vw, 20px));
+
+	/* THE BREATH: a slow vertical swell of the entire mass. Kept to 6px,
+	   because anything larger reads as the LEVEL changing, and the level
+	   is information. */
+	animation: contact-fluid-breathe 8.5s ease-in-out infinite;
+	will-change: transform;
+}
+
+/* THE FOLDS.
+
+   The first pass drew a 1px meniscus here - a ruler-straight hairline
+   underneath a curved wave, which is exactly the line that showed up
+   cutting across the card. There is no softening a straight edge in a
+   liquid; it had to go.
+
+   What replaces it is the opposite idea: two broad, soft lights INSIDE
+   the mass rather than a boundary on top of it. Internal creases are
+   what make a blob look like it has volume. Each drifts on its own
+   clock, so they never line up the same way twice. */
+.contact-fluid__body::before,
+.contact-fluid__body::after {
+	content: '';
+	position: absolute;
+	inset-inline: -20%;
+	pointer-events: none;
+}
+
+.contact-fluid__body::before {
+	top: -6%;
+	height: 70%;
+	background: radial-gradient(
+		90% 120% at 32% 100%,
+		rgba(214, 143, 105, 0.3),
+		rgba(214, 143, 105, 0) 72%
+	);
+	animation: contact-fluid-fold 13s ease-in-out infinite;
+}
+
+.contact-fluid__body::after {
+	top: 18%;
+	height: 82%;
+	background: radial-gradient(
+		80% 120% at 72% 100%,
+		rgba(226, 160, 122, 0.2),
+		rgba(226, 160, 122, 0) 68%
+	);
+	animation: contact-fluid-fold 19s ease-in-out infinite reverse;
+}
+
+/* The crest rides ON the body's top edge, twice as wide as the card so
+   it can travel a whole number of wave periods and land where it
+   started - the loop has no seam, and nothing ever pops.
+
+   TALL ON PURPOSE. The first pass used 26-46px, which turned a big wave
+   into a ripple, and a ripple at low opacity reads as dirt rather than
+   as water. The swing needs real room. */
+.contact-fluid__crest {
+	position: absolute;
+	bottom: 100%;
+	left: 0;
+	display: block;
+	width: 200%;
+	height: clamp(52px, 9vh, 100px);
+
+	/* THE WOBBLE. The surface squashes and leans on its own clock, on top
+	   of the horizontal drift running on the paths underneath. Two
+	   transforms on two different elements, so neither has to share a
+	   keyframe track with the other. */
+	transform-origin: 50% 100%;
+	animation: contact-fluid-wobble 6.5s ease-in-out infinite;
+	will-change: transform;
+}
+
+/* fill-box makes the -50% below resolve against the path's own bounding
+   box (1200 units, four full periods) rather than the viewport, which is
+   what keeps the loop seamless across browsers. */
+.contact-fluid__wave {
+	transform-box: fill-box;
+	will-change: transform;
+}
+
+/* TWO LAYERS, opposite directions, unequal periods. The crossing is the
+   effect: the beat between 17s and 11s never repeats inside any glance,
+   so the surface reads as alive rather than as a loop. */
+.contact-fluid__wave--back {
+	fill: rgba(181, 108, 75, 0.18);
+	animation: contact-fluid-drift 17s linear infinite reverse;
+}
+
+.contact-fluid__wave--front {
+	/* Exactly the body's top colour. Any mismatch here redraws the same
+	   straight boundary the hairline did, just in a different tone. */
+	fill: rgba(181, 108, 75, 0.34);
+	animation: contact-fluid-drift 11s linear infinite;
+}
+
+@keyframes contact-fluid-drift {
+	from {
+		transform: translate3d(0, 0, 0);
+	}
+	to {
+		transform: translate3d(-50%, 0, 0);
+	}
+}
+
+/* THE SWELL. Asymmetric on purpose: up quickly, overshoot back down
+   past the start, then ease home. A symmetric sine reads as a machine. */
+@keyframes contact-fluid-breathe {
+	0%,
+	100% {
+		transform: translate3d(0, 0, 0);
+	}
+	38% {
+		transform: translate3d(0, -6px, 0);
+	}
+	64% {
+		transform: translate3d(0, 2px, 0);
+	}
+}
+
+/* THE JELLY. Squash paired with a LEAN - that pairing is what reads as a
+   body of liquid shifting its weight, rather than a shape being scaled.
+   6.5s against the body’s 8.5s means the two never sync up. */
+@keyframes contact-fluid-wobble {
+	0%,
+	100% {
+		transform: scale3d(1, 1, 1) skewX(0deg);
+	}
+	25% {
+		transform: scale3d(1.015, 1.1, 1) skewX(-1.1deg);
+	}
+	50% {
+		transform: scale3d(1, 0.93, 1) skewX(0.4deg);
+	}
+	75% {
+		transform: scale3d(1.008, 1.05, 1) skewX(1deg);
+	}
+}
+
+/* The internal lights wander across and through the mass. */
+@keyframes contact-fluid-fold {
+	0%,
+	100% {
+		transform: translate3d(-4%, 0, 0) scale(1);
+	}
+	50% {
+		transform: translate3d(4%, -3%, 0) scale(1.08);
+	}
+}
+
+/* The card's own children are in flow and unpositioned, so without this
+   the liquid would paint straight over the question. */
+.contact-card__eyebrow,
+.contact-card__panel,
+.contact-card__foot {
+	position: relative;
+	z-index: 1;
+}
+
+/* The level still moves under reduced motion - it is information - but
+   the endless drift stops. */
+@media (prefers-reduced-motion: reduce) {
+	.contact-fluid__body,
+	.contact-fluid__body::before,
+	.contact-fluid__body::after,
+	.contact-fluid__crest,
+	.contact-fluid__wave--back,
+	.contact-fluid__wave--front {
+		animation: none;
+	}
+}

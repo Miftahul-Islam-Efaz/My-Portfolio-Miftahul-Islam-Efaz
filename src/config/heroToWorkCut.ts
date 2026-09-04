@@ -8,14 +8,31 @@
 
    Beat sheet, in progress units (0 = cut begins, 1 = hero is gone):
 
-     0.00 - 0.62  squeeze   bars close from top and bottom, hero dollies
+     0.00 - 0.34  squeeze   bars close from top and bottom, hero dollies
                             back, type sinks and fades
-     0.45 - 0.85  flare     anamorphic light leak along the closing slit,
+     0.10 - 0.54  flare     anamorphic light leak along the closing slit,
                             peaking at `flareCenter` - THE CUT
-     0.54 - 0.94  wipe      vertical columns of black rise from below on
-                            staggered delays, so the leading edge is a
-                            STAIRCASE rather than a straight line
-     0.94 - 1.00  hold      solid black, so the handoff is invisible
+     0.30 - 0.72  wipe      vertical columns of black rise from below on
+                            staggered delays. THE COLUMNS CARRY THE SLATE:
+                            each one uncovers its own vertical band of the
+                            end card as it rises, so the staircase edge is
+                            what reveals the type
+     0.72 - 0.90  hold      the finished slate, on black
+     0.90 - 1.00  out       the slate fades, so releasing the sticky frame
+                            is invisible
+
+   THE WIPE IS THE REVEAL. Two earlier versions got this wrong. The first
+   revealed the sentence inside the anamorphic slit, over the picture -
+   type competing with a face. The second waited for the wipe to finish
+   and then animated the words in on their own, which made the transition
+   and the statement two separate events played back to back.
+
+   Now they are ONE event: the black the columns lay down is the surface
+   the type is printed on, so the words are carved out of the frame by the
+   same staircase that takes the hero away. There is no separate reveal
+   animation to time, because the reveal IS the wipe - see the slate
+   slices in hero-to-work-cut.css for how that is done with nothing but
+   transforms.
 
    Overlapping beats are the point. A cut is one event, not three
    animations queued up; the flare has to peak while the bars are still
@@ -56,8 +73,15 @@
  * because the wipe is visibly progressing the whole way down, so the frame
  * never looks stalled. The ceiling is nearer 160vh, where the hero has been
  * fully black for long enough that the extra scroll is dead space.
+ *
+ * RETIMED, to 195vh, when the wipe became the reveal. The slate no longer
+ * needs its own window after the cut - it is uncovered DURING the wipe - so
+ * the travel went back down. What it buys now is a slower wipe: the columns
+ * get 42% of the travel instead of 22%, because they are no longer just
+ * clearing a frame, they are reading out a sentence, and a sentence cannot be
+ * read at the speed of a curtain.
  */
-export const CUT_TRAVEL = '138vh' as const;
+export const CUT_TRAVEL = '195vh' as const;
 
 /**
  * Black air after the cut completes, before the work section's own content.
@@ -114,6 +138,74 @@ export const CUT_COLUMN_DELAYS = [
  */
 export const CUT_COLUMN_SPAN = 1 + Math.max(...CUT_COLUMN_DELAYS);
 
+/* ------------------------------------------------------------------
+   THE SLATE - the end card the wipe uncovers
+
+   ------------------------------------------------------------------
+   TYPOGRAPHIC CONCEPT: "TWO VOICES, ONE HUE"
+   ------------------------------------------------------------------
+   The problem with the first two attempts was not the size of the type,
+   it was that every tier was the SAME KIND of type. Caps display serif
+   over caps display serif is a label: two lines of identical voice,
+   separated only by scale. Nothing to read, only something to notice.
+
+   So the slate is built on a contrast of FORM, not of size:
+
+     STATEMENT  Boreck 700 caps, off-white. Monumental, architectural,
+                impersonal. THE CLAIM, CUT IN STONE.
+
+     CODA       Optima ITALIC, terracotta. A flared humanist: a serif's
+                modulation on a sans's skeleton, and the closest relative
+                Boreck has in this project - the two share a stroke logic,
+                so they read as one family rather than as two downloads.
+                Lowercase, italic, smaller, and IN THE WARM HUE.
+                THE PROMISE, IN A HUMAN HAND.
+
+   Stone answered by hand, claim answered by promise. That is the whole
+   idea, and it is why the coda must NOT be set in Boreck at 45% - that
+   version was tried and it is a label, not a card.
+
+   THE HUE IS THE TYPE. Earlier versions spent the terracotta on furniture:
+   a marker dot, a hairline rule between the tiers. Both are gone. The
+   colour now does its work as LETTERFORMS - off-white statement, warm
+   coda - which is the same move the EFAZ wordmark makes, and it means the
+   card carries no ornament at all. Nothing on this card is decoration:
+   there are two lines of type and nothing else.
+
+   The tier break is therefore carried by three things at once - face,
+   size, colour - with no divider to lean on. Do not add one back.
+
+   THE TAPER. Measures narrow as the eye travels down: the statement gets
+   54rem, the coda 34rem. The card points into the work section instead of
+   sitting in a box.
+
+   NOTE ON OPTIMA. fonts.css warns that the lightest cut is Regular -
+   nothing here asks for less than 400, because synthesising a thin off a
+   flared face thins the stem and leaves the flare, which is the one
+   feature worth having.
+   ------------------------------------------------------------------ */
+
+export const CUT_LINE = {
+  /** The claim. Caps display, off-white. */
+  lead: 'I build full-stack web products',
+
+  /**
+   * The promise. Flared italic, terracotta.
+   *
+   * No em dash: the drop to the second tier is the punctuation.
+   */
+  coda: 'designed to launch, engineered to last.',
+} as const;
+
+/**
+ * The sentence, flat.
+ *
+ * The visible slate is duplicated across sixteen slices and hidden from
+ * assistive tech, so exactly one readable copy of it has to exist somewhere.
+ * This is that copy.
+ */
+export const CUT_LINE_TEXT = `${CUT_LINE.lead} — ${CUT_LINE.coda}`;
+
 export const CUT = {
   /* ---------------- Scroll range ---------------- */
 
@@ -130,7 +222,7 @@ export const CUT = {
   /* ---------------- Beat 1: the squeeze ---------------- */
 
   /** Progress at which the letterbox bars reach their full height. */
-  barsClose: 0.62,
+  barsClose: 0.34,
 
   /**
    * Height of each bar at full close, as a fraction of the viewport.
@@ -159,8 +251,8 @@ export const CUT = {
    * never caught halfway under a bar - the frame empties, THEN it closes.
    */
   typeLift: -120,
-  typeFadeFrom: 0.32,
-  typeFadeTo: 0.66,
+  typeFadeFrom: 0.1,
+  typeFadeTo: 0.26,
 
   /* ---------------- Beat 2: the flare ---------------- */
 
@@ -171,8 +263,8 @@ export const CUT = {
    * `flareCenter` sits just before the bars finish so the flare peaks INTO the
    * closing frame rather than after it - the light is what closes the shot.
    */
-  flareCenter: 0.58,
-  flareWidth: 0.34,
+  flareCenter: 0.32,
+  flareWidth: 0.22,
   flareMax: 0.95,
   /** scaleX of the blade, from first spark to full streak. */
   flareOpenMin: 0.18,
@@ -205,8 +297,45 @@ export const CUT = {
    * raise this to 1.0 to slow the wipe; it would put the last column's arrival
    * on the exact frame the sticky frame is released.
    */
-  curtainStart: 0.54,
-  curtainEnd: 0.94,
+  /* THE WIPE IS NOW THE REVEAL, so this range is the most important pair of
+     numbers in the file. It is not clearing a frame any more, it is reading
+     out a sentence: each column uncovers its own band of the slate as it
+     rises, so the speed of the columns IS the speed of the reading.
+
+     0.30 -> 0.72 gives the wipe 42% of a 195vh travel, roughly 82vh of scroll,
+     which is about twice what it had when it was only taking the hero away.
+     Tighten this and the words arrive faster than they can be read; widen it
+     much further and the staircase stops feeling like an edit.
+
+     The paragraphs above still describe the SHAPE of the wipe correctly; the
+     numbers they quote (0.54 / 0.94) are historical.
+
+     Ending at 0.72 rather than 1.0 is what leaves the finished card held on
+     black for a beat before it fades - see lineOutFrom. */
+  curtainStart: 0.3,
+  curtainEnd: 0.72,
+
+  /* ---------------- Beat 5: the slate goes ---------------- */
+
+  /*
+   * There is deliberately NO reveal range here any more.
+   *
+   * The slate has no animation of its own: its sixteen slices ride
+   * --cut-curtain, the same channel the black columns ride, because they are
+   * the same motion. Adding a second timeline for the type is exactly the
+   * mistake this version removed - it made the transition and the statement
+   * two events instead of one.
+   */
+
+  /**
+   * The finished card holds from 0.72, then fades over the last stretch, so
+   * the moment the sticky frame is released there is nothing on screen to jump.
+   *
+   * Do not shorten this to a snap: a title card that vanishes on one frame
+   * reads as a bug, not an edit.
+   */
+  lineOutFrom: 0.9,
+  lineOutTo: 1,
 } as const;
 
 export default CUT;

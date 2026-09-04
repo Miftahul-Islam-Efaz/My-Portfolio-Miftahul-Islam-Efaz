@@ -12,6 +12,9 @@ import { hexToSRGB } from "./color.js";
 // hold the entry forever, and the frame behind it is empty. Start anyway.
 const ENTRY_WAIT_LIMIT = 5000;
 
+// How often the GPU pick is allowed to run, in frames. See tick().
+const PICK_INTERVAL = 4;
+
 // [vertical, horizontal] weights per mode. "both" runs each below full so
 // combining them doesn't double the deflection.
 const BEND_WEIGHTS = {
@@ -41,13 +44,22 @@ function smoothstep(edge0, edge1, x) {
   return t * t * (3 - 2 * t);
 }
 
-export function createCarousel(canvas, { onActiveChange, external = false } = {}) {
+export function createCarousel(
+  canvas,
+  { onActiveChange, onHoverChange, onCardActivate, external = false } = {}
+) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: false,
     powerPreference: "high-performance",
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  // Adaptive ceiling, not a constant - the frame-time governor in tick()
+  // steps this down under sustained load and back up when it clears. 1.5
+  // stays the cap: the composite is the expensive pass and it scales
+  // linearly with pixel count.
+  const MAX_PIXEL_RATIO = Math.min(window.devicePixelRatio || 1, 1.5);
+  let pixelRatio = MAX_PIXEL_RATIO;
+  renderer.setPixelRatio(pixelRatio);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(config.fov, 1, 0.1, 100);
@@ -251,6 +263,10 @@ export function createCarousel(canvas, { onActiveChange, external = false } = {}
 
   const pointer = { x: 0, y: 0, inside: false };
   let hovered = -1;
+  // Last value reported out. The pick runs every frame; React only needs to
+  // hear about it when it actually changes, or the open cue would re-render
+  // sixty times a second saying the same thing.
+  let lastHovered = -1;
 
   // Pointer travel, accumulated as events land and consumed once a frame.
   // Measured event to event, not frame to frame — several pointermoves can
@@ -331,16 +347,30 @@ export function createCarousel(canvas, { onActiveChange, external = false } = {}
   };
 
   const onPointerUp = (event) => {
-    if (!config.clickToFocus || hovered < 0) return;
+    // Whatever the cue is pointing at is what a click must open. `hovered` is
+    // intent-gated and can still be -1 at the moment of a quick click, so fall
+    // back to the raw pick that was last reported out.
+    const target = hovered >= 0 ? hovered : lastHovered;
+    if (target < 0) return;
     // A drag that happens to end over a card isn't a click on it, so only count
     // it if the pointer barely moved.
     const travelled = Math.hypot(event.clientX - press.x, event.clientY - press.y);
     if (travelled > config.clickSlop) return;
 
-    locked = hovered;
+    // A click on a card opens its case study. The pointer position goes with
+    // it because the window's hero plate flies from the click point - the card
+    // itself is on the GPU and has no rect to fly from.
+    onCardActivate?.(target, event.clientX, event.clientY);
+
+    // Sending the card to the centre as well would only be seen after the
+    // window closes, and it moves the helix under a stationary cursor. Off by
+    // default now; the tuning below is kept in case focus mode is wanted back.
+    if (!config.clickToFocus) return;
+
+    locked = target;
     lockOrigin.x = event.clientX;
     lockOrigin.y = event.clientY;
-    focusCard(hovered);
+    focusCard(target);
   };
 
   canvas.addEventListener("pointermove", onPointerMove);
@@ -408,8 +438,58 @@ export function createCarousel(canvas, { onActiveChange, external = false } = {}
   let activeIndex = -1;
   let paused = false;
 
+  // Governor state - see tick().
+  let lastFrameMs = performance.now();
+  let emaFrameMs = 16.7;
+  let hotFrames = 0;
+  let coldFrames = 0;
+
+  // The pick runs at most every PICK_INTERVAL frames and its answer is
+  // reused in between - see tick().
+  let pickClock = 0;
+  let lastPick = -1;
+
   function tick() {
     frame = requestAnimationFrame(tick);
+
+    // ---- FRAME-TIME GOVERNOR ----
+    // The one graceful lever under sustained load is resolution. A held
+    // EMA over ~19ms steps the pixel ratio down a notch (never below 1);
+    // a long quiet stretch steps it back up. Gated on the arrival having
+    // played out, so the one-time entry burst cannot downshift the
+    // section for the rest of the visit.
+    const nowMs = performance.now();
+    emaFrameMs += (Math.min(nowMs - lastFrameMs, 50) - emaFrameMs) * 0.06;
+    lastFrameMs = nowMs;
+
+    const arrivalSettled =
+      entryStart !== null &&
+      nowMs - entryStart >
+        config.entryDuration + config.entryStagger * (cards.length - 1) + 400;
+
+    if (arrivalSettled) {
+      if (emaFrameMs > 19 && pixelRatio > 1) {
+        if (++hotFrames > 40) {
+          pixelRatio = Math.max(1, pixelRatio - 0.25);
+          renderer.setPixelRatio(pixelRatio);
+          resize();
+          hotFrames = 0;
+          coldFrames = 0;
+        }
+      } else {
+        hotFrames = 0;
+      }
+      if (emaFrameMs < 13 && pixelRatio < MAX_PIXEL_RATIO) {
+        if (++coldFrames > 300) {
+          pixelRatio = Math.min(MAX_PIXEL_RATIO, pixelRatio + 0.25);
+          renderer.setPixelRatio(pixelRatio);
+          resize();
+          coldFrames = 0;
+        }
+      } else {
+        coldFrames = 0;
+      }
+    }
 
     !external && config.autoSpin && (scroll.state.target += config.autoSpin);
     const progress = scroll.update();
@@ -438,16 +518,57 @@ export function createCarousel(canvas, { onActiveChange, external = false } = {}
     const settled =
       !config.hoverIntent || pointerSpeed <= config.hoverSettleSpeed;
 
-    // Re-picked every frame rather than only on pointermove, because the helix
+    // THE PICK IS A GPU ROUND-TRIP - THE ONE STALL IN THIS LOOP.
+    // readRenderTargetPixels blocks on the driver until everything queued so
+    // far is done, and this used to run on EVERY frame the cursor was over
+    // the canvas - which, for a full-viewport pinned section, is the entire
+    // time anyone scrolls through it. Now the readback runs at most every
+    // PICK_INTERVAL frames (hover intent already waits for the pointer to
+    // settle, so the latency is invisible), and the buffer itself is only
+    // re-rendered when something reads a channel from it: the entry still
+    // playing, hover/dim still settling, or a pick due this frame. When none
+    // of those hold, last frame's buffer is already the correct state - dims
+    // at zero, hover at zero, every card arrived.
+    const entryElapsedNow = !config.entry
+      ? Infinity
+      : entryStart === null
+        ? -Infinity
+        : performance.now() - entryStart;
+    const entryDone =
+      entryElapsedNow >
+      config.entryDuration +
+        config.entryStagger * Math.max(0, cards.length - 1) +
+        400;
+    const hoverSettling =
+      hovered >= 0 ||
+      cards.some(
+        (c) =>
+          c.userData.hoverRaw.dim > 0.002 || c.userData.hoverRaw.hover > 0.002
+      );
+    const wantPick =
+      locked < 0 && pointer.inside && pickClock++ % PICK_INTERVAL === 0;
+    if (!entryDone || hoverSettling || wantPick) cardBuffer.render(camera);
+    if (wantPick) lastPick = cardBuffer.pick(pointer.x, pointer.y);
+    else if (locked >= 0 || !pointer.inside) lastPick = -1;
+    // Still re-picked on a timer rather than only on pointermove: the helix
     // keeps turning under a stationary cursor and the card beneath it changes.
-    // The buffer must be drawn before it can be read.
-    cardBuffer.render(camera);
-    // Skipped entirely while locked — it's a synchronous GPU readback and the
-    // answer gets discarded anyway.
-    const picked =
-      locked < 0 && pointer.inside ? cardBuffer.pick(pointer.x, pointer.y) : -1;
+    const picked = lastPick;
     hovered = locked >= 0 ? locked : settled ? picked : hovered;
     canvas.style.cursor = hovered >= 0 ? "pointer" : "default";
+
+    // The cards are planes on a helix inside a canvas: there is no element to
+    // fire a mouseenter, and the hit test is a GPU readback. So hover has to
+    // leave the engine by hand for the DOM cue to follow the cursor.
+    // REPORT THE RAW PICK, NOT `hovered`. hoverIntent holds `hovered` back
+    // until the pointer settles, which is what stops the rack focus strobing
+    // across every card a fast cursor sweeps over. The cue is not a focus
+    // decision though - it is a label for whatever is under the pointer right
+    // now - so gating it made it look broken until the cursor stopped moving.
+    const cueTarget = locked >= 0 ? locked : picked;
+    if (cueTarget !== lastHovered) {
+      lastHovered = cueTarget;
+      onHoverChange?.(cueTarget);
+    }
 
     const anyHovered = hovered >= 0;
     const count = cards.length;

@@ -1,0 +1,1230 @@
+/* ------------------------------------------------------------------
+   THE FOOTER - styles
+
+   The frame, plus the type laid over it. The reveal itself is drawn by
+   components/footer/FooterBlurReveal.tsx on the canvas.
+
+   FULL SCREEN, and svh not vh. On mobile 100vh is the viewport WITHOUT
+   the browser chrome, so a 100vh last section overflows by the height
+   of the address bar and leaves a scrollable band below the footer.
+   100svh is the small viewport - chrome included - so the footer ends
+   exactly where the document ends.
+
+   The photograph is bottom-anchored in the shader (see the contain-fit
+   note in FooterBlurReveal.tsx), so it sits flush on the end of the
+   page and the letterbox remainder is pushed above it rather than
+   split in two.
+
+   THE TYPE IS EXPOSED INTO THE PHOTOGRAPH, not placed on top of it.
+   Three things carry that:
+
+     - The wordmark is gradient-clipped, not a flat fill. It runs from
+       full pearl at the left margin to fully transparent before it
+       reaches the portrait, so the brand name dissolves into the same
+       falloff the face dissolves into. This is why it is
+       background-clip: text and not color.
+     - A single grain layer sits ABOVE both the canvas and the type at
+       mix-blend-mode: overlay, so identical grain runs across the
+       photograph and the letterforms. One film stock, one exposure.
+       If this layer were under the type, the type would read as clean
+       vector pasted onto a grainy plate - the exact failure this
+       footer is built to avoid.
+     - All type is confined to the left field and the portrait owns the
+       right. Nothing overlaps the face.
+
+   TYPE SCALE. Every size here is in vw, not rem, and the clamp ceilings
+   are deliberately high. The footer is a COMPOSITION: the reference
+   sets the micro type at ~1.35% of the frame width and the wordmark at
+   ~11%, and those proportions are the design. A rem-anchored scale
+   holds absolute size as the viewport grows, which silently shrinks
+   every string relative to the frame until the whole thing reads as a
+   caption.
+
+   The content layer is pointer-events: none so the pointer trail keeps
+   working across the whole footer; only the links opt back in.
+   ------------------------------------------------------------------ */
+
+.footer {
+	position: relative;
+	width: 100%;
+	height: 100svh;
+	background-color: var(--color-background);
+	/* Breathing room between the contact section and the footer. The
+	   vh floor is generous on a phone, where 12vh of empty black before
+	   a screen that is itself mostly black just reads as a loading
+	   state; the clamp floor does the work at that size. */
+	margin-top: clamp(2.5rem, 12vh, 9rem);
+	overflow: hidden;
+	/* Keeps the canvas from intercepting selection; the section carries
+	   the pointer handlers. */
+	touch-action: pan-y;
+}
+
+.footer__canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+	pointer-events: none;
+}
+
+/* ---------------- the type ---------------- */
+
+.footer__content {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	padding: clamp(1.5rem, 4vh, 3rem) clamp(1.25rem, 3.2vw, 3.5rem);
+	/* The pointer trail must survive under the type. */
+	pointer-events: none;
+}
+
+/* Every row is confined to the left field; the portrait owns the right. */
+.footer__row,
+.footer__nav,
+.footer__wordmark {
+	width: min(64%, 68rem);
+}
+
+/* The micro furniture. The second column sits at 36% of the left field
+   - roughly 23% of the frame. It was 47%, which pushed the social
+   column out toward the middle of the screen and left a wide dead
+   channel between the two lists; they read as two unrelated blocks
+   rather than one pair. Both this rule and .footer__nav use the same
+   split so the top row, the nav and the baseline row all sit on one
+   shared column axis. */
+.footer__row {
+	display: grid;
+	grid-template-columns: minmax(0, 36%) minmax(0, 1fr);
+	gap: clamp(1rem, 3vw, 2.5rem);
+	font-family: var(--font-mono);
+	font-size: clamp(0.7rem, 1.15vw, 1.5rem);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	line-height: 1;
+}
+
+/* Three brightness tiers, so the wordmark is never rivalled: the nav
+   block is mid-dim, the top and baseline rows are dimmest. */
+.footer__row--top {
+	color: color-mix(in srgb, var(--color-pearl) 62%, transparent);
+}
+
+.footer__row--base {
+	color: color-mix(in srgb, var(--color-pearl) 44%, transparent);
+}
+
+/* The lower cluster is one unit: nav, then the wordmark, then the
+   baseline row - so the wordmark's cap line sits directly under the
+   nav columns as in the reference. Tight, not airy: the reference
+   stacks these three as a single mass. */
+.footer__lower {
+	display: flex;
+	flex-direction: column;
+	gap: clamp(0.5rem, 1.4vh, 1.1rem);
+}
+
+.footer__nav {
+	display: grid;
+	grid-template-columns: minmax(0, 36%) minmax(0, 1fr);
+	gap: clamp(1rem, 3vw, 2.5rem);
+}
+
+.footer__nav ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	/* Set leading, not gap: the reference nav is a tight block at ~1.15
+	   line-height. A 0.45em gap turned it into a loose list. */
+	gap: 0.12em;
+}
+
+.footer__link {
+	font-family: var(--font-mono);
+	font-size: clamp(0.75rem, 1.2vw, 1.55rem);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	line-height: 1.15;
+	text-decoration: none;
+	color: color-mix(in srgb, var(--color-pearl) 78%, transparent);
+	/* Links opt back into the pointer; the rest of the layer does not. */
+	pointer-events: auto;
+	transition: color 320ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.footer__link:hover,
+.footer__link:focus-visible {
+	color: var(--color-pearl);
+}
+
+/* THE WORDMARK. Gradient-clipped so it fades into the portrait's
+   shadow rather than ending on a hard edge. The stops are the whole
+   effect: full strength through 38%, then a fast falloff that is gone
+   by 92% - before it can reach the face.
+
+   OPTICAL ALIGNMENT. The F carries a left side bearing - blank space
+   baked into the glyph - so setting the wordmark flush left puts its
+   INK about 0.05em right of the W in WORK above it, and the left edge
+   of the whole block reads as bent. The negative margin pulls the ink
+   back onto the margin so the nav, the wordmark and the baseline row
+   all share one hard vertical edge. It is em-based, so it holds at
+   every viewport width. */
+/* NO @font-face HERE. Every face in this project is declared once, in
+   styles/fonts.css. This file briefly carried its own duplicate
+   Monare rule, which is a slow-motion bug: two declarations of one
+   family can disagree about weight, format or display strategy, and
+   whichever loses the cascade does so silently. fonts.css already
+   ships Cabinet Grotesk at 100-900, so the wordmark just asks for it.
+
+*/
+/* THE FADE IS A MASK, NOT A CLIPPED GRADIENT.
+
+   This used to be background-clip: text over a linear-gradient. That
+   cannot survive the reveal: SplitText wraps every character in its own
+   element, and each one then paints its OWN copy of the gradient across
+   its OWN box - so the fade restarts eleven times and every letter is
+   individually light-to-dark. Nonsense.
+
+   mask-image on the PARENT is applied to the composited result of the
+   whole subtree, so it reads as one continuous fade across the mark no
+   matter how finely the DOM inside is diced. The characters are a solid
+   pearl fill and the mask does all the falloff. Same picture, and it is
+   now split-proof.
+
+   THE RAMP IS EARLY AND DEEP. It holds full strength for only the
+   first 20% and is fully gone by 80%. The previous curve held solid to
+   38% and did not finish until 92%, which is why the tail of the mark
+   read as flat mid-grey lettering sitting ON the black instead of
+   sinking INTO it: 55% and 10% alpha over a #050505 ground are still
+   plainly legible greys, and they arrived so late that most of the
+   word was at full brightness. Ending at 80% also keeps the falloff
+   clear of the portrait, so the mark dies in the shadow rather than
+   fighting the lit side of the face. */
+.footer__wordmark {
+	margin: 0 0 0 -0.05em;
+	/* CABINET GROTESK BLACK, AND WHY IT IS THE RIGHT FACE HERE.
+
+	   Monare was wrong for this slot for a measurable reason, not a
+	   matter of taste: its glyphs are small relative to their em box, so
+	   at this exact font-size the mark rendered about 505px wide where
+	   the previous face reached ~1000px. Half the width, same CSS. That
+	   is what collapsed the composition - the wordmark stopped being the
+	   ground floor of the layout and started reading as a caption under
+	   the nav. Fixing that by inflating font-size would have meant a
+	   number tuned to one font's quirk, and a clip box far taller than
+	   its own ink.
+
+	   Cabinet Grotesk has normal proportions, so it fills the field at
+	   the size already dialled in - nothing else in this file moves.
+
+	   IT IS ALSO A REAL 900. fonts.css ships eight discrete cuts,
+	   including cabinet-grotesk-black.woff2, so this is genuine drawn
+	   weight. Monare had exactly one file, which capped it at 400 and
+	   made a heavy wordmark impossible without a synthetic bold - the
+	   browser smearing an outline it does not have, visibly mushy on the
+	   diagonals of the A and the Z at ~150px.
+
+	   And it is var(--font-heading): the display face this site already
+	   uses for headings, so the footer closes in the same voice the rest
+	   of the page speaks in rather than introducing a stranger on the
+	   last screen. */
+	font-family: var(--font-heading), sans-serif;
+	font-weight: 900;
+	font-size: clamp(2.5rem, 9.6vw, 12rem);
+	/* THE CLIP BOX. overflow: hidden is what the mark rises out
+	   from behind, so the reveal has a hard edge instead of type
+	   sliding in from open space.
+
+	   line-height is 1, not the tighter 0.84 this had before: 0.84
+	   makes the line box SHORTER than the glyphs' own cap height, so
+	   with overflow: hidden the cap tops would be permanently shaved
+	   off. On a single line, line-height only changes the box, not
+	   the spacing of the letters, so nothing optical is lost. */
+	line-height: 1;
+	overflow: hidden;
+	letter-spacing: -0.025em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	color: var(--color-pearl);
+	-webkit-mask-image: linear-gradient(
+		100deg,
+		rgb(0 0 0 / 100%) 0%,
+		rgb(0 0 0 / 100%) 20%,
+		rgb(0 0 0 / 72%) 40%,
+		rgb(0 0 0 / 34%) 56%,
+		rgb(0 0 0 / 10%) 68%,
+		rgb(0 0 0 / 0%) 80%
+	);
+	mask-image: linear-gradient(
+		100deg,
+		rgb(0 0 0 / 100%) 0%,
+		rgb(0 0 0 / 100%) 20%,
+		rgb(0 0 0 / 72%) 40%,
+		rgb(0 0 0 / 34%) 56%,
+		rgb(0 0 0 / 10%) 68%,
+		rgb(0 0 0 / 0%) 80%
+	);
+}
+
+/* ---- the reveal ----
+
+   THE CASCADE. Characters rise from behind the clip edge one after the
+   next, left to right, each lagging the one before it.
+
+   This was briefly built as a single solid block, on my reading of the
+   reference clip. That reading was wrong, and re-checking the video
+   frame by frame settled it: the s is already at full height while the
+   h is only breaking the edge and the b has not appeared at all. The
+   letters plainly arrive at different times. The earlier sample landed
+   on frames where the leading letters had already settled, which made
+   them look level.
+
+   THE STAGGER IS DECLARATIVE. Each character carries its index as --i,
+   and the delay is derived from it. There is no timeline and no
+   per-letter JavaScript, so there is nothing to fall out of sync, and
+   the whole cascade stays on the compositor rather than contending with
+   Lenis's momentum for main-thread frames.
+
+   45ms IS DELIBERATELY SHORTER THAN THE DURATION. Each letter takes
+   900ms, so at 45ms apart a letter is only ~5% through its own travel
+   when the next one starts. The moves overlap heavily, which is what
+   reads as one continuous flow with a diagonal running through it. Widen
+   the gap toward the duration and it stops being a cascade and becomes
+   eleven letters taking separate turns.
+
+   THE GATE IS data-wordmark, AND THAT GATE IS THE POINT. The hidden
+   state applies ONLY while the footer carries data-wordmark, which the
+   hook sets itself once it is about to take over. If the hook never
+   runs - JS disabled, an error earlier in the tree, a refactor dropping
+   the call - the attribute is absent, these rules do not match, and the
+   wordmark is simply visible. Hiding by default and relying on JS to
+   reveal is fail-CLOSED, and it took the brand name off the page twice:
+   once when a patch left the hook animating child spans while the
+   parent stayed parked, and once when SmoothScrollProvider's cleanup
+   killed EVERY ScrollTrigger in the app and silently destroyed the
+   reveal. Both times: invisible wordmark, no error anywhere. */
+.footer__wordmark-inner {
+	display: block;
+}
+
+.footer__wordmark-char {
+	/* inline-block so it can be transformed at all - transforms do not
+	   apply to plain inline boxes. */
+	display: inline-block;
+	will-change: transform, filter;
+	/* Heavily decelerated: expo-out style curves spend most of their
+	   travel slowing down, which is what makes the rise feel weighted
+	   rather than linear. Same character as the
+	   cubic-bezier(0.76, 0, 0.24, 1) used elsewhere in this codebase. */
+	/* THE BLUR IS PART OF THE RISE, NOT DECORATION.
+
+	   This footer's whole language is focus: the portrait is a blurred
+	   plate that sharpens under the pointer, and the back-to-top button
+	   already arrives from blur(8px). The wordmark was the one element
+	   rising in perfect focus, which is why it read as a slide rather
+	   than as something surfacing.
+
+	   The blur clears FASTER than the travel finishes (600ms against
+	   900ms). Deliberate: focus arriving before the motion settles is
+	   what makes the mark feel like it is coming to rest, rather than
+	   sharpening after it has already stopped - which looks like a
+	   dropped frame. Both share the same delay, so the cascade holds. */
+	transition:
+		transform 900ms cubic-bezier(0.16, 1, 0.3, 1),
+		filter 600ms cubic-bezier(0.16, 1, 0.3, 1);
+	/* The cascade. See the 45ms note above. */
+	transition-delay: calc(var(--i) * 45ms);
+}
+
+/* Armed: every letter waiting below the clip edge. 105% rather than
+   100% so nothing shows a sliver of ink at rest. */
+.footer[data-wordmark='armed'] .footer__wordmark-char {
+	transform: translateY(105%);
+	/* 12px against a ~58px cap height on a phone and ~180px on desktop.
+	   It is a fixed length rather than an em value on purpose: this is a
+	   lens being focused, and a lens does not defocus proportionally to
+	   the size of what it is pointed at. */
+	filter: blur(12px);
+	/* No delay on the way down - the arming state must not itself
+	   cascade, or re-arming would ripple visibly. */
+	transition-delay: 0s;
+}
+
+/* Revealed - in place and in focus. */
+.footer[data-wordmark='in'] .footer__wordmark-char {
+	transform: translateY(0);
+	filter: blur(0px);
+}
+
+/* The instant reset, applied for one frame while the footer is off
+   screen. Transition suppressed entirely so the mark is never seen
+   sinking back down; it cuts to hidden and is ready to rise clean on
+   the next visit. */
+.footer[data-wordmark='resetting'] .footer__wordmark-char {
+	transform: translateY(105%);
+	/* Re-armed defocused too, or the next rise would start sharp and
+	   only the first visit would carry the effect. */
+	filter: blur(12px);
+	transition: none;
+}
+
+/* The hook does not arm under reduced motion, so the rules above never
+   match. This covers the window before hydration. */
+@media (prefers-reduced-motion: reduce) {
+	.footer__wordmark-char {
+		transition: none;
+		transform: none;
+		filter: none;
+	}
+}
+
+/* ---------------- the grain ---------------- */
+
+/* Above the canvas AND above the type, at overlay: the same grain runs
+   across photograph and letterforms so they read as one exposure.
+   feTurbulence rather than an image so there is no extra request and
+   nothing to go stale. */
+.footer__grain {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	pointer-events: none;
+	opacity: 0.34;
+	mix-blend-mode: overlay;
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23g)' opacity='0.55'/></svg>");
+	background-size: 160px 160px;
+}
+
+/* ---------------- narrow viewports ---------------- */
+
+/* The portrait is contain-fit, so on a narrow screen it shrinks toward
+   the middle and the left field disappears. Below this width the type
+   takes the full width and the columns even out, which is the only
+   honest option - a 64% field on a phone is a column of orphans. */
+@media (max-width: 48rem) {
+	.footer__row,
+	.footer__nav,
+	.footer__wordmark {
+		width: 100%;
+	}
+
+	.footer__row,
+	.footer__nav {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	}
+
+	.footer__row,
+	.footer__link {
+		font-size: clamp(0.7rem, 3vw, 0.95rem);
+	}
+
+	/* ONE LINE PER CELL. On desktop both halves of the top row set on a
+	   single line, and that crispness is part of the look - two ragged
+	   two-line cells read as a squeezed page. TURNING IDEAS INTO
+	   SYSTEMS is 26 monospace characters at 0.1em tracking, so it needs
+	   about 0.7em per character: it cannot fit half of a 390px screen
+	   at 3vw. Slightly smaller type, and the longer string gets the
+	   larger share of the split. */
+	.footer__row--top {
+		grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
+		font-size: clamp(0.6rem, 2.5vw, 0.9rem);
+	}
+
+	/* THE PHOTOGRAPH BECOMES A PANEL IN THE RIGHT CHANNEL.
+
+	   On a wide screen the canvas is full-bleed and the composition is
+	   horizontal: type in the left 64%, portrait on the right. On a
+	   phone the type takes the full width, so a full-bleed canvas has
+	   nowhere to put the picture except underneath the words. Contain-
+	   fitting it into a tall narrow frame also flattened the portrait
+	   into a letterboxed strip on the bottom edge - a band of face, not
+	   a photograph.
+
+	   So the canvas stops being the background and becomes an object:
+	   a panel bleeding off the right edge, sitting in the dead vertical
+	   channel between the top row and the nav - beside the back-to-top
+	   button rather than under the wordmark. The left/right split of
+	   the desktop composition survives, at phone scale.
+
+	   THE BOX MATCHES THE ASSET, so contain-fit has nothing to letter-
+	   box: the height is the width divided by the photograph's own
+	   aspect, published as --footer-image-aspect by FooterBlurReveal
+	   once the texture has loaded. The fallback covers the frames
+	   before that, and the whole thing re-derives itself if the picture
+	   is ever recropped.
+
+	   NOTE FOR ANYONE MOVING THIS: the component measures the canvas
+	   for both its drawing buffer and its pointer trail. Those used to
+	   read the section, which was the same rectangle only because the
+	   canvas was inset: 0. Resizing this panel is safe; giving the
+	   canvas a transform or taking it out of flow is not. */
+	/* THE SIZE AND THE SEAT.
+
+	   The panel sits in the channel BETWEEN the back-to-top button and
+	   the nav block, not up near the top row - that is the empty middle
+	   of the phone footer, and it is the only place the picture can be
+	   large without crowding anything.
+
+	   OVERSIZED PAST THE LEFT EDGE, BECAUSE THE ASSET IS 16:9.
+
+	   A 16:9 plate at full width is only ~56vw tall, so "edge to edge"
+	   is already the ceiling on height - there is no more room to grow
+	   sideways. The only way to make the picture bigger is to stop
+	   fitting it to the viewport: the plate is anchored to the RIGHT and
+	   overrun past 100%, so the excess runs off the LEFT edge.
+
+	   126.5% is 115% plus another tenth. Height comes along for free at
+	   the asset's own ratio - measured, not assumed. Worth knowing: the
+	   published ratio reads wider than 16:9 (nearer 2.2), which is why
+	   the plate renders flatter than a 16:9 calculation predicts. That
+	   is the asset telling the truth about itself, and the reason this
+	   height is a division rather than a number.
+
+	   THE CROP IS FREE. What leaves the frame is the left fifteenth of
+	   the photograph, which is unlit ground - the subject sits in the
+	   right third. Anchoring right is what makes that true; anchored
+	   left, the same 15% would take the face.
+
+	   The height still follows --footer-image-aspect, so this remains
+	   the photograph's own ratio rather than a squeeze, and .footer is
+	   overflow: hidden, so the overhang cannot produce a horizontal
+	   scrollbar.
+
+	   38% seats it lower in the channel - the air was lopsided, too
+	   much below the plate and too little above - while staying level
+	   with the back-to-top button on its left and clear of the nav,
+	   which begins around 72%. That gap is the constraint to watch if
+	   the plate grows again. */
+	/* THE PICTURE STOPS BEING AN OBJECT AND BECOMES THE GROUND.
+
+	   This is the actual difference between the two versions. On
+	   desktop the portrait is not a picture ON the footer, it IS the
+	   footer: it bleeds off three edges, and the type lives on top of
+	   it - the wordmark literally dissolving into the face. Nothing is
+	   framed, so nothing reads as inserted. That is the whole aesthetic.
+
+	   Every mobile version so far kept the picture in its own band with
+	   type above and below it. Tidy, and completely different in kind:
+	   a page with an image in it, not a poster.
+
+	   So the plate is anchored to the BOTTOM RIGHT and sized off the
+	   VIEWPORT HEIGHT rather than its width - 46svh tall, with width
+	   derived from the asset's ratio, which at ~2.2 makes it about
+	   twice the screen wide. It bleeds off the bottom, the right and
+	   far off the left. Only the top edge remains, and that one is
+	   feathered, so the photograph rises out of the black instead of
+	   starting on a line.
+
+	   WHY WIDTH FROM HEIGHT. Anchoring the height is what makes this a
+	   crop rather than a letterbox: the plate keeps the asset's exact
+	   ratio (no squeeze) while the excess width leaves the frame. It is
+	   the same contain-fit the shader has always done, handed a box
+	   that is now much wider than the screen.
+
+	   -12% RIGHT is the framing. At this zoom the visible window lands
+	   on roughly the 40-93% band of the photograph: the dark middle
+	   ground plus the face, with the face's outer edge just leaving the
+	   frame - which is how desktop crops it too. Pull this toward 0 and
+	   the face grows and drifts left over the type; push it further
+	   negative and you lose the face off the right edge.
+
+	   svh, with vh underneath it for anything that predates svh. */
+	.footer__canvas {
+		top: auto;
+		bottom: 0;
+		right: -12%;
+		left: auto;
+		height: 46vh;
+		height: 46svh;
+		width: calc(46vh * var(--footer-image-aspect, 1.7778));
+		width: calc(46svh * var(--footer-image-aspect, 1.7778));
+
+		/* ONE SEAM LEFT, AND IT IS FEATHERED.
+
+		   Three of the four edges now leave the viewport, so there is
+		   nothing to soften on them - the previous version had to fade
+		   a bottom edge that landed mid-shoulder and sliced the
+		   subject. That edge is off-screen now.
+
+		   The top runs a long way (a quarter of the plate) because it
+		   crosses open ground, and a short fade there would read as a
+		   band of haze rather than an absence of edge. The canvas paints
+		   its own near-black outside the image, so what shows through is
+		   the footer's background - the same darkness, which is why this
+		   dissolves instead of greying.
+
+		   -webkit- first for iOS Safari, which still wants the prefix
+		   for mask-image. Same pairing as .footer__wordmark. */
+		-webkit-mask-image: linear-gradient(
+			to bottom,
+			transparent 0%,
+			#000 26%,
+			#000 100%
+		);
+		mask-image: linear-gradient(
+			to bottom,
+			transparent 0%,
+			#000 26%,
+			#000 100%
+		);
+		-webkit-mask-repeat: no-repeat;
+		mask-repeat: no-repeat;
+	}
+
+	/* THE BASELINE ROW SHARES ONE LINE AGAIN.
+
+	   It was stacked because an even 50/50 split gave the address
+	   ~175px when it needs more, and the copyright ran into it. But
+	   stacking is not what desktop does, and the baseline is the last
+	   line of the poster - two rows there reads like a wrapped form.
+
+	   The real bug was the EVEN split, not the single line. One long
+	   string and one short one are not a pair: the address takes the
+	   remaining space, the copyright takes exactly what it needs. With
+	   tracking eased and the type a shade smaller, both fit. */
+	.footer__row--base {
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 0.75rem;
+		letter-spacing: 0.04em;
+		font-size: clamp(0.58rem, 2.4vw, 0.85rem);
+	}
+
+	/* THE MARK HAS TO FIT ON ONE LINE. It is white-space: nowrap inside
+	   an overflow: hidden clip box, so anything wider than the frame is
+	   not wrapped - it is silently guillotined, which is why the L of
+	   DIGITAL was missing. At Cabinet Grotesk Black's proportions the
+	   eleven characters need about 6.4em, so 15vw could never fit a
+	   360-430px screen. min() rather than clamp(): there is no floor to
+	   defend here, only a ceiling. */
+	.footer__wordmark {
+		/* AS LARGE AS THE LINE ALLOWS. The mark is the loudest thing in
+		   the desktop footer, spanning half the frame and running into
+		   the portrait. At 12.4vw it was merely a heading. 15.2vw puts
+		   the eleven characters (about 6.4em of Cabinet Grotesk Black)
+		   just inside a 390px screen, so it spans nearly edge to edge -
+		   which is what lets it reach the face at all. */
+		font-size: min(15.2vw, 5.5rem);
+		letter-spacing: -0.04em;
+
+		/* AND THE FADE HAS TO BE REDRAWN, NOT INHERITED.
+
+		   This slot used to override background-image, from when the
+		   wordmark was background-clip: text. It is a mask now (see the
+		   note on .footer__wordmark), so that override painted nothing
+		   and the DESKTOP mask stayed in force: fully transparent by 80%
+		   of the mark's width. Dead code hiding a live bug - on a phone
+		   the brand name simply evaporated two-thirds of the way
+		   through, into black, with no portrait to evaporate into.
+
+		   Here the mark sits above the photograph rather than beside it,
+		   so the fade has nothing to dissolve toward. It holds full
+		   strength most of the way and only softens at the tail, enough
+		   to keep the gesture without eating the word. */
+		/* THE RAMP IS THE DESKTOP RAMP. DO NOT SOFTEN IT AGAIN.
+
+		   This override held full strength to 44% and did not reach
+		   zero until 100%, and that is the exact curve the note on
+		   .footer__wordmark records having already been diagnosed and
+		   removed once: "held solid to 38% and did not finish until
+		   92%, which is why the tail of the mark read as flat mid-grey
+		   lettering sitting ON the black instead of sinking INTO it".
+		   The same shape produced the same result here - the tail
+		   stayed plainly legible straight across the lit cheek, so the
+		   mark never darkened away as it does on desktop.
+
+		   It was reasoned from a plausible premise - a phone has less
+		   width, so give the falloff more of it - which happened to be
+		   the exact wrong instinct. The ramp has to be EARLY AND DEEP:
+		   full strength for a fifth, gone by four fifths. Ending at 80%
+		   is what keeps the falloff clear of the portrait's lit side,
+		   so the mark dies in the shadow instead of fighting the face.
+		   That reasoning is width-independent, which is why the stops
+		   are percentages and why this override now only exists to
+		   restate them next to the phone-specific size.
+
+		   Consequence, and it is intended: the last letters genuinely
+		   disappear. Desktop reads FAZ DIGITA. So does this. */
+		-webkit-mask-image: linear-gradient(
+			100deg,
+			rgb(0 0 0 / 100%) 0%,
+			rgb(0 0 0 / 100%) 20%,
+			rgb(0 0 0 / 72%) 40%,
+			rgb(0 0 0 / 34%) 56%,
+			rgb(0 0 0 / 10%) 68%,
+			rgb(0 0 0 / 0%) 80%
+		);
+		mask-image: linear-gradient(
+			100deg,
+			rgb(0 0 0 / 100%) 0%,
+			rgb(0 0 0 / 100%) 20%,
+			rgb(0 0 0 / 72%) 40%,
+			rgb(0 0 0 / 34%) 56%,
+			rgb(0 0 0 / 10%) 68%,
+			rgb(0 0 0 / 0%) 80%
+		);
+	}
+
+	/* The button's desktop margins are a seventh of the viewport height
+	   each; inside a box that now ends above the photograph they were
+	   most of the remaining room, which is the dead vertical channel in
+	   the middle of the phone footer. */
+	/* THE BUTTON STAYS IN THE MIDDLE BAND, BESIDE THE PLATE.
+
+	   It was briefly moved up under the top row, to buy the photograph
+	   width it could not otherwise have. Wrong trade: it broke the
+	   composition to solve a collision, and the collision has a better
+	   answer - the plate's left third is unlit ground, so the button
+	   can simply sit ON it. Type over the dark side of a photograph is
+	   the whole language of this footer; the arrow is no different.
+
+	   So space-between is left alone (the button rides in the vertical
+	   middle, level with the picture) and the bottom margin comes back
+	   with it. Nothing here positions the button explicitly - it is
+	   still the middle child of the flex column, exactly as on desktop. */
+	.footer__totop {
+		width: clamp(3.4rem, 15vw, 4.4rem);
+		height: clamp(3.4rem, 15vw, 4.4rem);
+		margin: clamp(0.75rem, 2.5vh, 1.5rem) 0 clamp(0.5rem, 1.5vh, 1rem);
+	}
+
+	.footer__totop-track {
+		font-size: clamp(1.35rem, 6vw, 1.9rem);
+	}
+}
+
+/* Reduced motion: the reveal is driven entirely by pointer movement,
+   so there is nothing to pause. The type is static and the grain does
+   not animate, so nothing here is gated - but the blurred resting
+   state must never hide content, which is why every string sits on the
+   section's black rather than on the photograph's lit side. */
+/* ------------------------------------------------------------------
+   BACK TO TOP - the floating icon in the left field
+
+   Icon-first: no label, the arrow carries the whole message. The shape
+   is an organic curvy blob rather than a perfect circle - four unequal
+   corner radii, which is what keeps it from reading as a generic FAB.
+
+   ENTRANCE. The button starts scaled down, blurred and dropped, and
+   only arrives once the footer root carries data-wordmark='in' - the
+   attribute useFooterWordmarkReveal sets when FAZ DIGITAL rises. So
+   the button materialises a beat AFTER the wordmark, as the closing
+   note of the same moment, and re-plays every visit because the
+   wordmark attribute itself re-arms. If the hook never runs, the
+   attribute never appears and the button stays hidden - acceptable
+   here: unlike the wordmark it is not load-bearing content, and the
+   footer's real links remain.
+
+   HOVER. The pill inverts to pearl, the blob swells slightly, and the
+   arrow rolls up out of its mask while its twin rolls in from below -
+   the header pill's roll, icon-only.
+   ------------------------------------------------------------------ */
+.footer__totop {
+	/* The left field between the top row and the lower cluster. */
+	margin: clamp(2rem, 7vh, 4.5rem) 0 clamp(1rem, 2.5vh, 2rem);
+	margin-left: clamp(0.2rem, 0.6vw, 0.6rem);
+
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	width: clamp(4.4rem, 7.2vw, 7rem);
+	height: clamp(4.4rem, 7.2vw, 7rem);
+	flex: none;
+	align-self: flex-start;
+
+	/* A true circle. */
+	border-radius: 50%;
+
+	color: color-mix(in srgb, var(--color-pearl) 82%, transparent);
+	background: color-mix(in srgb, var(--color-pearl) 7%, transparent);
+	border: 1px solid color-mix(in srgb, var(--color-pearl) 16%, transparent);
+	cursor: pointer;
+	pointer-events: auto;
+
+	/* Hidden until the wordmark moment. */
+	opacity: 0;
+	transform: translateY(26px) scale(0.6) rotate(-10deg);
+	filter: blur(8px);
+
+	transition:
+		opacity 900ms cubic-bezier(0.16, 1, 0.3, 1) 450ms,
+		transform 900ms cubic-bezier(0.16, 1, 0.3, 1) 450ms,
+		filter 900ms cubic-bezier(0.16, 1, 0.3, 1) 450ms,
+		color 420ms cubic-bezier(0.76, 0, 0.24, 1),
+		background-color 420ms cubic-bezier(0.76, 0, 0.24, 1),
+		border-color 420ms cubic-bezier(0.76, 0, 0.24, 1),
+		border-radius 560ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.footer[data-wordmark='in'] .footer__totop {
+	opacity: 1;
+	transform: translateY(0) scale(1) rotate(0deg);
+	filter: blur(0px);
+}
+
+.footer__totop:hover,
+.footer__totop:focus-visible {
+	color: var(--color-eerie);
+	background: var(--color-pearl);
+	border-color: var(--color-pearl);
+
+}
+
+/* THE ARROWS. Two identical arrows stacked in an overflow-masked track;
+   hover slides the track so the resting arrow exits upward and the twin
+   enters from below. The icon is BIG - it is the whole affordance. */
+/* Rebuilt in em like the two CTA tracks, and for the same reason: the
+   mask was a share of the BUTTON (52%) while the glyph was sized by the
+   font, so the two never agreed. The arrow size moved up here, and the
+   arrow itself now inherits it. */
+.footer__totop-track {
+	flex: none;
+	font-size: clamp(1.9rem, 3vw, 2.9rem);
+	display: block;
+	overflow: hidden;
+	height: 1.15em;
+}
+
+.footer__totop-roll {
+	display: block;
+	transition: transform 520ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.footer__totop-arrow {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 1.15em;
+	/* Comico, big: the glyph IS the affordance. Size comes from the
+	   track now, so the mask and the travel cannot drift from it. */
+	font-family: 'Comico', var(--font-sans);
+	font-size: 1em;
+	line-height: 1.15;
+}
+
+/* One arrow box of travel, as a length - see .footer__cta-track. This
+   rule predates the CTA and carried the same fault, so both objects in
+   the cluster now roll identically. */
+.footer__totop:hover .footer__totop-roll,
+.footer__totop:focus-visible .footer__totop-roll {
+	transform: translateY(-50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.footer__totop,
+	.footer__totop-roll { transition: none; }
+	.footer__totop { opacity: 1; transform: none; filter: none; }
+}
+
+/* IMAGE PROTECTION. The portrait is a WebGL texture, so there is no
+   <img> to drag or right-click already - this hardens the canvas and
+   the grain layer against the same gestures. */
+.footer__canvas,
+.footer__grain {
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-user-drag: none;
+	-webkit-touch-callout: none;
+}
+
+/* ------------------------------------------------------------------
+   THE ACTION CLUSTER - back-to-top blob + the one ask
+
+   The left field used to hold two unrelated floating objects. Now it
+   holds one row: the circular blob and the notched CTA plate, aligned
+   on a shared centreline, level with the portrait. The row owns the
+   vertical rhythm the blob used to own on its own.
+   ------------------------------------------------------------------ */
+.footer__actions {
+	display: flex;
+	align-items: center;
+	gap: clamp(0.9rem, 1.8vw, 1.6rem);
+
+	/* NOWRAP, DELIBERATELY. This row wrapped in practice, which is what
+	   put the plate BELOW the blob instead of beside it. The cause was
+	   the percentage margin on the plate: in a shrink-to-fit column the
+	   row measures its content with percentage margins treated as zero,
+	   then resolves the 5% against the width it just computed - so the
+	   content no longer fits the box that was sized for it, and wrap did
+	   what wrap does. The margin is a length now (see .footer__cta) and
+	   wrapping is off, so the cluster cannot come apart at any width
+	   above the phone breakpoint, where wrap is restored on purpose. */
+	flex-wrap: nowrap;
+
+	/* THE SAME LEFT FIELD AS EVERY OTHER ROW. .footer__row, .footer__nav
+	   and .footer__wordmark all take min(64%, 68rem); the cluster was the
+	   only element in the column that did not, so it answered to nothing.
+	   Sharing the measure is what makes the composition read: the plate
+	   now ends inside the same field the nav columns and the wordmark end
+	   in, rather than at an arbitrary point. */
+	width: min(64%, 68rem);
+
+	/* Inherited from the blob, which no longer sets its own. */
+	margin: clamp(2rem, 7vh, 4.5rem) 0 clamp(1rem, 2.5vh, 2rem);
+	/* FLUSH LEFT. The blob used to sit 6-10px inboard of the type above
+	   and below it - not enough to look intentional, plenty to look like
+	   a mistake. Zero puts the circle, TURNING IDEAS INTO SYSTEMS, WORK
+	   and FAZ DIGITAL on one hard left edge. */
+	margin-left: 0;
+	align-self: flex-start;
+	pointer-events: auto;
+}
+
+.footer__actions .footer__totop {
+	margin: 0;
+}
+
+/* ------------------------------------------------------------------
+   BOOK AN INTRO CALL - a notched plate, not a pill
+
+   WHY NOT A PILL. Every portfolio CTA is a rounded pill with an arrow.
+   This footer's language is technical: mono caps, dotted leaders in the
+   spec lists, a top row that says "turning ideas into systems". So the
+   ask is drawn as a ROW IN A SYSTEM - a hard-cornered plate with two
+   corners notched off (top-left, bottom-right), a 1px outline, the
+   label, a dotted leader, the duration, and a circular arrow node.
+   Nothing about it is decorative: the leader is the spec-list leader,
+   the "15 min" removes the only real objection to clicking, and the
+   dot is the availability signal.
+
+   THE OUTLINE. The anchor itself is the hairline: 1px of pearl-mix
+   showing around an inset plate, both sharing the notch clip-path. A
+   real border cannot be notched; this can.
+
+   HOVER. Pearl wipes across the plate from the left (620ms, the site's
+   easing), and the type flips to eerie 180ms into the wipe, so the
+   fill leads and the words follow. The node rotates, its arrow rolls,
+   the leader brightens, the whole plate lifts 2px. No scale, no shadow.
+
+   ENTRANCE. Tied to the footer's data-wordmark attribute, same as the
+   blob, so the cluster arrives as one moment after FAZ DIGITAL rises.
+   ------------------------------------------------------------------ */
+.footer__cta {
+	--cut: clamp(9px, 1vw, 15px);
+	--notch: polygon(
+		var(--cut) 0,
+		100% 0,
+		100% calc(100% - var(--cut)),
+		calc(100% - var(--cut)) 100%,
+		0 100%,
+		0 var(--cut)
+	);
+
+	position: relative;
+	display: inline-flex;
+	align-items: stretch;
+	/* THE CONTENT DECIDES THE WIDTH, AND IT HAS TO.
+
+	   A fixed width here cost the arrow: the row is dot + label + leader
+	   + duration + node, and the label alone is 18 mono caps at 0.14em
+	   tracking, so the real content ran past 20vw. The anchor carries the
+	   notch clip-path, and a clip-path does not scroll or ellipsis - it
+	   simply stops painting. So the overflow was silent: the duration
+	   truncated mid-word and the node was cut off the end entirely, which
+	   looked exactly like a deleted element.
+
+	   Intrinsic width cannot do that - the box is whatever the row needs.
+	   min-width is a FLOOR for short labels, not a target, and the
+	   leader (flex: 1 1 auto) is what absorbs the difference, which is
+	   the job it was put there to do. This is safe from the wrap that
+	   started all of this because that was caused by the percentage
+	   margin, since replaced by a length, and the row is nowrap. */
+	flex: 0 0 auto;
+	width: auto;
+	min-width: clamp(15rem, 24vw, 21rem);
+	max-width: 100%;
+
+	/* THE NUDGE OFF THE BLOB, IN LENGTH RATHER THAN PERCENT. Same intent
+	   as before - about 5% of the left field - but a percentage margin on
+	   a flex item inside a shrink-to-fit column is measured before it is
+	   resolved, which overflowed the row and forced the wrap that broke
+	   the placement. A clamp cannot do that, and tracks the viewport just
+	   as well. */
+	margin-left: clamp(0.9rem, 3vw, 2.9rem);
+
+	/* The anchor IS the 1px outline; the plate insets by 1px. */
+	padding: 1px;
+	background: color-mix(in srgb, var(--color-pearl) 30%, transparent);
+	clip-path: var(--notch);
+	border-radius: 0;
+
+	color: color-mix(in srgb, var(--color-pearl) 90%, transparent);
+	text-decoration: none;
+	pointer-events: auto;
+
+	/* Hidden until the wordmark moment. */
+	opacity: 0;
+	transform: translateY(16px);
+	filter: blur(7px);
+
+	transition:
+		opacity 820ms cubic-bezier(0.16, 1, 0.3, 1) 420ms,
+		transform 620ms cubic-bezier(0.16, 1, 0.3, 1) 420ms,
+		filter 820ms cubic-bezier(0.16, 1, 0.3, 1) 420ms,
+		color 190ms linear 150ms,
+		background-color 420ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.footer[data-wordmark='in'] .footer__cta {
+	opacity: 1;
+	transform: translateY(0);
+	filter: blur(0px);
+}
+
+.footer[data-wordmark='in'] .footer__cta:hover,
+.footer[data-wordmark='in'] .footer__cta:focus-visible {
+	transform: translateY(-2px);
+}
+
+.footer__cta:hover,
+.footer__cta:focus-visible {
+	color: var(--color-eerie);
+}
+
+.footer__cta:focus-visible {
+	outline: 1px solid color-mix(in srgb, var(--color-pearl) 70%, transparent);
+	outline-offset: 4px;
+}
+
+/* THE PLATE. Sits 1px inside the outline and carries the wipe. */
+.footer__cta-plate {
+	position: absolute;
+	inset: 1px;
+	clip-path: var(--notch);
+	background: rgba(6, 6, 6, 0.55);
+	-webkit-backdrop-filter: blur(6px);
+	backdrop-filter: blur(6px);
+	overflow: hidden;
+}
+
+.footer__cta-plate::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: var(--color-pearl);
+	transform: scaleX(0);
+	transform-origin: left center;
+	transition: transform 420ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.footer__cta:hover .footer__cta-plate::after,
+.footer__cta:focus-visible .footer__cta-plate::after {
+	transform: scaleX(1);
+}
+
+.footer__cta-inner {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	width: 100%;
+	padding: clamp(0.7rem, 1.1vw, 1rem) clamp(1.15rem, 1.7vw, 1.6rem) clamp(0.7rem, 1.1vw, 1rem)
+		clamp(0.9rem, 1.3vw, 1.2rem);
+}
+
+/* THE SIGNAL. One ember point, breathing - the single-hue rule. */
+.footer__cta-dot {
+	flex: none;
+	width: 0.42rem;
+	height: 0.42rem;
+	border-radius: 50%;
+	background: #b56c4b;
+	animation: footer-cta-pulse 2600ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes footer-cta-pulse {
+	0% { box-shadow: 0 0 0 0 color-mix(in srgb, #b56c4b 55%, transparent); }
+	70% { box-shadow: 0 0 0 0.5rem color-mix(in srgb, #b56c4b 0%, transparent); }
+	100% { box-shadow: 0 0 0 0 color-mix(in srgb, #b56c4b 0%, transparent); }
+}
+
+/* THE LABEL. Two copies in a masked track - the site's roll, third
+   time, so hover behaves the same everywhere. */
+/* THE MASK AND THE MOVER MUST BE DIFFERENT ELEMENTS.
+
+   The real fault, finally visible when the hover was reproduced in
+   isolation: the transform and the overflow: hidden were on the SAME
+   element. A transform moves the element’s own clip window along with
+   its content, so the roll could never roll - the whole masked window
+   slid up one line and parked there, showing the same first copy a box
+   higher with the second copy permanently clipped out of view. Every
+   travel-distance change before this (-50%, -100%, em) was adjusting
+   how far the WINDOW slid, which is why each attempt looked different
+   yet none looked right.
+
+   Now the track is only the mask - stationary, one copy tall - and the
+   roll inside it is the mover. The roll holds exactly two copies, so
+   translateY(-50%) of the roll is exactly one copy of travel,
+   self-consistent in any unit at any font size. */
+.footer__cta-track {
+	flex: none;
+	font-size: clamp(0.7rem, 0.84vw, 0.82rem);
+	display: block;
+	overflow: hidden;
+	height: 1.4em;
+}
+
+.footer__cta-roll {
+	display: block;
+	transition: transform 520ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.footer__cta-label {
+	display: flex;
+	align-items: center;
+	/* Stated, not inherited as a percentage - see the track. */
+	height: 1.4em;
+	line-height: 1.4;
+	font-size: 1em;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+/* The roll holds exactly two copies, so -50% is exactly one copy. */
+.footer__cta:hover .footer__cta-roll,
+.footer__cta:focus-visible .footer__cta-roll {
+	transform: translateY(-50%);
+}
+
+/* THE LEADER. The spec list's dotted rule, load-bearing here: it ties
+   the label to the node and makes the plate read as a row, not a box. */
+.footer__cta-leader {
+	flex: 1 1 auto;
+	min-width: 1.2rem;
+	height: 1px;
+	background-image: radial-gradient(circle, currentColor 0.5px, transparent 0.6px);
+	background-size: 5px 1px;
+	background-repeat: repeat-x;
+	opacity: 0.42;
+	transition: opacity 420ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.footer__cta:hover .footer__cta-leader,
+.footer__cta:focus-visible .footer__cta-leader {
+	opacity: 0.75;
+}
+
+/* The objection-remover: it is fifteen minutes, not a commitment. */
+.footer__cta-meta {
+	flex: none;
+	font-size: clamp(0.6rem, 0.7vw, 0.7rem);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	opacity: 0.6;
+	white-space: nowrap;
+}
+
+/* THE NODE. A circle at the end of the row - the one round shape on
+   the plate, echoing the blob beside it so the cluster rhymes. */
+.footer__cta-node {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: clamp(1.5rem, 2vw, 1.9rem);
+	height: clamp(1.5rem, 2vw, 1.9rem);
+	border-radius: 50%;
+	border: 1px solid currentColor;
+
+	/* THE CIRCLE ITSELF CLIPS. This is the actual fix for the arrow
+	   escaping on hover, and the previous attempt missed it: the only
+	   overflow: hidden was on the inner track, and that track is a
+	   RECTANGLE 16px tall sitting inside a 30px circle. So it clipped the
+	   roll vertically and nothing clipped it to the ring - and the glyph
+	   is a Unicode arrow, whose ink overshoots its own line box, so mid
+	   roll it crossed the border and appeared to leave the circle.
+	   Clipping at the node makes that geometrically impossible rather
+	   than merely unlikely: whatever the font does, nothing paints
+	   outside the ring. */
+	overflow: hidden;
+
+	opacity: 0.75;
+	transition:
+		opacity 420ms cubic-bezier(0.76, 0, 0.24, 1),
+		background-color 420ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.footer__cta:hover .footer__cta-node,
+.footer__cta:focus-visible .footer__cta-node {
+	opacity: 1;
+	background: color-mix(in srgb, var(--color-eerie) 10%, transparent);
+}
+
+/* The glyph size lives here for the same reason it lives on the label
+   track: 1em is one arrow box, so mask, twin and travel are one number.
+   58% of the ring was the other half of the fault - it tied the mask to
+   the CIRCLE while the glyph was sized by the FONT, so the arrow could
+   not sit on the ring’s centre at rest or arrive on it after the roll. */
+.footer__cta-node-track {
+	flex: none;
+	font-size: clamp(0.64rem, 0.78vw, 0.76rem);
+	display: block;
+	overflow: hidden;
+	height: 1.5em;
+}
+
+.footer__cta-node-roll {
+	display: block;
+	transition: transform 520ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.footer__cta-arrow {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* 1.5em rather than a tight box: this is a Unicode arrow, whose ink
+	   overshoots its own line box, and the extra room is what keeps the
+	   glyph off the ring. */
+	height: 1.5em;
+	font-size: 1em;
+	line-height: 1.5;
+}
+
+/* Same contract as the label roll: two copies, -50%, one arrow. */
+.footer__cta:hover .footer__cta-node-roll,
+.footer__cta:focus-visible .footer__cta-node-roll {
+	transform: translateY(-50%);
+}
+
+@media (max-width: 720px) {
+	.footer__actions {
+		gap: 0.85rem;
+		/* The 64% field is a desktop idea; at this width the content box IS
+		   the field. */
+		width: auto;
+		/* Here wrapping is the correct behaviour, not an accident. */
+		flex-wrap: wrap;
+		margin: clamp(0.75rem, 2.5vh, 1.5rem) 0 clamp(0.5rem, 1.5vh, 1rem);
+	}
+
+	.footer__cta {
+		width: auto;
+		min-width: 0;
+		flex: 0 0 auto; } .footer__actions .footer__totop { align-self: center; width: clamp(2.9rem, 12vw, 3.6rem); height: clamp(2.9rem, 12vw, 3.6rem); } .footer__actions .footer__totop-track { font-size: clamp(1.15rem, 5vw, 1.55rem); } .footer__cta-inner { gap: 0.5rem; padding: 0.72rem 0.95rem; } .footer__cta {
+		margin-left: 0;
+	}
+
+	.footer__cta-meta {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.footer__cta,
+	.footer__cta-roll,
+	.footer__cta-node,
+	.footer__cta-node-roll,
+	.footer__cta-leader,
+	.footer__cta-plate::after { transition: none; }
+	.footer__cta { opacity: 1; transform: none; filter: none; }
+	.footer__cta-dot { animation: none; }
+}

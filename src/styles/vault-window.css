@@ -1,0 +1,525 @@
+/* ------------------------------------------------------------------
+   THE VAULT WINDOW
+
+   Every duration, easing and distance arrives as a custom property set
+   inline from config/vaultWindow.ts, so this file has no tunable
+   numbers of its own - it only knows how to spend them.
+
+   ==================================================================
+   THIS IS THE CASE STUDY WINDOW'S MECHANISM, DELIBERATELY.
+   See styles/work-case-study.css - the two must stay in step.
+   ==================================================================
+
+   THE MOTION IS THE SAME; ONLY THE DESIGN IS THE VAULT'S. Same wipe in,
+   same wipe out, same curves and durations, same plate-land from the
+   click origin. What differs is what is inside: a dark room with a
+   photograph and enormous tracked type, instead of the case study's
+   paper.
+
+   ---------------------------------------------------------------
+   WHY THIS FILE WAS REWRITTEN: KEYFRAMES, NOT TRANSITIONS.
+
+   THE DEFECT: the window opened with a perceptible beat of lag on every
+   click, even after the route, the prefetch and the full document load
+   had all been removed.
+
+   The cause was the mechanism, not the timings. This file used CSS
+   TRANSITIONS, and a transition interpolates between two PAINTED
+   values - so the component had to paint a 'closed' frame, wait for the
+   browser to commit it, and only then flip to 'open'. That is what the
+   double requestAnimationFrame in VaultWindow.tsx was for, and it costs
+   two frames of nothing happening before the animation starts, on top
+   of React's own commit. ~33ms of dead air between the click and any
+   movement is exactly long enough to read as lag.
+
+   A KEYFRAME ANIMATION HAS NO SUCH PROBLEM. `from` IS the start value,
+   applied on the first frame the element exists. Nothing to paint
+   first, nothing to wait for, no state machine. That is why the case
+   study window has always opened instantly: its wipe is
+   `animation: cs-wipe-in ... forwards`.
+
+   So there is NO 'closed' state any more. `data-state` is 'open' or
+   'closing' only, and 'open' is set on the first render. Do not
+   reintroduce a third state or a rAF handshake to "make sure the start
+   frame is painted" - that is the bug, not the fix.
+
+   THE WEBGL BURST IS GONE TOO. A one-shot three.js pass used to draw
+   light spilling out of the folder, and creating a GL context plus
+   compiling its shaders happened ON the click frame - main-thread work
+   in front of the animation, worst on the first open of a session. The
+   case study window has no equivalent and does not need one.
+   ---------------------------------------------------------------
+
+   ONLY clip-path, transform and opacity are animated. All three are
+   compositor properties, which matters more here than usual: the
+   landing page underneath is still running its own rAF loops - the
+   teaser's sand, the work carousel's WebGL - and the window arrives on
+   top of all of it. Animating width/height or filter would put this
+   animation on the main thread in direct contention with them, and the
+   opening would stutter exactly once, on first use.
+   ------------------------------------------------------------------ */
+
+.vault-window {
+	position: fixed;
+	inset: 0;
+	/* Above PixelDissolveTransition's z-[8000]: that canvas is fixed and
+	   full-screen and fires around the scroll position the teaser sits
+	   at, so anything lower would be painted over mid-open. */
+	z-index: 9000;
+
+	/* Declared once here so the eyebrow can be positioned relative to the
+	   title's actual size - it sits BELOW the title, and "below" depends
+	   on how tall the title currently is. */
+	--vw-title-size: clamp(2.6rem, 11vw, 11rem);
+}
+
+/* THE VEIL. Its own element rather than a background on the panel,
+   because it must be visible OUTSIDE the panel's clip-path - the panel
+   is masked, so anything painted on it is masked too. */
+.vault-window__veil {
+	position: absolute;
+	inset: 0;
+	background: var(--vw-base);
+	opacity: 0;
+	animation: vw-veil-in var(--vw-veil) var(--vw-open-ease) forwards;
+}
+
+.vault-window[data-state='closing'] .vault-window__veil {
+	animation: vw-veil-out var(--vw-close) var(--vw-close-ease) forwards;
+}
+
+@keyframes vw-veil-in {
+	from { opacity: 0; }
+	to   { opacity: var(--vw-veil-opacity); }
+}
+
+@keyframes vw-veil-out {
+	from { opacity: var(--vw-veil-opacity); }
+	to   { opacity: 0; }
+}
+
+/* THE WIPE. cs-wipe-in, exactly: the window RISES over the page from
+   the bottom edge instead of dissolving on top of it, and nothing
+   inside is visible until the mask has passed it.
+
+   THIS REPLACED A CLIP-PATH CIRCLE centred on the folder's mouth. The
+   circle was the better idea on paper - the window growing out of the
+   object you pressed - but the brief is that this window must move like
+   the one in the work section, and a rising edge is what that one does.
+   The origin is not wasted: the PHOTOGRAPH still flies from it, below.
+
+   inset() rather than a scale, because a scaling panel scales its
+   contents - the photograph and the type would arrive squashed and grow
+   into place. A mask reveals contents already at final size. */
+.vault-window__panel {
+	position: absolute;
+	inset: 0;
+	background: var(--vw-base);
+	overflow: hidden;
+	clip-path: inset(100% 0 0 0);
+	animation: vw-wipe-in var(--vw-open) var(--vw-open-ease) forwards;
+}
+
+.vault-window[data-state='closing'] .vault-window__panel {
+	animation: vw-wipe-out var(--vw-close) var(--vw-close-ease) forwards;
+}
+
+@keyframes vw-wipe-in {
+	from { clip-path: inset(100% 0 0 0); }
+	to   { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes vw-wipe-out {
+	from { clip-path: inset(0 0 0 0); }
+	to   { clip-path: inset(100% 0 0 0); }
+}
+
+/* THE SCROLLER. Driven by the window's own nested Lenis.
+
+   NOTE: this element does NOT carry data-lenis-prevent while that
+   instance is alive - see the long comment in VaultWindow.tsx. The
+   attribute stops the PAGE's Lenis swallowing wheel events, but Lenis
+   walks the whole composed path, so it also makes the window's own
+   instance discard them. */
+.vault-window__scroller {
+	position: absolute;
+	inset: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	/* Hidden scrollbar, matching the rest of the site. */
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	-webkit-overflow-scrolling: touch;
+}
+
+.vault-window__scroller::-webkit-scrollbar {
+	display: none;
+}
+
+/* ---------------- the hero ---------------- */
+
+.vault-window__hero {
+	position: relative;
+	height: 100vh;
+	/* Fallback first; the dvh declaration wins where supported. Mobile
+	   chrome collapsing mid-scroll would otherwise resize the hero and
+	   jog the composition. */
+	height: 100dvh;
+	width: 100%;
+	overflow: hidden;
+	background: var(--vw-base);
+}
+
+/* THE PLATE - the photograph. cs-plate-land, with the folder's lit
+   mouth as the origin instead of the cursor: it flies in small and
+   tilted and straightens as it lands.
+
+   This is where the mouth coordinate went when the clip-path circle was
+   dropped, and it is the better home for it. The window's EDGE
+   travelling from the folder competed with the mask; the IMAGE
+   travelling from the folder is unambiguous. */
+.vault-window__plate {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	/* The figure sits centre-frame and slightly low; on a narrow viewport
+	   a plain centre crop cuts the debris off the top, which is the part
+	   that gives the frame its motion. */
+	object-position: 50% 42%;
+	animation: vw-plate-land var(--vw-plate) var(--vw-open-ease) both;
+	will-change: transform;
+}
+
+@keyframes vw-plate-land {
+	from {
+		opacity: 0.45;
+		border-radius: 20px;
+		transform:
+			translate(
+				calc(var(--vw-origin-x) - 50vw),
+				calc(var(--vw-origin-y) - 50vh)
+			)
+			scale(var(--vw-plate-scale))
+			rotate(var(--vw-plate-rotate));
+	}
+	to {
+		opacity: 1;
+		border-radius: 0;
+		transform: none;
+	}
+}
+
+/* THE RETREAT. vw-plate-land backwards: the photograph shrinks and
+   tilts back into the folder's mouth it came out of, while the mask
+   wipes down over it.
+
+   THIS IS THE MOVEMENT THE OUTRO WAS MISSING. The close used to be the
+   panel and the veil alone - one edge travelling, everything inside it
+   static - against an intro of four overlapping movements. That
+   asymmetry is what read as "not smooth": nothing was wrong with the
+   wipe, there was simply nothing else happening.
+
+   The origin is the same --vw-origin-x/y the arrival used, and it is
+   still correct on the way out: it was read once on the first render
+   and the page behind is frozen, so the folder has not moved.
+
+   Specificity beats the base .vault-window__plate rule, so this
+   replaces the arrival rather than layering on it. */
+.vault-window[data-state='closing'] .vault-window__plate {
+	animation: vw-plate-leave var(--vw-plate-exit) var(--vw-close-ease) forwards;
+}
+
+@keyframes vw-plate-leave {
+	from {
+		opacity: 1;
+		border-radius: 0;
+		transform: none;
+	}
+	to {
+		opacity: 0.45;
+		border-radius: 20px;
+		transform:
+			translate(
+				calc(var(--vw-origin-x) - 50vw),
+				calc(var(--vw-origin-y) - 50vh)
+			)
+			scale(var(--vw-plate-scale))
+			rotate(var(--vw-plate-rotate));
+	}
+}
+
+/* A flat scrim, not a gradient: the photograph is already nearly black,
+   and a gradient bands visibly across that much dark area. */
+.vault-window__scrim {
+	position: absolute;
+	inset: 0;
+	background: var(--vw-base);
+	opacity: var(--vw-scrim);
+	pointer-events: none;
+}
+
+.vault-window__hero-copy {
+	position: absolute;
+	inset: 0;
+	text-align: center;
+	padding: 0 clamp(1.25rem, 5vw, 4rem);
+	pointer-events: none;
+}
+
+.vault-window__hero-copy > * {
+	margin: 0;
+}
+
+.vault-window__title {
+	position: absolute;
+	left: 0;
+	right: 0;
+	/* Pushed above centre rather than centred: dead centre puts the type
+	   through the figure's head, and the composition depends on the
+	   letters sitting just above it. See VAULT_HERO.titleY. */
+	top: var(--vw-title-y);
+	transform: translateY(-50%);
+	display: flex;
+	flex-wrap: nowrap;
+	justify-content: center;
+	font-family: var(--font-heading);
+	font-weight: 200;
+	font-size: var(--vw-title-size);
+	line-height: 0.95;
+	letter-spacing: var(--vw-title-tracking);
+	/* Tracking adds space AFTER the last glyph too, which visibly pushes
+	   centred type left. Half the tracking back the other way corrects
+	   the optical centre. */
+	margin-left: var(--vw-title-tracking);
+	color: var(--vw-text-hi);
+	text-transform: uppercase;
+	white-space: pre;
+}
+
+/* THE EYEBROW, BELOW THE TITLE.
+
+   Offset from the title's own centre by half the title's height plus a
+   gap, so it stays clear of the descender line at every viewport size.
+   A hard-coded top would collide with the type as soon as the clamp on
+   --vw-title-size moved. */
+.vault-window__eyebrow {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: calc(var(--vw-title-y) + var(--vw-title-size) * 0.55 + 1.1rem);
+	font-family: var(--font-mono);
+	font-size: clamp(0.62rem, 0.75vw, 0.78rem);
+	letter-spacing: 0.42em;
+	/* Same optical-centre correction as the title. */
+	margin-left: 0.42em;
+	text-transform: uppercase;
+	color: var(--vw-text-mid);
+	opacity: 0;
+	animation: vw-rise var(--vw-meta-duration) var(--vw-open-ease)
+		var(--vw-meta-delay) forwards;
+}
+
+/* PER-GLYPH RISE - the case study's content ladder (one rule, an index,
+   a stagger) applied to glyphs instead of blocks. Two layers: the outer
+   span clips, the inner one moves. */
+.vault-window__glyph {
+	display: inline-block;
+	overflow: hidden;
+	/* Tracking is applied to the container, but a clipping inline-block
+	   would crop the trailing space off each glyph's advance and jam the
+	   letters together. Padding gives that space back inside the clip. */
+	padding-right: var(--vw-title-tracking);
+	margin-right: calc(var(--vw-title-tracking) * -1);
+}
+
+.vault-window__glyph-inner {
+	display: inline-block;
+	opacity: 0;
+	transform: translate3d(0, var(--vw-title-rise), 0);
+	animation: vw-rise var(--vw-title-duration) var(--vw-open-ease) forwards;
+	animation-delay: calc(
+		var(--vw-title-delay) + var(--i) * var(--vw-title-stagger)
+	);
+}
+
+@keyframes vw-rise {
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0);
+	}
+}
+
+/* On close everything drops its delays and goes at once. Staggering an
+   exit makes the window feel reluctant to leave. */
+.vault-window[data-state='closing'] .vault-window__glyph-inner,
+.vault-window[data-state='closing'] .vault-window__eyebrow,
+.vault-window[data-state='closing'] .vault-window__close {
+	/* On the window's own curve, not linear - this was the one linear
+	   easing left in the file, and a linear fade next to eased motion
+	   is visible as a flatness even when you cannot name it. 0.42 of
+	   the close: the type must be gone before the mask reaches it,
+	   otherwise letters are still fading as the edge crosses them. */
+	animation: vw-fade-out calc(var(--vw-close) * 0.42) var(--vw-close-ease)
+		forwards;
+}
+
+@keyframes vw-fade-out {
+	to { opacity: 0; }
+}
+
+/* ---------------- chrome ---------------- */
+
+.vault-window__close {
+	position: fixed;
+	top: clamp(1rem, 2.5vw, 2rem);
+	right: clamp(1rem, 2.5vw, 2rem);
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	padding: 0.6rem 1rem;
+	border: 1px solid var(--vw-hair);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--vw-base) 62%, transparent);
+	-webkit-backdrop-filter: blur(10px);
+	backdrop-filter: blur(10px);
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--vw-text-mid);
+	cursor: pointer;
+	opacity: 0;
+	animation: vw-fade-in var(--vw-meta-duration) var(--vw-open-ease)
+		var(--vw-meta-delay) forwards;
+	transition: color 240ms ease, border-color 240ms ease;
+}
+
+@keyframes vw-fade-in {
+	to { opacity: 1; }
+}
+
+.vault-window__close:hover,
+.vault-window__close:focus-visible {
+	color: var(--vw-text-hi);
+	border-color: var(--vw-text-mid);
+}
+
+/* PRESS ONLY, at the case study window's own value. Its controls never
+   lift on hover - movement is reserved for the press. */
+.vault-window__close:active {
+	transform: scale(0.97);
+}
+
+/* ---------------- the interior ---------------- */
+
+.vault-window__body {
+	position: relative;
+	background: var(--vw-base);
+	padding: clamp(4rem, 12vh, 10rem) clamp(0.75rem, 1.5vw, 1.5rem);
+}
+
+.vault-window__section + .vault-window__section {
+	margin-top: clamp(4rem, 14vh, 11rem);
+}
+
+.vault-window__section-head {
+	display: flex;
+	align-items: baseline;
+	gap: 1.25rem;
+	padding-bottom: 1.5rem;
+	border-bottom: 1px solid var(--vw-hair);
+}
+
+.vault-window__section-index {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.2em;
+	color: var(--vw-ember);
+}
+
+.vault-window__section-title {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-weight: 300;
+	font-size: clamp(1.75rem, 5vw, 3.5rem);
+	line-height: 1;
+	letter-spacing: -0.01em;
+	color: var(--vw-text-hi);
+}
+
+.vault-window__section-blurb {
+	margin: 1.5rem 0 0;
+	max-width: 46ch;
+	font-family: var(--font-sans);
+	font-size: clamp(0.95rem, 1.3vw, 1.1rem);
+	line-height: 1.6;
+	color: var(--vw-text-mid);
+}
+
+/* Visually hidden, but still in the accessibility tree. */
+.vault-window__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* The landing page behind is frozen while the window is open. Its Lenis
+   is stopped in JS; this also kills native scroll on touch, where a
+   stopped Lenis still lets the document rubber-band. */
+html.vault-window-open,
+html.vault-window-open body {
+	overflow: hidden;
+}
+
+/* ---------------- reduced motion ----------------
+
+   The window still arrives - it just arrives already there. Note the
+   clip-path override: without it the panel would stay masked out
+   entirely, since the mask's open state lives in the animation. Same
+   arrangement as the case study window's reduced-motion block. */
+@media (prefers-reduced-motion: reduce) {
+	.vault-window__veil,
+	.vault-window__panel,
+	.vault-window__plate,
+	.vault-window__glyph-inner,
+	.vault-window__eyebrow,
+	.vault-window__close,
+	.vault-window[data-state='closing'] .vault-window__plate,
+	.vault-window[data-state='closing'] .vault-window__glyph-inner,
+	.vault-window[data-state='closing'] .vault-window__eyebrow,
+	.vault-window[data-state='closing'] .vault-window__close {
+		animation: none;
+	}
+
+	.vault-window__panel {
+		clip-path: none;
+	}
+
+	.vault-window__veil {
+		opacity: var(--vw-veil-opacity);
+	}
+
+	.vault-window__plate,
+	.vault-window__glyph-inner,
+	.vault-window__eyebrow,
+	.vault-window__close {
+		opacity: 1;
+		transform: none;
+	}
+
+	.vault-window[data-state='closing'] .vault-window__panel {
+		animation: none;
+		opacity: 0;
+		transition: opacity var(--vw-close) linear;
+	}
+}

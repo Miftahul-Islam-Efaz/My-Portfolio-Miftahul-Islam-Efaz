@@ -1,0 +1,141 @@
+/* ------------------------------------------------------------------
+   THE RAKE
+
+   The shader owns every pixel inside the stage, so this file is short
+   on purpose: it sizes the stage, keeps the section background equal to
+   the page void so the pin has no seam, and styles the fallback.
+
+   THE FALLBACK IS VISIBLE BY DEFAULT and is hidden only once the hook
+   confirms a live WebGL context via `data-rake-state="live"`. Never
+   invert that - if it were hidden by default, a viewer without WebGL or
+   with reduced motion on would get a black rectangle.
+
+   Colours mirror config/rakeLight.ts. They are duplicated rather than
+   shared because CSS cannot import a TS module; retune both together.
+
+   THE BREAKPOINT HERE IS 768, matching RAKE_BREAKPOINT in
+   config/rakeLight.ts and SMOOTH_SCROLL.mobileMaxWidth. All three have
+   to agree: below it the shader retunes AND Lenis is not installed.
+   ------------------------------------------------------------------ */
+
+.rake {
+	--rk-base: #050505;
+	--rk-metal: #3a322a;
+	--rk-core: #f7e3c8;
+	--rk-ember: #b56c4b;
+
+	position: relative;
+	width: 100%;
+	background-color: var(--rk-base);
+}
+
+/* The pinned screen. svh, not vh, so mobile browser chrome collapsing
+   cannot resize the pin mid-sweep. */
+.rake__stage {
+	position: relative;
+	height: 100svh;
+	width: 100%;
+	overflow: hidden;
+	background-color: var(--rk-base);
+}
+
+.rake__canvas {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+/* ------------------------------------------------------------------
+   Fallback - the same sentence, real DOM, art-directed so that if it
+   ever shows it reads as a designed screen rather than a failure.
+   ------------------------------------------------------------------ */
+
+.rake__fallback {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: clamp(2rem, 6vh, 4rem);
+	padding: 0 clamp(1.5rem, 5.5vw, 5rem);
+	max-width: 1440px;
+	margin: 0 auto;
+	background: linear-gradient(
+		105deg,
+		var(--rk-base) 0%,
+		color-mix(in srgb, var(--rk-metal) 55%, var(--rk-base)) 58%,
+		var(--rk-base) 100%
+	);
+}
+
+/* The one rule that flips it off, once the shader is confirmed live. */
+.rake[data-rake-state='live'] .rake__fallback {
+	display: none;
+}
+
+.rake__statement {
+	margin: 0;
+	max-width: 18ch;
+	font-family: var(--font-heading, 'Cabinet Grotesk', sans-serif);
+	font-size: clamp(2.25rem, 7.4vw, 9.5rem);
+	font-weight: 700;
+	line-height: 0.96;
+	letter-spacing: -0.02em;
+	color: var(--rk-core);
+	text-wrap: balance;
+}
+
+.rake__handoff {
+	margin: 0;
+	font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+	font-size: 0.7rem;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: color-mix(in srgb, var(--rk-core) 60%, transparent);
+	text-align: right;
+}
+
+.rake__handoff::after {
+	content: ' \2193';
+	color: var(--rk-ember);
+}
+
+/* ------------------------------------------------------------------
+   PORTRAIT
+
+   Only the fallback needs this. Everything inside the stage is shader
+   pixels, retuned in config/rakeLight.ts - there is no CSS lever for
+   it, which is why the mobile work is mostly in TS and barely here.
+
+   The fallback matters more on mobile than on desktop, not less: it is
+   what a low-end phone that fails to get a WebGL context actually
+   shows, and that is a far likelier visitor here than on desktop.
+   ------------------------------------------------------------------ */
+@media (max-width: 768px) {
+	.rake__fallback {
+		/* The desktop gap is a display-scale rhythm and pushes the cue off
+		   a short viewport once the statement takes four lines. */
+		gap: clamp(1.25rem, 4vh, 2rem);
+		padding: 0 clamp(1.25rem, 7vw, 2rem);
+	}
+
+	.rake__statement {
+		/* 7.4vw of 390px is ~29px, which is under the mask's own mobile
+		   floor and reads as body copy rather than a statement. 9.5vw
+		   tracks the shader version's presence. */
+		font-size: clamp(1.9rem, 9.5vw, 3.25rem);
+		/* 18ch at this size lets lines run to the bezel; 14ch produces
+		   roughly the hand-split arrangement the mask uses. */
+		max-width: 14ch;
+		letter-spacing: -0.015em;
+	}
+
+	.rake__handoff {
+		font-size: 0.6rem;
+		/* Matches RAKE_MOBILE.type.smallTracking - 0.2em wraps the cue. */
+		letter-spacing: 0.14em;
+	}
+}

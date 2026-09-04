@@ -1,0 +1,134 @@
+/* =========================================================================
+   THE WORK GALLERY'S SEARCH AND CATEGORY FILTER
+   -------------------------------------------------------------------------
+   The vault's filter bar is reused for its LOOK only. Its own layout could
+   not be reused, and the reason is worth recording:
+
+   `.vault-gallery__filters` is `position: fixed` with
+   `bottom: calc(var(--vg-toggle-bottom) + 4.25rem)`. That variable is
+   published by VaultGallery's `fieldVars` and by nothing else - the work
+   window has no set-toggle pill to sit above, so it never declares it. A
+   calc() containing an undefined variable is invalid at computed-value time,
+   so `bottom` would have fallen back to `auto` and the bar would have floated
+   at its static position over the middle of the room.
+
+   So this bar is IN FLOW, a sibling of `.wg__head` inside `.wg__content`. It
+   inherits the content column's padding, which is what keeps it aligned with
+   the header above it without restating any measurement. It also scrolls away
+   with the header rather than covering cards, which on a phone is the whole
+   difference between a filter and an obstruction.
+
+   The chips and the input keep the vault's classes
+   (`.vault-gallery__search`, `.vault-gallery__chip`), so the two rooms speak
+   one language and a change to the pill style reaches both.
+   ========================================================================= */
+
+.wg__filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.75rem;
+
+	/* Sits under the header and clears the field below it. The field's own
+	   lead is 0 in this room, so this margin is the only separation. */
+	margin-block: 0.85rem 1.35rem;
+}
+
+/* The vault's search is centred in a fixed column; here it is one item in a
+   row, so it needs its own width rather than the vault's `min(20rem, 100%)`
+   stretch behaviour. */
+.wg__search {
+	flex: 0 1 18rem;
+	min-width: 0;
+}
+
+.wg__chips {
+	/* The vault centres its chips under the input. In a row they read as a
+	   continuation of it, so they start where the text starts. */
+	justify-content: flex-start;
+	flex: 1 1 auto;
+}
+
+.wg__none {
+	/* Pushed to its own line so it never sits between the input and the
+	   chips, which would move the chips as you type. */
+	flex: 1 0 100%;
+}
+
+/* -------------------------------------------------------------------------
+   PHONE
+   -------------------------------------------------------------------------
+   560px is the lattice's own `mobileMaxWidth`, so the bar changes shape on
+   the same threshold the grid does rather than on a number of its own.
+
+   THE INPUT GOES TO 16px, AND THAT IS NOT A STYLE CHOICE. iOS Safari zooms
+   the whole page when a focused input's font-size is below 16px, and the
+   vault's 0.75rem triggers it. Zooming a fixed, scroll-locked overlay leaves
+   the user pinched into a corner with no way back, so the phone gets a
+   larger face and the letter-spacing is wound back to keep the placeholder
+   from outrunning the field.
+
+   THE CHIPS SCROLL SIDEWAYS INSTEAD OF WRAPPING. Free-text categories mean
+   the count is unbounded; wrapped, eight of them build a four-line block
+   that pushes the first card off the screen. One scrolling row costs a fixed
+   amount of height no matter how many categories exist.
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 560px) {
+	.wg__filters {
+		gap: 0.6rem;
+		margin-block: 0.75rem 1rem;
+	}
+
+	.wg__search {
+		flex: 1 1 100%;
+		width: 100%;
+
+		font-size: 1rem;
+		letter-spacing: 0.02em;
+		padding: 0.6rem 1rem;
+	}
+
+	.wg__chips {
+		flex: 1 1 100%;
+
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		overflow-y: hidden;
+
+		/* Momentum on iOS, and a snap so a half-cut chip is never the
+		   resting state. */
+		-webkit-overflow-scrolling: touch;
+		scroll-snap-type: x proximity;
+
+		/* The bar is the full content width, so the chips must be able to
+		   run to the edge of it. */
+		scrollbar-width: none;
+
+		/* Cancels the row's own gap collapsing the last chip against the
+		   edge while scrolled to the end. */
+		padding-block-end: 0.15rem;
+	}
+
+	.wg__chips::-webkit-scrollbar {
+		display: none;
+	}
+
+	.wg__chips .vault-gallery__chip {
+		flex: 0 0 auto;
+		scroll-snap-align: start;
+
+		/* A 44px-tall target. The desktop chip is ~28px, which is under
+		   every published minimum for a thumb. */
+		min-height: 2.4rem;
+		display: inline-flex;
+		align-items: center;
+		padding-inline: 0.9rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.wg__chips {
+		scroll-behavior: auto;
+	}
+}

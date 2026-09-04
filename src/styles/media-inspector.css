@@ -1,0 +1,127 @@
+/* ---------------------------------------------------------------------------
+   THE MEDIA INSPECTOR.
+
+   Only what the case study inspector does not already provide. The shell, bar,
+   panel, canvas and group styling are inherited from case-study-editor.css,
+   which the component imports first; everything here concerns the one thing
+   this pane does differently - a file on the canvas instead of a scaled
+   document.
+
+   Deliberately no .adm-ins-* selectors in this file. Those belong to the other
+   stylesheet, and two files editing one class is how the last layout break
+   happened.
+--------------------------------------------------------------------------- */
+
+.adm-mi-stage {
+  margin: 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.adm-mi-media {
+  display: block;
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  cursor: pointer;
+  border-radius: 4px;
+  outline: 1.5px solid transparent;
+  outline-offset: 6px;
+  transition: outline-color 160ms var(--adm-ease, ease);
+
+  /* A checkerboard, so a transparent PNG - the social thumbnail especially -
+     reads as transparent rather than as white artwork on a white pane. */
+  background-color: #16161a;
+  background-image:
+    linear-gradient(45deg, #1e1e24 25%, transparent 25% 75%, #1e1e24 75%),
+    linear-gradient(45deg, #1e1e24 25%, transparent 25% 75%, #1e1e24 75%);
+  background-position: 0 0, 12px 12px;
+  background-size: 24px 24px;
+}
+
+.adm-mi-media:hover {
+  outline-color: color-mix(in srgb, #4c8dff 55%, transparent);
+}
+
+.adm-mi-media[data-selected="true"] {
+  outline-color: #4c8dff;
+}
+
+.adm-mi-empty {
+  width: min(100%, 460px);
+  aspect-ratio: 3 / 2;
+  border: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.adm-mi-empty:hover {
+  opacity: 0.9;
+  border-color: #4c8dff;
+}
+
+.adm-mi-cap {
+  max-width: 62ch;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 3px;
+  outline: 1.5px solid transparent;
+  outline-offset: 2px;
+  transition:
+    opacity 160ms var(--adm-ease, ease),
+    outline-color 160ms var(--adm-ease, ease);
+}
+
+.adm-mi-cap:hover {
+  opacity: 0.85;
+  outline-color: color-mix(in srgb, #4c8dff 55%, transparent);
+}
+
+.adm-mi-cap[data-selected="true"] {
+  opacity: 0.9;
+  outline-color: #4c8dff;
+}
+
+.adm-mi-warn {
+  margin: 16px auto 0;
+  max-width: 54ch;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #e2725b;
+}
+
+.adm-mi-pair {
+  border-left: 2px solid var(--adm-ember, #c8643c);
+  padding-left: 10px;
+  margin: 0 0 12px;
+}
+
+/* Kept away from the groups, so a mis-aimed click cannot land on it. */
+.adm-mi-danger {
+  display: flex;
+  gap: 8px;
+  margin-top: 22px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+
+@media (max-width: 1100px) {
+  .adm-mi-media {
+    max-height: 42vh;
+  }
+}

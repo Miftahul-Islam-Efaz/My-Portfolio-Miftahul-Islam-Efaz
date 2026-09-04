@@ -1,0 +1,83 @@
+/*
+  GLASS LENS - placement only.
+
+  Kept out of work-case-study.css deliberately: this file exists solely because
+  the WebGL corners need real DOM nodes, and keeping their geometry next to the
+  component that creates them means the two cannot drift apart. Everything about
+  the MATERIAL lives in the shader; nothing here paints.
+
+  The box below is a copy of .case-study__cover-text::before / ::after by
+  necessity - the canvases have to occupy exactly the same rect as the corners
+  they replace, and those are pseudo-elements, which cannot host a canvas. If
+  --cs-corner-w / --cs-corner-h ever change shape, they are read from the same
+  custom properties, so only the vars need editing.
+*/
+
+.case-study__cover-lens {
+  /* PLACED EXPLICITLY, AND THAT IS NOT REDUNDANT.
+
+     The parent is display: grid with grid-template-areas: 'claim note'. An
+     absolutely positioned child is out of flow and should never size a track,
+     so in theory position: absolute alone is enough. In practice the first
+     attempt at this file blanked the claim and the note, and the honest reading
+     is that I do not know which of the two mechanisms did it. So both are
+     nailed down: the element is pinned out of flow AND, should anything ever
+     cause it to be treated as an in-flow item, it is placed over the whole
+     grid rather than being handed a track of its own.
+
+     .case-study__cover-text is position: relative (work-case-study.css:922),
+     verified, so this resolves against the text box and not the viewport -
+     which is what produced the full-width band across the bottom of the screen
+     the first time. */
+  grid-area: 1 / 1 / -1 / -1;
+  position: absolute;
+  /* Same layer as the pseudo-element corners: behind their own text, above the
+     cover scrim. .case-study__cover-text has isolation: isolate, so -1 is
+     contained rather than escaping behind the whole section. */
+  z-index: -1;
+  bottom: 0;
+  width: var(--cs-corner-w);
+  height: var(--cs-corner-h);
+  /* NO clip-path. The shader antialiases the bezier itself via the signed
+     distance field, and a CSS clip on top would only hard-edge what the field
+     has already feathered. */
+  pointer-events: none;
+  /* The canvas is sized in device pixels by the component; CSS supplies the
+     layout size only, so these two must not fight. */
+  display: block;
+  /* A canvas with no context yet is a transparent box, but if the shader fails
+     to compile it must not leave a grey plate sitting over the photograph. */
+  background: none;
+  border: 0;
+}
+
+.case-study__cover-lens--left {
+  left: 0;
+}
+
+.case-study__cover-lens--right {
+  right: 0;
+}
+
+/*
+  THE HANDOVER.
+
+  When the lens canvases are present, the old SVG-filter corners must stop
+  painting or both materials stack and the result is twice the tint and twice
+  the blur. :has() is the right test here rather than a JS-toggled class: the
+  url() backdrop-filter this replaces was Chromium-only anyway, so there is no
+  engine that supports the thing being replaced but not the selector doing the
+  replacing.
+
+  The frosted CSS fallback still applies on any browser without WebGL, because
+  in that case the canvas element exists but the context does not - so this is
+  narrowed to only fire once the component has confirmed a live context by
+  setting data-live on the canvas. If the shader never comes up, the corners you
+  already had keep painting and the page is exactly as it was.
+*/
+.case-study__cover-text:has(.case-study__cover-lens[data-live='true'])::before,
+.case-study__cover-text:has(.case-study__cover-lens[data-live='true'])::after {
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}

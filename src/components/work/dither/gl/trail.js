@@ -108,6 +108,8 @@ export function createTrail(renderer, canvas, config) {
   let speed = 0;
   let idleness = 0;
   let lastTime = performance.now();
+  // Consecutive frames rendered with a dead brush - see update().
+  let restFrames = 0;
 
   function update() {
     const now = performance.now();
@@ -183,6 +185,18 @@ export function createTrail(renderer, canvas, config) {
       (config.trailIdleDecay - config.trailDecay) * idleness;
     u.uDecay.value = Math.pow(decay, dt * 60);
     u.uPrev.value = read.texture;
+
+    // REST WHEN THE BRUSH IS DEAD. The ping-pong used to run every frame
+    // forever - including the whole time the pointer is still and the
+    // buffer has long faded. Once the brush is off and idleness has fully
+    // ramped, 45 more frames of idle decay (0.869^45 is about 0.002) take
+    // whatever residue is left below anything visible, and the pass stops.
+    // Any pointer move resets idleness, which resets this.
+    if (u.uActive.value < 0.001 && idleness > 0.999) {
+      if (++restFrames > 45) return read.texture;
+    } else {
+      restFrames = 0;
+    }
 
     renderer.setRenderTarget(write);
     renderer.render(scene, camera);

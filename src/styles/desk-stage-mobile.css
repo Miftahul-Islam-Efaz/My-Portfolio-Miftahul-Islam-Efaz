@@ -1,0 +1,314 @@
+/* ------------------------------------------------------------------
+   THE DESK - MOBILE LAYER
+
+   A SEPARATE STYLESHEET, AND EVERY RULE IN IT IS INSIDE ONE MEDIA QUERY.
+
+   styles/desk-stage.css is not edited by this work. Every declaration
+   here lives under `@media (max-width: 768px)`, so a desktop viewport
+   never matches a single selector in this file. That is the isolation -
+   there is no class to remember to add and no state to keep in sync.
+
+   ------------------------------------------------------------------
+   WHY THESE SELECTORS CARRY A PARENT, AND WHY THAT IS NOT COSMETIC
+
+   The obvious way to write an override sheet is at the same specificity
+   as the sheet it overrides, and rely on being loaded second. THAT DOES
+   NOT WORK HERE, and it is worth knowing why before anyone "tidies" it:
+
+   This file is imported by hooks/useDeskStage.ts. DeskStage.tsx imports
+   that hook on its line 10 and `styles/desk-stage.css` on its line 17,
+   and the bundler emits CSS in module-graph order - so the hook's import
+   is resolved FIRST and this sheet lands BEFORE the base sheet, not
+   after. At equal specificity the base would win every single rule and
+   the whole file would silently do nothing.
+
+   So each selector here is qualified with an ancestor that always
+   exists in the markup (.desk > .desk-stage > .desk-plane > layers),
+   taking specificity to 0,2,0 against the base sheet's 0,1,0. The rules
+   now win on specificity and are INDEPENDENT OF IMPORT ORDER, which
+   means moving this import - or importing it from the component instead -
+   cannot break it. No !important anywhere.
+
+   ------------------------------------------------------------------
+   WHAT THIS FILE CANNOT DO: THE INLINE STYLES
+
+   DeskStage.tsx writes each star's `top` / `right` / `bottom` / `left`
+   and its `--size`, `--from-x`, `--push-x`, `--depth` and
+   `--star-opacity` as INLINE STYLES, straight out of DESK_STARS.
+   Inline styles beat any stylesheet rule regardless of specificity or
+   media query, so nothing in this file can set a star's inset or change
+   its `--star-opacity` directly.
+
+   Attempted and reverted. Both are instead corrected INDIRECTLY, with
+   properties the stylesheet does own - `translate` for position and the
+   `opacity` shorthand for opacity. See the star block below.
+
+   The alternative was to move those numbers out of the config and into
+   CSS for both breakpoints, which would have meant editing the desktop
+   path to change the mobile one. Explicitly what was asked not to
+   happen.
+
+   ------------------------------------------------------------------
+   THE BREAKPOINTS
+
+   768 is the phone breakpoint used across the site:
+   SMOOTH_SCROLL.mobileMaxWidth, MOBILE_BREAKPOINT in
+   useHeroIntroAnimation.ts, RAKE_BREAKPOINT and DESK_MOBILE_BREAKPOINT.
+   It is where Lenis stops being installed and where the gyroscope takes
+   over from the pointer, so it is a behavioural boundary, not just a
+   layout one.
+
+   The 900px block still in desk-stage.css is the STACK breakpoint -
+   where the statement moves from beside the laptop to underneath it -
+   which is a genuinely different question. It still applies to phones,
+   and this file refines what it does rather than replacing it. See the
+   note on the two breakpoints in config/deskStageMobile.ts.
+   ------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+	/* ----------------------------------------------------------------
+	   THE SCROLL BUDGET
+
+	   340vh of section for three beats is tuned to a wheel, which moves a
+	   lot of document per gesture. A thumb swipe does not, so the same
+	   budget on a phone reads as the page having jammed - three swipes and
+	   the laptop has barely moved.
+
+	   Overridden HERE rather than in the config because DeskStage.tsx
+	   writes --desk-scroll-vh as an INLINE STYLE from DESK_LAYOUT, and
+	   inline styles are rendered on the server. Branching that value on
+	   window.innerWidth would make the server and client markup disagree
+	   and cost a hydration error. `height` in a media query is settled
+	   before first paint and cannot desync.
+
+	   `section.desk` rather than `.desk .desk` - the section is the root of
+	   this subtree so it has no ancestor to qualify with, and the element
+	   name is enough to clear the base sheet. */
+	section.desk {
+		height: 250vh;
+	}
+
+	/* svh, not vh. The stage is the frame everything is composed inside,
+	   and `vh` on mobile means the LARGE viewport - the height the page has
+	   once the URL bar has scrolled away. Sized in vh, the stage is taller
+	   than what is actually visible on arrival, so the laptop sits centred
+	   on a frame whose bottom is behind the browser chrome. svh is the
+	   small viewport: always visible, and it does not change as the chrome
+	   collapses, so nothing reflows mid-scroll. Same reasoning as
+	   .rake__stage. */
+	.desk .desk-stage {
+		height: 100svh;
+	}
+
+	/* ----------------------------------------------------------------
+	   THE STARS
+
+	   WHY THEY FALL OFF A PHONE, WHICH IS NOT THE SIZE PROBLEM IT LOOKS
+	   LIKE:
+
+	   The insets in DESK_STARS are PERCENTAGES - top: -14% / right: -11%
+	   on one, bottom: -18% / left: -13% on the other. A percentage on
+	   `top` or `bottom` resolves against the CONTAINING BLOCK'S HEIGHT
+	   (the full stage), and on `left` / `right` against its WIDTH. It does
+	   NOT resolve against the star.
+
+	   So the bleed scales with the VIEWPORT while the star scales with vw,
+	   and the two diverge hard in portrait:
+
+	     1920 x 1080 desktop   top: -14%  =  -151px   star 660px   ~23% lost
+	      390 x  750 phone     top: -14%  =  -105px   star 164px   ~64% lost
+
+	   Same declaration, and on a phone it throws away two thirds of the
+	   star. Making them bigger does not fix it; it just makes the 64% that
+	   is off-frame bigger too.
+
+	   THE FIX: `translate`, NOT `transform`.
+
+	   The insets cannot be touched - they are inline. But the independent
+	   `translate` property composes WITH `transform` rather than replacing
+	   it (the UA applies translate, then rotate, then scale, then
+	   transform), so this pulls each star back onto the frame WITHOUT
+	   restating the base sheet's transform formula. That formula is four
+	   nested calc()s carrying the fly-in, the displace push and the
+	   parallax; duplicating it here to add two terms would mean two copies
+	   of it drifting apart at the next tuning pass.
+
+	   THE UNITS ARE DELIBERATE. The pull is expressed in svh / vw - the
+	   same bases the insets themselves resolve against - so it tracks the
+	   error instead of correcting it at one screen size only. A px value
+	   tuned on a 750px-tall phone would over-correct on a 550px one.
+
+	   They still bleed off the corners, which is the whole point of them
+	   (see DESK_STARS in config/deskStage.ts) - each keeps its outer arms
+	   cropped by the frame edge.
+	   ---------------------------------------------------------------- */
+	.desk-plane .desk-star {
+		width: clamp(140px, 43vw, 250px);
+		/* Knocked back. Against a much smaller frame the halftone competes
+		   with the screen artwork for attention, and the screen is the
+		   subject.
+
+		   Applied HERE, in the shorthand, rather than to --star-opacity -
+		   that custom property is set inline per star from DESK_STAR_OPACITY
+		   and cannot be overridden from a stylesheet. The var() is kept in
+		   the chain so that if DESK_STAR_OPACITY is ever tuned, mobile still
+		   tracks it. */
+		opacity: calc(var(--desk-arrive) * var(--star-opacity, 1) * 0.72);
+	}
+
+	/* ----------------------------------------------------------------
+	   THE PULL IS A FUNCTION OF THE BEAT, NOT A CONSTANT
+
+	   The two stars need OPPOSITE corrections, so they are addressed
+	   individually. `:first-of-type` / `:last-of-type` are safe here: the
+	   stars are the only <img> elements in .desk-plane, so "first of type"
+	   is the top-right one and "last" is the bottom-left one, in the order
+	   DESK_STARS.items declares them.
+
+	   Each pull is interpolated against --desk-displace so that the stars
+	   are at their most present on ARRIVAL - the beat where they are the
+	   only thing in the frame besides the machine - and RETREAT as the
+	   statement comes out. By the finished composition the correction has
+	   given back about half its distance and they read as corner marks
+	   again rather than as objects competing with the type.
+
+	   That is not a workaround for the size; it is the same intent as
+	   DESK_STARS.pushX / pushY, which already shove the stars outward on
+	   displace ("in the reference frames the stars retreat most of the way
+	   off frame as the laptop moves"). Those are inline and cannot be
+	   overridden, so this term rides in the same direction and deepens the
+	   retreat rather than fighting it.
+
+	   Vertical pull is the large one because the vertical insets are the
+	   large ones (-14% and -18% of a tall portrait viewport). Horizontal
+	   pull is small and deliberately does NOT cancel the inset - each star
+	   must still cross the frame edge at every point in the beat.
+	   ---------------------------------------------------------------- */
+	.desk-plane .desk-star:first-of-type {
+		/* Down and slightly left, easing back up-right as the type arrives.
+		   Its mass stays clear of the MENU button throughout. */
+		translate: calc(-5vw + 2vw * var(--desk-displace))
+			calc(7svh - 4svh * var(--desk-displace));
+	}
+
+	.desk-plane .desk-star:last-of-type {
+		/* Up and slightly right, easing back down-left. A bigger lift than
+		   its opposite number because its inset is bigger (-18% vs -14%),
+		   and it has further to retreat because it shares the lower frame
+		   with the statement. */
+		translate: calc(5vw - 2vw * var(--desk-displace))
+			calc(-10svh + 4svh * var(--desk-displace));
+	}
+
+	/* ----------------------------------------------------------------
+	   THE STATEMENT
+
+	   Clipped by the bottom of the frame originally. Two causes, and the
+	   font size was the bigger one:
+
+	   `clamp(34px, 4.6vw, 78px)` on a 390px viewport evaluates 4.6vw to
+	   18px, so the FLOOR wins and the line sets at 34px. "Full-Stack
+	   Product Builder" at 34px/700 wraps to three lines - ~110px of type
+	   plus the lead-in - sitting on a `bottom` offset that assumed two
+	   short lines.
+
+	   The floors are lowered and the vw coefficient raised, so the phone
+	   sizes are driven by the viewport rather than pinned to a desktop
+	   minimum.
+
+	   `bottom` is a generous offset now, for three reasons at once: it
+	   lifts the type out of the crowded strip along the bottom edge, it
+	   clears the bottom-left star, and it puts real black between the
+	   statement and the browser's own chrome. The safe-area inset is added
+	   on top rather than baked in - on a notched iPhone the home indicator
+	   overlays the bottom ~34px of the viewport and Safari's toolbar
+	   overlays more, and env() is the only value that knows by how much.
+	   ---------------------------------------------------------------- */
+	.desk-plane .desk-statement {
+		left: clamp(16px, 5vw, 28px);
+		right: clamp(16px, 5vw, 28px);
+		top: auto;
+		bottom: calc(clamp(56px, 15vh, 130px) + env(safe-area-inset-bottom, 0px));
+		max-width: none;
+		/* A small upward drift, not the desktop's 46vw slide. There is
+		   nothing to the right to emerge from behind - the laptop leaves
+		   upward on a phone - so the reveal is carried by the fade and the
+		   defocus rather than by occlusion. */
+		transform: translate3d(
+			0,
+			calc((1 - var(--desk-displace)) * 32px + var(--desk-py) * 0.2),
+			0
+		);
+		/* Halved from 4px. Blur is resolution-independent, so the same radius
+		   on type this much smaller obliterates it rather than softening it. */
+		filter: blur(calc((1 - min(1, var(--desk-displace) * 1.6)) * 2px));
+	}
+
+	.desk-statement .desk-line {
+		/* Tightened, because the lines are now shorter and wrapping is
+		   expected rather than exceptional. */
+		line-height: 1.1;
+		letter-spacing: -0.015em;
+	}
+
+	.desk-statement .desk-line--lead {
+		font-size: clamp(18px, 5.2vw, 26px);
+	}
+
+	.desk-statement .desk-line--main {
+		font-size: clamp(26px, 8.6vw, 42px);
+		/* Keeps the claim to two lines at 390px instead of three. Not a hard
+		   cap - if the copy is rewritten longer it will wrap again, which is
+		   correct behaviour. */
+		max-width: 16ch;
+	}
+
+	/* ----------------------------------------------------------------
+	   THE CANVAS
+
+	   `touch-action: pan-y` is inherited from the base sheet and MUST stay:
+	   a vertical swipe has to scroll the page. The horizontal axis is still
+	   surrendered to the drag-to-rotate gesture, which remains the fallback
+	   whenever the gyroscope is unavailable or its permission is denied -
+	   see lib/deskGyro.ts.
+
+	   `cursor: grab` is dropped because there is no cursor, and the
+	   selection/callout suppression stops a long press on the canvas
+	   raising iOS's text-selection bubble mid-drag.
+	   ---------------------------------------------------------------- */
+	.desk-plane .desk-canvas {
+		cursor: default;
+		-webkit-user-select: none;
+		user-select: none;
+		-webkit-touch-callout: none;
+	}
+}
+
+/* ------------------------------------------------------------------
+   REDUCED MOTION, RESTATED
+
+   NOT redundant with the identical block in desk-stage.css, and removing
+   it reintroduces a bug.
+
+   That block kills the statement's blur with `.desk-statement { filter:
+   none }` at specificity 0,1,0. The mobile rule above re-declares
+   `filter` at 0,2,0, so on a phone with reduce-motion enabled it would
+   WIN and put the blur back - on a visitor who has explicitly asked for
+   no motion, and with the hook returning early so --desk-displace stays
+   at its composed default and the blur would sit there permanently at
+   full strength.
+
+   Matched at the same 0,2,0 and placed last, so it clears the rule that
+   caused the problem rather than escalating against it.
+
+   The star `translate` above is deliberately NOT reset here. It is a
+   static position correction, not an animation - and with the hook
+   returning early, --desk-displace holds its composed default of 1, so
+   the stars resolve to their retreated position, which is the correct
+   resting frame.
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+	.desk-plane .desk-statement {
+		filter: none;
+	}
+}
