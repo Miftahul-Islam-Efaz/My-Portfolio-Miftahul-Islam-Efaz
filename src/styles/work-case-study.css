@@ -2154,14 +2154,20 @@ html.case-study-open body {
    the figure rather than an optional extra. */
 
 .case-study__screens {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(20px, 3vw, 46px);
+  /* BENTO FLOW, NOT A STRICT GRID. Rows in a 2-col grid are as tall as
+     their tallest card, which is where the dead space under a landscape
+     shot beside a portrait plate came from. Column flow lets each card
+     take only its own height, so the next screen rises to fill the gap. */
+  display: block;
+  columns: 2;
+  column-gap: clamp(20px, 3vw, 46px);
   margin-top: clamp(26px, 3.4vw, 48px);
 }
 
 .case-study__screen {
-  margin: 0;
+  margin: 0 0 clamp(20px, 3vw, 46px);
+  /* A figure never splits across the two columns. */
+  break-inside: avoid;
 }
 
 /* THE SHAPE OF A SCREEN.
@@ -2597,7 +2603,7 @@ html.case-study-open body {
   }
 
   .case-study__screens {
-    grid-template-columns: minmax(0, 1fr);
+    columns: 1;
   }
 
   .case-study__end {
