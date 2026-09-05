@@ -1,3 +1,18 @@
+/* ONE GEOMETRY, TWO SURFACES. The admin panel previews the same shape the
+   case study window paints, because a preview that does not match the site is
+   worse than no preview. Authored in a 100x100 box and stretched to the host
+   element's ratio.
+
+   Two numbers tune it. The control points at 0.9/99.1 set the CORNER RADIUS -
+   pulled that far along the edge, the curve leaves the corner early and is
+   still travelling outward when it reaches the midpoint, which is what makes
+   the side BOW rather than simply round. Their 0.7 offset off the edge sets HOW
+   HARD it bows: on the edge is the maximum bulge the box allows, and lifting
+   them slightly eases it without touching the radius. */
+:root {
+  --cs-squircle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 50C0.05 0.9 0.9 0.05 50 0C99.1 0.05 99.95 0.9 100 50C99.95 99.1 99.1 99.95 50 100C0.9 99.95 0.05 99.1 0 50Z' fill='%23000'/%3E%3C/svg%3E");
+}
+
 /**
  * THE CASE STUDY WINDOW.
  *
@@ -2149,22 +2164,67 @@ html.case-study-open body {
   margin: 0;
 }
 
+/* THE SHAPE OF A SCREEN.
+
+   --cs-screen-ratio is written inline by CaseStudyScreenMedia once the file
+   has decoded and reported naturalWidth / naturalHeight. The value below is
+   only the pre-decode fallback, so the grid does not reflow as each picture
+   lands. Nothing here assumes a ratio any more: a 3:4 specimen sheet, a 2:1
+   key art and a 16:9 clip each get their own exact frame.
+
+   NO overflow, NO radius, NO background on this element - it is the unmasked
+   outer box, and it exists so the DEMO badge below has square corners to sit
+   in. The picture itself is masked by the frame inside it. */
 .case-study__screen-media {
   position: relative;
-  aspect-ratio: 16 / 10;
-  overflow: hidden;
-  border-radius: 4px;
-  /* Same duration-as-colour bug as the CTA above; --cs-plate-bg is the
-     colour token. */
-  background: var(--cs-plate-bg, #141311);
+  aspect-ratio: var(--cs-screen-ratio, 16 / 10);
 }
 
-.case-study__screen[data-orientation='portrait'] .case-study__screen-media {
-  aspect-ratio: 4 / 5;
+/* THE SQUIRCLE. A superellipse, not a rounded rectangle: the four sides bow
+   outward and meet the bounding box only at the midpoint of each edge, which
+   is the shape in the reference. border-radius cannot do this - it can only
+   round a corner inward off a straight edge - so the geometry is an SVG path
+   used as a mask.
+
+   preserveAspectRatio='none' is the point: the path is authored in a 100x100
+   box and then STRETCHED to whatever ratio the measured image turned out to
+   be, so a portrait plate and a 2:1 banner both keep the same family of curve
+   without the shape being recomputed per image.
+
+   The mask, rather than clip-path, because a mask antialiases the edge against
+   the paper and clip-path leaves a hard stair-step on the long shallow curves
+   a wide image produces. */
+.case-study__screen-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--cs-plate-bg, #141311);
+  -webkit-mask-image: var(--cs-squircle);
+  mask-image: var(--cs-squircle);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
+
+/* The clip's iframe has to fill the masked frame too. */
+.case-study__screen-frame > * {
+  width: 100%;
+  height: 100%;
+}
+
+/* The portrait tag is now only a HINT for the first paint - the measurement
+   supersedes it the moment the file decodes, and the fallback it selects lives
+   in the component beside the 16/10 one. Kept as a comment rather than deleted
+   so the data-orientation attribute in the markup is not left unexplained. */
 
 .case-study__screen-image {
-  object-fit: cover;
+  /* CONTAIN, NEVER COVER. cover was the crop: it filled a frame whose ratio
+     had been guessed and ate whatever did not fit, which on the key art was
+     both ends of the headline. Now that the frame IS the image's ratio the two
+     agree exactly, and contain guarantees that if a measurement ever fails the
+     result is a letterbox rather than a lost edge. */
+  object-fit: contain;
   /* Slow, small zoom on hover. Enough to feel live, not enough to
      re-crop the shot. */
   transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);

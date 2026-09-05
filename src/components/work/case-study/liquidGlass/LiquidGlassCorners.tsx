@@ -191,6 +191,27 @@ export default function LiquidGlassCorners({ src }: { src: string }) {
     let startedAt = 0;
     let bitmap: ImageBitmap | null = null;
     let worker: Worker | null = null;
+    const coverHost = canvas.closest('[data-section]') as HTMLElement | null;
+    let coverVisible = true;
+    let lastDrawKey = '';
+    const visibilityObserver = new IntersectionObserver(([entry]) => {
+      coverVisible = entry.isIntersecting;
+      if (!coverVisible) {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+      } else {
+        lastDrawKey = '';
+        schedule();
+      }
+    }, { root: canvas.closest('.case-study__scroller') });
+    if (coverHost) visibilityObserver.observe(coverHost);
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+      } else schedule();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     function uploadField(unit: number, tex: WebGLTexture | null, f: GlassField) {
       gl!.activeTexture(gl!.TEXTURE0 + unit);
@@ -307,13 +328,20 @@ export default function LiquidGlassCorners({ src }: { src: string }) {
     }
 
     function draw(now: number) {
-      if (disposed || !ready || !fieldL || !fieldR) return;
+      raf = 0;
+      if (disposed || !ready || !fieldL || !fieldR || !coverVisible || document.hidden) return;
 
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
       const cssW = canvas!.clientWidth;
       const cssH = canvas!.clientHeight;
       const cw = Math.max(1, Math.round(cssW * dpr));
       const ch = Math.max(1, Math.round(cssH * dpr));
+      const [shift, zoom] = readPlate();
+      const settled = now - startedAt >= PREP_DELAY + REVEAL_STAGGER + REVEAL_DURATION;
+      const drawKey = [cw, ch, shift, zoom].join(':');
+      // Once parallax is capped, scrolling changes no shader input.
+      if (settled && drawKey === lastDrawKey) return;
+      lastDrawKey = settled ? drawKey : '';
       if (canvas!.width !== cw || canvas!.height !== ch) {
         canvas!.width = cw;
         canvas!.height = ch;
@@ -359,7 +387,6 @@ export default function LiquidGlassCorners({ src }: { src: string }) {
       gl!.uniform2f(u.uImgScale, cw / dw, ch / dh);
       gl!.uniform2f(u.uImgOffset, -bx / dw, -by / dh);
 
-      const [shift, zoom] = readPlate();
       gl!.uniform2f(u.uPlate, shift, zoom);
       gl!.uniform2f(u.uRes, cw, ch);
 
@@ -394,12 +421,9 @@ export default function LiquidGlassCorners({ src }: { src: string }) {
     }
 
     function schedule() {
-      if (disposed || !ready || raf) return;
-      const cover = canvas!.closest('.case-study__cover-media') as
-        | HTMLElement
-        | null;
-      // Nothing to refract once the cover has scrolled away.
-      if (cover?.dataset.coverPast === 'true') return;
+      if (disposed || !ready || raf || !coverVisible || document.hidden) return;
+      // CaseStudyWindow writes this flag on the section, not cover-media.
+      if (coverHost?.dataset.coverPast === 'true') return;
       raf = requestAnimationFrame(draw);
     }
 
@@ -461,6 +485,8 @@ export default function LiquidGlassCorners({ src }: { src: string }) {
       worker?.terminate();
       if (raf) cancelAnimationFrame(raf);
       ro.disconnect();
+      visibilityObserver.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
       scroller.removeEventListener('scroll', onScroll);
       bitmap?.close();
       gl.deleteTexture(texBackdrop);

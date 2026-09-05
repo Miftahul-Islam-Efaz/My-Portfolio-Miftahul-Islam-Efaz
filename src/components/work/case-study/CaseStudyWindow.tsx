@@ -1,7 +1,7 @@
 'use client';
 
 import { uiSoundHandlers } from '@/lib/uiSounds';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { memo, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import Lenis from 'lenis';
 import gsap from 'gsap';
@@ -247,6 +247,8 @@ function RollLabel({ text }: { text: string }) {
   );
 }
 
+const MemoCaseStudyBody = memo(CaseStudyBody);
+
 export default function CaseStudyWindow({
   study,
   origin,
@@ -398,7 +400,7 @@ export default function CaseStudyWindow({
     const previousPrevent = pageOptions?.prevent;
     if (pageOptions) {
       pageOptions.prevent = (node: HTMLElement) =>
-        Boolean(node.closest?.('.case-study__scroller'));
+        Boolean(node.closest?.('.case-study__scroller')) || Boolean(previousPrevent?.(node));
     }
 
     const lenis = new Lenis({
@@ -564,11 +566,19 @@ export default function CaseStudyWindow({
       plateTravel = narrow.matches ? 0 : COVER_PARALLAX.maxShift;
     };
     window.addEventListener('resize', onResize);
+    let lastProgress = -1;
+    let lastHeight = -1;
+    let lastTravel = -1;
     const apply = () => {
       frame = 0;
       const height = coverHeight || 1;
       const top = scroller.scrollTop;
       const progress = Math.min(1, Math.max(0, top / height));
+      // Avoid repeated style invalidation after the cover leaves view.
+      if (progress === lastProgress && height === lastHeight && plateTravel === lastTravel) return;
+      lastProgress = progress;
+      lastHeight = height;
+      lastTravel = plateTravel;
 
       /* Tells the stylesheet when the hero is fully behind us, so the two
          blurred corner layers can be switched off for the whole rest of the
@@ -919,7 +929,7 @@ export default function CaseStudyWindow({
               view, nothing has passed underneath yet. Geometry rather than a
               scrollTop threshold, so smoothing cannot desynchronise it. */}
           <div className="case-study__frost-probe" ref={probeRef} aria-hidden />
-          <CaseStudyBody study={study} onOpenStudy={onOpenStudy} />
+          <MemoCaseStudyBody study={study} onOpenStudy={onOpenStudy} />
         </div>
       </div>
     </div>,

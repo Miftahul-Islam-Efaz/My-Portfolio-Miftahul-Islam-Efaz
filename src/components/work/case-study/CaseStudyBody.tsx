@@ -37,9 +37,8 @@
  * see the house rules at the top of caseStudyData.ts.
  */
 
-import Image from 'next/image';
 import type { WorkCaseStudy } from '@/components/work/types';
-import { WORK_CASE_STUDIES } from '@/components/work/caseStudyData';
+import { getAllCaseStudies } from '@/components/work/caseStudyData';
 import { driveImage } from '@/lib/driveImage';
 import {
   CASE_STUDY_SECTIONS,
@@ -48,6 +47,7 @@ import {
 } from '@/config/caseStudy';
 import CaseStudyCover from './CaseStudyCover';
 import CaseStudyVideo from './CaseStudyVideo';
+import CaseStudyScreenMedia from './CaseStudyScreenMedia';
 
 /* ------------------------------------------------------------------ */
 /* THE ARRIVAL LADDER                                                 */
@@ -195,11 +195,12 @@ export default function CaseStudyBody({
   /* ---- 8. NEXT. Explicit pointer first; otherwise the following record in
    *       the data file, wrapping at the end so the sequence never dead-ends
    *       on the last project. */
-  const ids = Object.keys(WORK_CASE_STUDIES);
+  const all = getAllCaseStudies();
+  const ids = Object.keys(all);
   const here = ids.indexOf(study.id);
   const nextId =
     study.nextProjectId ?? (here === -1 ? ids[0] : ids[(here + 1) % ids.length]);
-  const next = nextId === study.id ? undefined : WORK_CASE_STUDIES[nextId];
+  const next = nextId === study.id ? undefined : all[nextId];
 
   const credits = study.collaborators ?? (study.credit ? [study.credit] : []);
 
@@ -277,25 +278,22 @@ export default function CaseStudyBody({
               data-media={screen.youtubeId ? 'video' : 'image'}
               key={`${screen.label}-${i}`}
             >
-              <div className="case-study__screen-media">
-                {screen.youtubeId ? (
-                  <CaseStudyVideo
-                    youtubeId={screen.youtubeId}
-                    label={`${study.title} \u2014 ${screen.label}`}
-                    posterUrl={screen.posterUrl}
-                  />
-                ) : (
-                  <Image
-                    className="case-study__screen-image"
-                    src={screen.src}
-                    alt={`${study.title} \u2014 ${screen.label}`}
-                    fill
-                    sizes="(max-width: 900px) 100vw, 50vw"
-                    unoptimized
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-              </div>
+              {/* The frame measures the file and becomes its exact ratio, so
+                  nothing is ever cropped - see CaseStudyScreenMedia. */}
+              <CaseStudyScreenMedia
+                src={screen.src}
+                alt={`${study.title} \u2014 ${screen.label}`}
+                orientation={screen.orientation}
+                video={
+                  screen.youtubeId ? (
+                    <CaseStudyVideo
+                      youtubeId={screen.youtubeId}
+                      label={`${study.title} \u2014 ${screen.label}`}
+                      posterUrl={screen.posterUrl}
+                    />
+                  ) : undefined
+                }
+              />
               <figcaption className="case-study__screen-caption">
                 <span className="case-study__screen-label">{screen.label}</span>
                 {screen.caption}

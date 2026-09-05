@@ -576,10 +576,39 @@ export const WORK_CASE_STUDIES: Record<string, WorkCaseStudy> = {
   },
 };
 
+/* ---- THE REGISTRY ----------------------------------------------------
+   WORK_CASE_STUDIES above is the LAST-KNOWN-GOOD FALLBACK, not the source of
+   truth. The source of truth is the work_case_studies table, fetched on the
+   server by lib/cms/queries.getCaseStudies() and handed to the client tree by
+   <CaseStudyRegistry>, which calls setCaseStudyRegistry() before any consumer
+   renders.
+
+   Everything reads through getCaseStudy / getCaseStudyBySlug / getAll, so the
+   database arrived without a single consumer changing its import. If the env
+   vars are missing, the network is down, or the query errors, the registry is
+   never filled and every reader falls through to the hardcoded content - the
+   same degradation contract the rest of the read layer already honours. */
+let registry: Record<string, WorkCaseStudy> | null = null;
+
+/** Called once per render pass from the client boundary. An empty or absent
+ *  payload deliberately leaves the fallback in place rather than blanking the
+ *  section. */
+export function setCaseStudyRegistry(
+  studies: Record<string, WorkCaseStudy> | null | undefined
+): void {
+  registry = studies && Object.keys(studies).length ? studies : null;
+}
+
+/** Every case study currently in force - database rows when they arrived,
+ *  the hardcoded records otherwise. */
+export function getAllCaseStudies(): Record<string, WorkCaseStudy> {
+  return registry ?? WORK_CASE_STUDIES;
+}
+
 /** Undefined for a card with no written case study yet - the open cue is
  *  suppressed rather than opening an empty window. */
 export function getCaseStudy(id: string): WorkCaseStudy | undefined {
-  return WORK_CASE_STUDIES[id];
+  return getAllCaseStudies()[id];
 }
 
 /* ---- URL SLUGS -------------------------------------------------------
@@ -603,7 +632,7 @@ export function caseStudySlug(study: WorkCaseStudy): string {
 
 export function getCaseStudyBySlug(slug: string): WorkCaseStudy | undefined {
   const want = slug.toLowerCase();
-  return Object.values(WORK_CASE_STUDIES).find(
+  return Object.values(getAllCaseStudies()).find(
     (study) => caseStudySlug(study) === want || study.id === want
   );
 }

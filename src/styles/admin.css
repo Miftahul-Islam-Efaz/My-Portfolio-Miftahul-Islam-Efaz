@@ -1,3 +1,18 @@
+/* ONE GEOMETRY, TWO SURFACES. The admin panel previews the same shape the
+   case study window paints, because a preview that does not match the site is
+   worse than no preview. Authored in a 100x100 box and stretched to the host
+   element's ratio.
+
+   Two numbers tune it. The control points at 0.9/99.1 set the CORNER RADIUS -
+   pulled that far along the edge, the curve leaves the corner early and is
+   still travelling outward when it reaches the midpoint, which is what makes
+   the side BOW rather than simply round. Their 0.7 offset off the edge sets HOW
+   HARD it bows: on the edge is the maximum bulge the box allows, and lifting
+   them slightly eases it without touching the radius. */
+:root {
+  --cs-squircle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 50C0.05 0.9 0.9 0.05 50 0C99.1 0.05 99.95 0.9 100 50C99.95 99.1 99.1 99.95 50 100C0.9 99.95 0.05 99.1 0 50Z' fill='%23000'/%3E%3C/svg%3E");
+}
+
 /*
  * ADMIN PANEL SKIN.
  *
@@ -251,7 +266,23 @@
   max-width: 268px;
   background: #1a1c20;
 }
-.adm-preview img, .adm-preview video { display: block; width: 100%; height: auto; }
+/* height: auto already meant an admin preview was never cropped - it is the
+   case study window that was doing the cropping. What the preview was missing
+   is the SHAPE, so an upload is judged in the frame it will actually appear
+   in: a headline that runs into a bowed edge is a composition problem worth
+   seeing before the row is saved, not after. */
+.adm-preview img, .adm-preview video {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  -webkit-mask-image: var(--cs-squircle);
+  mask-image: var(--cs-squircle);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
 
 .adm-check { display: flex; align-items: center; gap: 10px; cursor: pointer; padding-top: 4px; }
 .adm-check input { accent-color: var(--adm-ember); width: 16px; height: 16px; }

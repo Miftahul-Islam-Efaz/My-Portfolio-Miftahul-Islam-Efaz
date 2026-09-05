@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
 import WorkGalleryStandalone from '@/components/work/WorkGalleryStandalone';
+import CaseStudyRegistry from '@/components/work/CaseStudyRegistry';
+import { getCaseStudies } from '@/lib/cms/queries';
 
 /* ------------------------------------------------------------------
    /work - THE REAL ROUTE.
@@ -25,6 +27,13 @@ import WorkGalleryStandalone from '@/components/work/WorkGalleryStandalone';
    WorkGalleryStandalone exists as a thin client wrapper rather than
    this file simply becoming a client component - the same split
    app/vault/page.tsx made, for the same reason.
+
+   BEING A SERVER COMPONENT IS ALSO WHAT LETS THE CASE STUDIES COME
+   FROM THE DATABASE. getCaseStudies() is server-only; the windows
+   that print a study are client-only and read it from the registry
+   module. <CaseStudyRegistry> is the seam between the two. Without
+   it the whole route renders the hardcoded fallback and every save
+   in the admin panel looks like it did nothing.
    ------------------------------------------------------------------ */
 
 export const metadata: Metadata = {
@@ -33,6 +42,17 @@ export const metadata: Metadata = {
 		'Every shipped project, searchable and filterable - open any tile for the full case study.',
 };
 
-export default function WorkPage() {
-	return <WorkGalleryStandalone />;
+/* Content is editable from the admin panel, so a build-time snapshot is the
+   wrong default: a save must be visible on the next request, not the next
+   deploy. */
+export const revalidate = 0;
+
+export default async function WorkPage() {
+	const studies = await getCaseStudies().catch(() => null);
+
+	return (
+		<CaseStudyRegistry studies={studies}>
+			<WorkGalleryStandalone />
+		</CaseStudyRegistry>
+	);
 }
