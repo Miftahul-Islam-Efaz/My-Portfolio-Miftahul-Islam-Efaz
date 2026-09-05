@@ -147,7 +147,7 @@ export const TABLES: TableSpec[] = [
       { key: "scope", label: "Scope", type: "list", hint: "What was supplied, written for print. Falls back to Tags." },
       { key: "timeline", label: "Timeline", type: "text", hint: "How long it took, e.g. 3 months." },
       { key: "status", label: "Status", type: "text", hint: "Live, Concept, Live - in maintenance." },
-      { key: "director", label: "Director", type: "text", hint: "Who led the work." },
+      { key: "director", label: "Built by", type: "text", hint: "Name shown in the Built by credit." },
       { key: "location", label: "Location", type: "text" },
 
       /* ---- SECTIONS 3 to 5. ---- */

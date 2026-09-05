@@ -98,7 +98,7 @@ const GROUPS: Array<{ id: GroupId; index: string; label: string }> = [
   { id: "build", index: "06", label: "Build notes" },
   { id: "delivery", index: "07", label: "Delivery & outcome" },
   { id: "credits", index: "08", label: "Credits & next" },
-  { id: "more", index: "--", label: "Everything else" },
+  { id: "more", index: "--", label: "Summary & fallback content" },
 ];
 
 /**
@@ -617,7 +617,7 @@ export default function CaseStudyEditor({
         return (
           <>
             <p className="adm-hint">
-              Four to six is the designed range. Every screen needs a label and one
+              Add as many images as needed. Every screen needs a label and one
               line on what it SOLVES - a screenshot with no caption is decoration.
               Leave the image empty to borrow the cover, tagged DEMO.
             </p>
@@ -740,7 +740,7 @@ export default function CaseStudyEditor({
                         />
                       </div>
                       <div className="adm-field">
-                        <label className="adm-label">Shape</label>
+                        <label className="adm-label">Loading placeholder</label>
                         <select
                           className="adm-select"
                           value={screen.orientation === "portrait" ? "portrait" : "landscape"}
@@ -752,7 +752,7 @@ export default function CaseStudyEditor({
                           }
                         >
                           <option value="landscape">Landscape</option>
-                          <option value="portrait">Portrait (phone)</option>
+                          <option value="portrait">Portrait</option>
                         </select>
                       </div>
                     </>
@@ -823,12 +823,13 @@ export default function CaseStudyEditor({
           <>
             {listField("collaborators", "Collaborators", "One per line, with what they did. Empty falls back to Credit.")}
             {textField("credit", "Credit", "The single-line stand-in when there are no collaborators.")}
-            {textField("director", "Director")}
+            {textField("director", "Built by", "Name displayed in the Built by credit. Leave empty to use Miftahul Islam Efaz.")}
+            {textField("role", "Role", "Also updates Role in Project facts.")}
             {textField("location", "Location")}
             {textField("license", "License")}
-            {textField("live_url", "Live URL")}
-            {textField("repo_url", "Repo URL", "Empty prints 'Held privately'.")}
-            {textField("next_project_id", "Next project slug", "Which project the foot offers next. Empty follows the natural order, and it can never be this project.")}
+            {textField("live_url", "Live site link")}
+            {textField("repo_url", "Source link", "Leave empty to show Held privately.")}
+            {textField("next_project_id", "Next project ID", "Choose which project appears next. Its title and description come from that project. Leave empty for automatic order.")}
           </>
         );
 
