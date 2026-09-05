@@ -109,6 +109,27 @@ export default function SmoothScrollProvider() {
 			lenis.stop()
 		}
 
+		/* EVERY REVEAL THIS PROVIDER CREATES, AND NOTHING ELSE.
+
+		   The teardown below used to kill ScrollTrigger.getAll() - every
+		   trigger on the page, including the ones this file never made.
+		   That is how exiting the vault left the work and contact sections
+		   blank while scrolling still worked.
+
+		   Closing the vault runs history.back(), which fires popstate, which
+		   the App Router treats as a navigation - so this effect re-ran and
+		   its cleanup executed. Those two sections own bespoke entrance
+		   timelines whose `from` state is opacity 0, and HomeShell keeps them
+		   MOUNTED behind the overlay - so their effects never re-ran and
+		   nothing rebuilt what this cleanup destroyed. The sections were still
+		   in the document, at full height, perfectly scrollable, and
+		   completely transparent. Permanently.
+
+		   A provider may only destroy what it owns. Anything that reaches
+		   across to another component’s triggers is guessing about a
+		   lifecycle it cannot see. */
+		const owned: gsap.core.Tween[] = []
+
 		// Deferred so the DOM (including the dynamic canvas) has mounted.
 		const scan = window.setTimeout(() => {
 			document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
@@ -122,15 +143,16 @@ export default function SmoothScrollProvider() {
 					delay,
 				}
 
+				/* Collected so the teardown can kill precisely these. */
 				if (kind === "fade-left") {
-					gsap.fromTo(el, { x: -30, opacity: 0 },
-						{ x: 0, opacity: 1, duration: 0.6, ...shared })
+					owned.push(gsap.fromTo(el, { x: -30, opacity: 0 },
+						{ x: 0, opacity: 1, duration: 0.6, ...shared }))
 				} else if (kind === "clip-up") {
-					gsap.fromTo(el, { clipPath: "inset(100% 0 0 0)" },
-						{ clipPath: "inset(0 0 0 0)", duration: 0.9, ...shared })
+					owned.push(gsap.fromTo(el, { clipPath: "inset(100% 0 0 0)" },
+						{ clipPath: "inset(0 0 0 0)", duration: 0.9, ...shared }))
 				} else {
-					gsap.fromTo(el, { y: 25, opacity: 0 },
-						{ y: 0, opacity: 1, duration: 0.7, ...shared })
+					owned.push(gsap.fromTo(el, { y: 25, opacity: 0 },
+						{ y: 0, opacity: 1, duration: 0.7, ...shared }))
 				}
 			})
 			ScrollTrigger.refresh()
@@ -139,7 +161,18 @@ export default function SmoothScrollProvider() {
 		return () => {
 			window.clearTimeout(scan)
 			window.removeEventListener("scroll", ScrollTrigger.update)
-			ScrollTrigger.getAll().forEach((t) => t.kill())
+
+			/* ONLY THIS PROVIDER’S OWN REVEALS. See the note on `owned`.
+
+			   `revert: true` puts each element back to the state it had before
+			   the tween touched it, rather than abandoning it wherever the
+			   playhead stopped. Killing a half-played fade the other way leaves
+			   a stranded inline opacity, which is the same bug in miniature. */
+			owned.forEach((tween) => {
+				tween.scrollTrigger?.kill()
+				tween.revert()
+			})
+			owned.length = 0
 			lenis?.destroy()
 			delete (window as unknown as { lenis?: Lenis }).lenis
 		}

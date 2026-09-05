@@ -161,6 +161,18 @@ export default function WorkGalleryWindow({
 		if (!mounted) return;
 
 		const page = getLenis();
+		/* WHERE THE PAGE WAS, BEFORE THE LOCK COLLAPSED IT.
+
+		   The lock is `overflow: hidden` on html+body (work-gallery.css). That
+		   freezes the page, but it also collapses the scrollport: while it is
+		   applied the document is effectively one viewport tall, so the
+		   browser CLAMPS the scroll offset and the position the visitor came
+		   in at is destroyed. Nothing restored it on the way out - which is
+		   how exiting landed on the footer with scrolling dead.
+
+		   Read it before stopping Lenis, while the document is still its real
+		   height. See the restore in the teardown; the order there matters. */
+		const restoreY = window.scrollY;
 		page?.stop();
 		document.documentElement.classList.add('work-gallery-open');
 
@@ -170,13 +182,34 @@ export default function WorkGalleryWindow({
 
 		return () => {
 			document.documentElement.classList.remove('work-gallery-open');
+			/* RESTORE THE OFFSET BEFORE LENIS CAN FIGHT OVER IT.
+
+			   Removing the class gives the document its height back but NOT
+			   its offset, and Lenis still holds whatever animatedScroll
+			   survived the collapse. Write the native offset while Lenis is
+			   still stopped, so there is one authority at a time. */
+			window.scrollTo(0, restoreY);
 			page?.start();
 			/* RE-MEASURE THE PAGE THAT WAS FROZEN UNDERNEATH.
 			   Every pinned trigger measured itself before the lock; the
 			   document only regains its real height once the class above is
 			   gone, so this waits a frame rather than refreshing into the
 			   locked layout it is trying to correct. */
-			requestAnimationFrame(() => ScrollTrigger.refresh());
+			requestAnimationFrame(() => {
+				/* Refresh first: every pinned trigger measured itself before the
+				   lock, and the document only regained its real height a frame
+				   ago. Then re-assert the position, because refresh() restores
+				   the scroll offset it measured - which can still be the
+				   clamped one - and that is what re-pinned the footer.
+
+				   `force` is NOT optional: Lenis discards programmatic scrolls
+				   while it considers itself stopped and returns nothing to
+				   test, so without it this fails silently (see lib/scroll.ts).
+				   `immediate` skips the ease - this is a restoration, not a
+				   journey. */
+				ScrollTrigger.refresh();
+				page?.scrollTo(restoreY, { immediate: true, force: true });
+			});
 		};
 	}, [mounted]);
 

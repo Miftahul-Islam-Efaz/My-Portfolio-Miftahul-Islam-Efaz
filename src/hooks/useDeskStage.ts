@@ -494,14 +494,37 @@ export function useDeskStage(): DeskStageHandles {
 			let dragging = false;
 			let last = { x: 0, y: 0 };
 			let travel = 0;
+			/* Where the gesture began, and whether it has been claimed as a
+			   rotate rather than a scroll. See onDown. */
+			let origin = { x: 0, y: 0 };
+			let claimed = false;
 
 			const onDown = (event: PointerEvent) => {
 				if (!event.isPrimary) return;
 				dragging = true;
 				travel = 0;
 				last = { x: event.clientX, y: event.clientY };
-				canvas.setPointerCapture(event.pointerId);
-				canvas.dataset.deskDrag = 'true';
+				origin = { x: event.clientX, y: event.clientY };
+
+				/* DO NOT CLAIM THE GESTURE YET ON TOUCH. THIS IS WHY THE
+				   SECTION COULD NOT BE SCROLLED PAST ON A PHONE.
+
+				   Both lines below used to run here, on pointerdown. Setting
+				   data-desk-drag switches the canvas to `touch-action: none`
+				   (desk-stage.css), and capturing the pointer takes the
+				   gesture away from the compositor. Doing either before the
+				   DIRECTION is known cancels the browser's scroll on the very
+				   first touch - and the canvas fills the sticky stage, so a
+				   finger landing anywhere in the section was stuck.
+
+				   A mouse has no scroll gesture to lose, so it claims
+				   immediately and desktop behaviour is unchanged. Touch waits
+				   for onMove to prove the swipe is horizontal. */
+				claimed = event.pointerType === 'mouse';
+				if (claimed) {
+					canvas.setPointerCapture(event.pointerId);
+					canvas.dataset.deskDrag = 'true';
+				}
 				wake();
 			};
 
@@ -516,9 +539,38 @@ export function useDeskStage(): DeskStageHandles {
 				   plain click nudges the pose by a pixel or two of jitter. */
 				if (travel < DESK_DRAG.threshold) return;
 
-				/* Only now is this definitely a drag, so only now is it worth
-				   suppressing the browser's own gesture handling. */
-				event.preventDefault();
+				/* ---- WHOSE GESTURE IS THIS? ----
+				   Decided once, from the travel SINCE THE START of the
+				   gesture rather than since the last frame, because a single
+				   frame of a vertical swipe often carries a stray horizontal
+				   pixel or two.
+
+				   Vertical means the visitor is scrolling the page: bail out
+				   of the drag entirely and never call preventDefault, so the
+				   canvas's `touch-action: pan-y` carries the swipe natively.
+				   The browser then sends pointercancel, which onUp handles. */
+				if (!claimed) {
+					const totalX = Math.abs(event.clientX - origin.x);
+					const totalY = Math.abs(event.clientY - origin.y);
+
+					if (totalY > totalX) {
+						dragging = false;
+						return;
+					}
+
+					/* Horizontal: it is a rotate. Claim it now - the pose is
+					   worth a locked gesture, and the page was never going
+					   sideways. */
+					claimed = true;
+					canvas.setPointerCapture(event.pointerId);
+					canvas.dataset.deskDrag = 'true';
+				}
+
+				/* Only a CLAIMED gesture may suppress the browser's own
+				   handling. Calling this on an unclaimed touch is what killed
+				   the scroll. Guarded because a touch move is not always
+				   cancelable once the browser has begun a scroll. */
+				if (event.cancelable) event.preventDefault();
 				scene.dragBy(dx, dy);
 				wake();
 			};
@@ -526,6 +578,7 @@ export function useDeskStage(): DeskStageHandles {
 			const onUp = (event: PointerEvent) => {
 				if (!dragging) return;
 				dragging = false;
+				claimed = false;
 				scene.endDrag();
 				delete canvas.dataset.deskDrag;
 				if (canvas.hasPointerCapture(event.pointerId)) {

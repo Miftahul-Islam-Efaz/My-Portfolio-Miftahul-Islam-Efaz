@@ -695,3 +695,46 @@ html.mode-inverted .navmenu {
 .navmenu__carettoggle .navmenu__caret {
 	margin-inline-start: 0;
 }
+
+/* ---------------- THE TOGGLE ON A TOUCH DEVICE ----------------
+
+   The target was already 44px, but it was drawn as a bare ~12px caret on
+   no background, so it read as decoration rather than a control - which
+   is worse than a small button, because nothing says it can be pressed.
+
+   It also relied on :hover to reveal its chip, and a phone has no hover:
+   the affordance was literally unreachable on the device that needs the
+   button most. The desktop caret-on-hover is left exactly as it was.
+
+   So on touch the chip is permanent, the edge is drawn, and the glyph is
+   sized to be legible at arm's length. */
+@media (max-width: 768px) {
+	.navmenu__carettoggle {
+		width: max(48px, calc(var(--nm-item-h) * 0.62));
+		height: max(48px, calc(var(--nm-item-h) * 0.62));
+		margin-inline-start: 0.4rem;
+		background-color: var(--nm-chip);
+		border: 1px solid rgb(255 255 255 / 0.16);
+		color: #fff;
+	}
+
+	/* Bigger than the desktop glyph on purpose. */
+	.navmenu__carettoggle .navmenu__caret svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	/* There is no hover to give feedback, so the press has to. */
+	.navmenu__carettoggle:active {
+		background-color: rgb(255 255 255 / 0.22);
+		transform: scale(0.94);
+	}
+
+	/* Open is a state worth showing on the control itself, not only on the
+	   submenu it opened. The caret's own rotation still comes from the
+	   data-open rule further up. */
+	.navmenu__group[data-open='true'] .navmenu__carettoggle {
+		background-color: rgb(255 255 255 / 0.2);
+		border-color: rgb(255 255 255 / 0.28);
+	}
+}
