@@ -801,7 +801,14 @@ export const useVaultTeaser = ({
 				velocity = 0;
 			}
 
-			/* Exponential smoothing on the pointer, framed in dt so the feel
+			/* MOBILE: linear tracking - the hand sits exactly where the scroll
+		   is. The spring's lag and overshoot are desktop-only now. */
+		if (tuning.isMobile) {
+			current = target;
+			velocity = 0;
+		}
+
+		/* Exponential smoothing on the pointer, framed in dt so the feel
 			   is identical at 60Hz and 144Hz. A plain `+= delta * 0.1` would
 			   track more than twice as tightly on a fast display. */
 			const k = 1 - Math.exp(-VAULT_PARALLAX.smoothing * dt);

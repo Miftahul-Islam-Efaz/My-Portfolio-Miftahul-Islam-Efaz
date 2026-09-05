@@ -641,3 +641,57 @@ html.mode-inverted .navmenu {
 		transform: translate(-50%, -50%) rotate(-45deg);
 	}
 }
+
+/* ==================================================================
+   THE SUBMENU TOGGLE
+
+   The caret used to sit inside the parent anchor and was decoration:
+   the only way to open the disclosure was to hover the group, which a
+   touch screen cannot do at all. It is now a button beside the anchor,
+   so the row is a flex pair - the link takes the space, the toggle
+   takes the end.
+   ================================================================== */
+
+.navmenu__row {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+/* The anchor keeps behaving exactly as the childless ones do. */
+.navmenu__row .navmenu__item {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.navmenu__carettoggle {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* A real touch target. The caret glyph is about 12px, and anything
+	   sized to the glyph is a control you have to aim at. */
+	width: max(44px, calc(var(--nm-item-h) * 0.5));
+	height: max(44px, calc(var(--nm-item-h) * 0.5));
+	padding: 0;
+	border: none;
+	border-radius: calc(var(--nm-item-r) * 0.8);
+	background: none;
+	color: var(--nm-muted);
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+	/* Drops the double-tap-zoom delay in front of the toggle. */
+	touch-action: manipulation;
+	transition: background-color var(--nm-hover) ease;
+}
+
+.navmenu__carettoggle:hover,
+.navmenu__carettoggle:focus-visible {
+	background-color: var(--nm-chip);
+	outline: none;
+}
+
+/* The button owns the spacing now, so the caret drops its own. */
+.navmenu__carettoggle .navmenu__caret {
+	margin-inline-start: 0;
+}

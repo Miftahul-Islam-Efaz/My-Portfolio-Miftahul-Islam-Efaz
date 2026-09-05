@@ -517,7 +517,17 @@ export default function DitherCarousel() {
           const span = total > dwellPx ? (total - dwellPx) / total : 1;
 
           const helix = Math.min(1, self.progress / span);
-          handle?.setProgress(START_SLOT + DIRECTION * helix * count);
+          const next = START_SLOT + DIRECTION * helix * count;
+          /* MOBILE: linear tracking - the cards sit exactly where the
+             scroll is. The engine eases toward its target internally, so
+             both ends of the lerp are written, same trick as the START_SLOT
+             seed above. Desktop keeps the inertia. */
+          if (tuning.isMobile && handle) {
+            handle.scroll.state.current = next;
+            handle.scroll.state.target = next;
+          } else {
+            handle?.setProgress(next);
+          }
 
           /* How far into the hold we are, 0 to 1. */
           const dwell =

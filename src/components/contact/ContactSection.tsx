@@ -327,6 +327,25 @@ export const ContactSection: React.FC = () => {
 					trigger: root,
 					start: 'top 88%',
 					toggleActions: 'restart none none reset',
+					/* SURVIVING A RE-MEASURE.
+
+					   The reset above is what makes this reveal replayable, but
+					   it is also a trap. An overlay - the vault gallery - can lock
+					   the page while this section sits above the viewport, so the
+					   reset fires and every element returns to its hidden
+					   from-state. By the time the triggers are re-measured on the
+					   way out, the start line is already behind us: there is no
+					   edge left to cross, so "restart" never runs and the section
+					   stays at opacity 0. It is still present and still occupying
+					   its full height, which is exactly why the footer underneath
+					   it looks perfectly correct while the contact card is gone.
+
+					   So on every refresh, if the start is already behind us, the
+					   timeline is snapped to its end. Content is never left hidden
+					   as a side effect of a measurement. */
+					onRefresh: (self) => {
+						if (self.progress > 0 || self.isActive) tl.progress(1);
+					},
 				},
 			});
 

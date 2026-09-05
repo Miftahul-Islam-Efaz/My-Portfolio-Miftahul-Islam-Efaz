@@ -216,10 +216,17 @@ export const DESK_MOBILE_LAPTOP = {
    clears the visibility floor documented in config/deskStage.ts.
    ================================================================== */
 export const DESK_MOBILE_PARALLAX = {
-	stars: 16,
-	statement: 6,
-	laptopRotY: 0.17,
-	laptopRotX: 0.1,
+	/* ALL FOUR AMOUNTS ARE THE PREVIOUS VALUE x 1.1.
+
+	   Raised together on purpose. These four are one effect seen at
+	   four depths - stars furthest, statement nearest, the machine
+	   between them - and the RATIOS between them are what read as
+	   depth. Scaling them by one factor makes the effect stronger;
+	   scaling one alone would flatten it. */
+	stars: 17.6,
+	statement: 6.6,
+	laptopRotY: 0.187,
+	laptopRotX: 0.11,
 	/* Heavier smoothing than the pointer's 0.075. A hand holding a phone
 	   is never still, and an accelerometer reports that honestly - at the
 	   desktop ease the machine visibly trembles. This is the single most
@@ -241,11 +248,28 @@ export const DESK_MOBILE_GYRO = {
 	   visitor consciously moving their arm, which is the gesture we are
 	   trying to reward. Larger values make the effect feel dead; smaller
 	   ones make it feel twitchy and amplify sensor noise. */
-	maxTiltDeg: 18,
+	/* 18 -> 13. LOWER IS MORE SENSITIVE, which reads backwards until you
+	   see what the number is: the tilt that counts as FULL deflection.
+	   The reading is divided by it, so a smaller window means the same
+	   wrist movement travels further through the effect.
+
+	   This is the right control for sensitivity rather than raising the
+	   amounts above again. The amounts set how far the scene can move at
+	   the extremes; this sets how easily the visitor reaches them. It
+	   cannot overshoot either, because the normalised value is still
+	   clamped to -1..1 - a larger tilt now simply arrives at the end of
+	   the range sooner instead of pushing past it. */
+	maxTiltDeg: 13,
 	/* A dead zone, in degrees, around neutral. Hand tremor lives here.
 	   Without it the section never fully settles, which also means the
 	   render loop never parks and the battery pays for it. */
-	deadZoneDeg: 1.2,
+	/* 1.2 -> 0.8. The dead zone has to come down with the tilt window or
+	   it would quietly eat a larger share of it: 1.2 of 18 degrees is 7%
+	   of the range, but 1.2 of 13 is over 9%, and a more sensitive effect
+	   with a proportionally wider dead patch around neutral feels like it
+	   sticks before it moves. Kept wide enough that hand tremor still
+	   parks the render loop at rest. */
+	deadZoneDeg: 0.8,
 	/* How many readings are averaged into the neutral baseline. Nobody
 	   holds a phone flat, so raw beta at rest is 30-60 deg depending on
 	   posture; the baseline is whatever they were already doing when the

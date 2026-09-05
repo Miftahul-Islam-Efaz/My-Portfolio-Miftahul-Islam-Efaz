@@ -19,6 +19,11 @@ type HeroBackgroundVideoProps = {
  * `loop` restarts the clip seamlessly. The current hero clip is a short slow
  * light drift, so it reads as continuous; see `config/media.ts` for how the
  * file is produced and why it ships as H.264 rather than the HEVC master.
+ *
+ * MOBILE: the frame is shifted 5% to the left (max-md:-translate-x-[5%]).
+ * The video is full-bleed, so the width grows by the same 5%
+ * (max-md:w-[105%]) to keep the right edge covered - a bare translate
+ * would open a gap there.
  */
 function HeroBackgroundVideo({ videoRef, settings }: HeroBackgroundVideoProps) {
   return (
@@ -33,7 +38,7 @@ function HeroBackgroundVideo({ videoRef, settings }: HeroBackgroundVideoProps) {
         // Hints the compositor to keep the video on its own layer instead of
         // repainting it against the hero content on every scroll frame.
         style={{ opacity: settings.video_opacity, willChange: 'transform' }}
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0 transition-opacity duration-700"
+        className="absolute inset-0 w-full h-full max-md:w-[105%] max-md:max-w-none max-md:-translate-x-[5%] object-cover pointer-events-none z-0 transition-opacity duration-700"
       >
         {HERO_VIDEO.sources.map((source) => {
           // `media` is optional and only present when more than one cut is

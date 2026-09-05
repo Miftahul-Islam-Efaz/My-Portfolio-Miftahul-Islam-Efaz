@@ -4,6 +4,7 @@ import { uiSoundHandlers } from '@/lib/uiSounds';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 
 import { driveImage } from '@/lib/driveImage';
@@ -151,6 +152,12 @@ export const VaultWindow: React.FC<VaultWindowProps> = ({ onClose, onCloseStart,
 		return () => {
 			document.documentElement.classList.remove('vault-window-open');
 			pageLenis?.start();
+			/* RE-MEASURE THE PAGE THAT WAS FROZEN UNDERNEATH.
+			   Every pinned trigger measured itself before the lock; the
+			   document only regains its real height once the class above is
+			   gone, so this waits a frame rather than refreshing into the
+			   locked layout it is trying to correct. */
+			requestAnimationFrame(() => ScrollTrigger.refresh());
 		};
 	}, [mounted]);
 

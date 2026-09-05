@@ -86,6 +86,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 
 import { driveImage } from '@/lib/driveImage';
@@ -170,6 +171,12 @@ export default function WorkGalleryWindow({
 		return () => {
 			document.documentElement.classList.remove('work-gallery-open');
 			page?.start();
+			/* RE-MEASURE THE PAGE THAT WAS FROZEN UNDERNEATH.
+			   Every pinned trigger measured itself before the lock; the
+			   document only regains its real height once the class above is
+			   gone, so this waits a frame rather than refreshing into the
+			   locked layout it is trying to correct. */
+			requestAnimationFrame(() => ScrollTrigger.refresh());
 		};
 	}, [mounted]);
 
@@ -358,6 +365,10 @@ export default function WorkGalleryWindow({
 			moveThreshold,
 		} = VAULT_GALLERY_MOTION;
 
+		/* Phones get the field without the motion blur - see the write
+		   below. Read once: this loop must not re-resolve it per frame. */
+		const flatScroll = window.matchMedia('(max-width: 768px)').matches;
+
 		let current = 0;
 		let previous = 0;
 		let velocity = 0;
@@ -491,6 +502,11 @@ export default function WorkGalleryWindow({
 			velocity +=
 				(instant - velocity) * (1 - Math.exp(-velocityDecay * seconds));
 
+			/* MOBILE: no smear. Zeroing the velocity here removes the
+			   directional blur AND the swell in one place, because both are
+			   derived from --vg-v. The lattice's own travel (--vg-p) is
+			   deliberately left alone. */
+			if (flatScroll) velocity = 0;
 			if (Number.isNaN(writtenV) || Math.abs(velocity - writtenV) > epsilon) {
 				writtenV = velocity;
 				root.style.setProperty('--vg-v', velocity.toFixed(4));

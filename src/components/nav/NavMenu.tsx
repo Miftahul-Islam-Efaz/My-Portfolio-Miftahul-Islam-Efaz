@@ -113,6 +113,19 @@ export const NavMenu: React.FC = () => {
 		return () => setNavSlot(null);
 	}, []);
 
+	/* WHETHER HOVER IS A REAL INPUT HERE. Starts false so the server
+	   markup and the first client render agree; a touch device simply
+	   never turns it on and uses the caret button instead. */
+	const [canHover, setCanHover] = useState(false);
+
+	useEffect(() => {
+		const query = window.matchMedia('(hover: hover) and (pointer: fine)');
+		const read = () => setCanHover(query.matches);
+		read();
+		query.addEventListener('change', read);
+		return () => query.removeEventListener('change', read);
+	}, []);
+
 	const playSound = useCallback(
 		(ref: React.RefObject<HTMLAudioElement | null>, src: string, volume = 1) => {
 			try {
@@ -184,6 +197,23 @@ export const NavMenu: React.FC = () => {
 			NAV_MENU_MOTION.submenuGrace,
 		);
 	}, []);
+
+	/* THE CARET BUTTON. A deliberate toggle, so the disclosure can be
+	   opened and closed on purpose rather than only by keeping a pointer
+	   somewhere. Any pending hover-close is cancelled first, or a toggle
+	   made on the way out of the group would be undone by that timer a
+	   moment later. */
+	const toggleGroupOpen = useCallback(
+		(id: string) => {
+			if (subTimer.current) {
+				clearTimeout(subTimer.current);
+				subTimer.current = null;
+			}
+			playSound(clickSoundRef, SOUND_CLICK, 0.4);
+			setOpenSub((current) => (current === id ? null : id));
+		},
+		[playSound],
+	);
 
 	/* An in-page target is scrolled to, and only then is the default
 	   prevented. If the element is not on this page - Work or Home while
@@ -360,11 +390,6 @@ export const NavMenu: React.FC = () => {
 					<Arrow />
 				</span>
 				<span className="navmenu__text">{item.label}</span>
-				{item.children ? (
-					<span className="navmenu__caret">
-						<Caret />
-					</span>
-				) : null}
 			</a>
 		);
 
@@ -380,10 +405,31 @@ export const NavMenu: React.FC = () => {
 				key={item.id}
 				className="navmenu__group"
 				data-open={openSub === item.id ? 'true' : 'false'}
-				onMouseEnter={() => enterGroup(item.id)}
-				onMouseLeave={leaveGroup}
+				/* Hover is a convenience on a mouse and absent on a phone, so
+				   it is bound only where it exists. The caret button below
+				   works everywhere and is the only way in on touch. */
+				onMouseEnter={canHover ? () => enterGroup(item.id) : undefined}
+				onMouseLeave={canHover ? leaveGroup : undefined}
 			>
-				{anchor}
+				<div className="navmenu__row">
+					{anchor}
+
+					{/* Its own control, OUTSIDE the anchor: a button cannot be
+					    nested inside a link, and this must not navigate. */}
+					<button
+						type="button"
+						className="navmenu__carettoggle"
+						aria-expanded={openSub === item.id}
+						aria-label={`${
+							openSub === item.id ? 'Hide' : 'Show'
+						} ${item.label} options`}
+						onClick={() => toggleGroupOpen(item.id)}
+					>
+						<span className="navmenu__caret">
+							<Caret />
+						</span>
+					</button>
+				</div>
 
 				<div
 					className="navmenu__sub"

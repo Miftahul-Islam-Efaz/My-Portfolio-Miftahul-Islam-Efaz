@@ -356,6 +356,10 @@ export const VaultGallery: React.FC = () => {
 			moveThreshold,
 		} = VAULT_GALLERY_MOTION;
 
+		/* Phones get the field without the motion blur - see the write
+		   below. Read once: this loop must not re-resolve it per frame. */
+		const flatScroll = window.matchMedia('(max-width: 768px)').matches;
+
 		let current = 0;
 		let previous = 0;
 		let velocity = 0;
@@ -533,6 +537,11 @@ export const VaultGallery: React.FC = () => {
 			velocity +=
 				(instant - velocity) * (1 - Math.exp(-velocityDecay * seconds));
 
+			/* MOBILE: no smear. Zeroing the velocity here removes the
+			   directional blur AND the swell in one place, because both are
+			   derived from --vg-v. The lattice's own travel (--vg-p) is
+			   deliberately left alone. */
+			if (flatScroll) velocity = 0;
 			if (Number.isNaN(writtenV) || Math.abs(velocity - writtenV) > epsilon) {
 				writtenV = velocity;
 				root.style.setProperty('--vg-v', velocity.toFixed(4));
