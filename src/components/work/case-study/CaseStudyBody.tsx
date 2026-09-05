@@ -165,6 +165,7 @@ export default function CaseStudyBody({
     return {
       label: screen.label,
       caption: screen.caption,
+      layout: 'layout' in screen ? screen.layout : undefined,
       orientation: 'orientation' in screen ? screen.orientation : undefined,
       youtubeId,
       posterUrl:
@@ -274,6 +275,7 @@ export default function CaseStudyBody({
             <figure
               className="case-study__screen"
               data-demo={screen.demo ? 'true' : undefined}
+              data-layout={screen.layout ?? (study.id === 'sonapahar' ? (i === 0 ? 'centered' : 'full') : 'auto')}
               data-orientation={screen.orientation ?? 'landscape'}
               data-media={screen.youtubeId ? 'video' : 'image'}
               key={`${screen.label}-${i}`}

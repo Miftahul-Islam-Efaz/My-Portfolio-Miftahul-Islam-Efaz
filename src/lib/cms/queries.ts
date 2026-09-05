@@ -195,6 +195,7 @@ function toScreens(value: unknown): CaseStudyScreen[] | undefined {
         src: raw.src || undefined,
         youtubeId: isVideo ? raw.youtubeId : undefined,
         posterUrl: raw.posterUrl || undefined,
+        layout: raw.layout === "centered" || raw.layout === "full" || raw.layout === "auto" ? raw.layout : undefined,
         orientation: raw.orientation === "portrait" ? "portrait" : undefined,
       });
       return out;

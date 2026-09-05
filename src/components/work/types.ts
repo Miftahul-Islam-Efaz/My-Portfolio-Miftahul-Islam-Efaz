@@ -59,6 +59,7 @@ export interface CaseStudyScreen {
   /** One line: what problem this screen solves. Not what it contains. */
   caption: string;
   /** Portrait screens (phone captures) get a taller frame. */
+  layout?: 'auto' | 'centered' | 'full';
   orientation?: 'landscape' | 'portrait';
   /** Defaults to 'image' everywhere it is missing, which is what keeps every
    *  existing screen rendering unchanged. */

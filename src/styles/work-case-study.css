@@ -3967,3 +3967,11 @@ html.case-study-open body {
     opacity: 0.5;
   }
 }
+
+/* Editorial row overrides preserve automatic masonry for other screens. */
+.case-study__screen[data-layout="centered"],
+.case-study__screen[data-layout="full"] { column-span: all; width: 100%; }
+.case-study__screen[data-layout="centered"] > * { width: 72%; margin-left: auto; margin-right: auto; }
+@media (max-width: 900px) {
+  .case-study__screen[data-layout="centered"] > * { width: 100%; }
+}

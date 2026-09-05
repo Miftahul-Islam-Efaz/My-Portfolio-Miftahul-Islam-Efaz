@@ -58,6 +58,7 @@ export type CaseStudyScreenRow = {
    *  'video', and sanitizeRow demotes a video with no id to an image. */
   youtubeId?: string;
   posterUrl?: string;
+  layout?: "auto" | "centered" | "full";
   orientation?: "landscape" | "portrait";
 };
 

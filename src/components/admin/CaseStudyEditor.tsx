@@ -275,6 +275,7 @@ export default function CaseStudyEditor({
           src: opt(s.src),
           youtubeId: isVideo ? id : undefined,
           posterUrl: opt(s.posterUrl),
+          layout: s.layout,
           orientation: s.orientation === "portrait" ? ("portrait" as const) : undefined,
         };
       });
@@ -740,6 +741,14 @@ export default function CaseStudyEditor({
                         />
                       </div>
                       <div className="adm-field">
+                        <label className="adm-label">Image layout</label>
+                        <select className="adm-select" value={screen.layout ?? ""} onChange={(e) => patchScreen(i, { layout: e.target.value as "auto" | "centered" | "full" })}>
+                          <option value="" disabled>Project default</option>
+                          <option value="auto">Automatic — masonry column</option>
+                          <option value="centered">Centred — own row</option>
+                          <option value="full">Full width — own row</option>
+                        </select>
+                        <p className="adm-help">Use Up / Down to set order. Centred and full-width images start a new row.</p>
                         <label className="adm-label">Loading placeholder</label>
                         <select
                           className="adm-select"

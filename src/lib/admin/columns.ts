@@ -273,6 +273,7 @@ type ScreenRow = {
   src?: string;
   youtubeId?: string;
   posterUrl?: string;
+  layout?: "auto" | "centered" | "full";
   orientation?: "landscape" | "portrait";
 };
 
@@ -318,6 +319,7 @@ function toScreens(value: unknown): ScreenRow[] {
       if (orientation === "portrait") screen.orientation = "portrait";
     }
 
+    if (["auto", "centered", "full"].includes(String(raw.layout))) screen.layout = raw.layout as ScreenRow["layout"];
     out.push(screen);
     return out;
   }, []);
