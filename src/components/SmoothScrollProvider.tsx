@@ -10,6 +10,7 @@ import {
 	SMOOTH_EASE,
 	SMOOTH_SCROLL,
 	SMOOTH_TOUCH,
+	shouldSyncTouch,
 	isLenisPrevented,
 } from "@/config/smoothScroll"
 
@@ -19,8 +20,8 @@ gsap.registerPlugin(ScrollTrigger)
  * Owns smooth scrolling and the scroll-triggered reveals.
  *
  * Desktop runs Lenis driven off gsap.ticker so Lenis, GSAP and ScrollTrigger
- * all advance on one clock. Mobile keeps native scrolling (Lenis fights
- * momentum scroll on iOS) and just pumps ScrollTrigger.
+ * all advance on one clock. Mobile uses restrained touch momentum;
+ * reduced-motion users retain native scrolling.
  *
  * EVERY NUMBER LIVES IN config/smoothScroll.ts, including why it is that
  * number and what it trades against. Tune there, not here.
@@ -57,9 +58,10 @@ export default function SmoothScrollProvider() {
 		let lenis: Lenis | undefined
 		let tick: ((time: number) => void) | undefined
 
-		/* Native touch scrolling avoids synthetic inertia competing with
-		   scrubbed animation work. Desktop wheel smoothing is unchanged. */
-		if (isMobile && !SMOOTH_TOUCH.enabled) {
+		const syncTouch = shouldSyncTouch()
+		const revealScale = isMobile ? SMOOTH_TOUCH.revealDurationScale : 1
+		/* Keep the native fallback when mobile smoothing is disabled. */
+		if (isMobile && !syncTouch) {
 			// Passive: this listener never calls preventDefault, and saying so lets
 			// the browser scroll without waiting to find out.
 			window.addEventListener("scroll", ScrollTrigger.update, {
@@ -75,7 +77,7 @@ export default function SmoothScrollProvider() {
 				wheelMultiplier: SMOOTH_SCROLL.wheelMultiplier,
 				touchMultiplier: SMOOTH_SCROLL.touchMultiplier,
 				/* Touch smoothing must respect the shared opt-in switch. */
-				syncTouch: isMobile && SMOOTH_TOUCH.enabled,
+				syncTouch,
 				syncTouchLerp: SMOOTH_TOUCH.syncTouchLerp,
 				touchInertiaExponent: SMOOTH_TOUCH.touchInertiaExponent,
 				/* MUST STAY FALSE - gsap.ticker below is the only thing allowed to
@@ -143,13 +145,13 @@ export default function SmoothScrollProvider() {
 				/* Collected so the teardown can kill precisely these. */
 				if (kind === "fade-left") {
 					owned.push(gsap.fromTo(el, { x: -30, opacity: 0 },
-						{ x: 0, opacity: 1, duration: 0.6, ...shared }))
+						{ x: 0, opacity: 1, duration: 0.6 * revealScale, ...shared }))
 				} else if (kind === "clip-up") {
 					owned.push(gsap.fromTo(el, { clipPath: "inset(100% 0 0 0)" },
-						{ clipPath: "inset(0 0 0 0)", duration: 0.9, ...shared }))
+						{ clipPath: "inset(0 0 0 0)", duration: 0.9 * revealScale, ...shared }))
 				} else {
 					owned.push(gsap.fromTo(el, { y: 25, opacity: 0 },
-						{ y: 0, opacity: 1, duration: 0.7, ...shared }))
+						{ y: 0, opacity: 1, duration: 0.7 * revealScale, ...shared }))
 				}
 			})
 			ScrollTrigger.refresh()

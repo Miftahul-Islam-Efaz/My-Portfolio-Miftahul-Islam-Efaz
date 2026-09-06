@@ -21,10 +21,10 @@
    would be silently wrong if it flipped back.
 
    ------------------------------------------------------------------
-   NATIVE MOBILE TOUCH SCROLLING.
+   CONTROLLED MOBILE TOUCH SCROLLING.
 
-   Browser-owned finger tracking and momentum avoid amplified gestures
-   and synthetic inertia competing with scroll-triggered animations.
+   A restrained touch multiplier and shorter coast slow mobile swipes
+   without adding extra animation lag. Reduced motion stays native.
    Desktop wheel smoothing remains enabled.
 
    ------------------------------------------------------------------
@@ -66,9 +66,9 @@ export const SMOOTH_SCROLL = {
   wheelMultiplier: 1,
 
   /* Used only when synthetic touch smoothing is explicitly enabled. */
-  touchMultiplier: 1.8,
+  touchMultiplier: 0.8,
 
-  /* Native mobile breakpoint. Coarse-pointer devices also stay native. */
+  /* Mobile profile breakpoint; also includes coarse-pointer devices. */
   mobileMaxWidth: 768,
 } as const;
 
@@ -110,7 +110,7 @@ export const isLenisPrevented = (node: HTMLElement): boolean =>
 export const SMOOTH_TOUCH = {
   /* THE SWITCH BACK. false restores native mobile scrolling - momentum,
      rubber-banding, address-bar collapse - in every room at once. */
-  enabled: false,
+  enabled: true,
 
   /* Per-frame approach rate for finger gestures, 0-1. Lenis' own default
      is 0.075. Slightly higher here because this site SCRUBS: a phone
@@ -118,9 +118,12 @@ export const SMOOTH_TOUCH = {
      as weight. Lower = heavier and laggier. Higher = closer to native. */
   syncTouchLerp: 0.09,
 
+  /* Give mobile entrance reveals more time without delaying input. */
+  revealDurationScale: 1.2,
+
   /* How much throw survives the lift-off - the length of the coast after
      the finger leaves the glass. Lenis' default is 1.7. */
-  touchInertiaExponent: 1.7,
+  touchInertiaExponent: 1.3,
 } as const;
 
 /* True when this device should smooth touch.
@@ -130,10 +133,11 @@ export const SMOOTH_TOUCH = {
    smoothed window inside a natively scrolling page - or the reverse - is
    the exact mismatch this is here to prevent.
 
-   Width rather than (pointer: coarse), to stay identical to the
-   provider's own test. SSR-guarded because the window components call it
-   inside effects that also run during dev prerender. */
+   Shared device and reduced-motion detection keeps page and overlays
+   consistent, including landscape phones and touch tablets. */
 export const shouldSyncTouch = (): boolean =>
   SMOOTH_TOUCH.enabled &&
   typeof window !== 'undefined' &&
-  window.innerWidth <= SMOOTH_SCROLL.mobileMaxWidth;
+  !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
+  (window.innerWidth <= SMOOTH_SCROLL.mobileMaxWidth ||
+    window.matchMedia('(pointer: coarse)').matches);

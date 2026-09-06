@@ -111,12 +111,12 @@ export const WORK_DESKTOP_SCROLL = {
 } as const;
 
 export const WORK_MOBILE_SCROLL = {
-	perCard: 0.55,
+	perCard: 0.65,
 	/* The hold also shrinks, but proportionally less. It exists so the cue
 	   is not carried off screen by the same gesture that revealed it, and
 	   that is a fixed amount of reading time rather than a fraction of the
 	   section. */
-	cueDwell: 1.1,
+	cueDwell: 1.25,
 } as const;
 
 /* ==================================================================
