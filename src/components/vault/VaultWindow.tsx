@@ -169,14 +169,16 @@ export const VaultWindow: React.FC<VaultWindowProps> = ({ onClose, onCloseStart,
 			   its offset, and Lenis still holds whatever animatedScroll
 			   survived the collapse. Write the native offset while Lenis is
 			   still stopped, so there is one authority at a time. */
-			window.scrollTo(0, restoreY);
-			pageLenis?.start();
+			window.scrollTo({ top: restoreY, behavior: 'instant' });
+			getLenis()?.start();
 			/* RE-MEASURE THE PAGE THAT WAS FROZEN UNDERNEATH.
 			   Every pinned trigger measured itself before the lock; the
 			   document only regains its real height once the class above is
 			   gone, so this waits a frame rather than refreshing into the
 			   locked layout it is trying to correct. */
 			requestAnimationFrame(() => {
+				// Do not unlock or reposition a newly opened overlay.
+				if (document.documentElement.matches('.vault-window-open, .work-gallery-open, .case-study-open')) return;
 				/* Refresh first: every pinned trigger measured itself before the
 				   lock, and the document only regained its real height a frame
 				   ago. Then re-assert the position, because refresh() restores
@@ -189,7 +191,10 @@ export const VaultWindow: React.FC<VaultWindowProps> = ({ onClose, onCloseStart,
 				   `immediate` skips the ease - this is a restoration, not a
 				   journey. */
 				ScrollTrigger.refresh();
-				pageLenis?.scrollTo(restoreY, { immediate: true, force: true });
+				const current = getLenis();
+				current?.start();
+				if (current) current.scrollTo(restoreY, { immediate: true, force: true });
+				else window.scrollTo({ top: restoreY, behavior: 'instant' });
 			});
 		};
 	}, [mounted]);

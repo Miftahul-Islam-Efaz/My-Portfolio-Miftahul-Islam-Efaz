@@ -41,6 +41,8 @@ gsap.registerPlugin(ScrollTrigger)
  */
 export default function SmoothScrollProvider() {
 	const pathname = usePathname()
+	// Preserve the scroller across history-only overlay navigation.
+	const isAdmin = pathname?.startsWith('/admin') ?? false
 	useEffect(() => {
 		/* THE ADMIN PANEL KEEPS NATIVE SCROLL.
 		 *
@@ -49,16 +51,14 @@ export default function SmoothScrollProvider() {
 		 * started, and `.lenis.lenis-stopped { overflow: hidden }` in globals.css
 		 * would leave the whole page unscrollable. A form should not inherit
 		 * momentum scrolling anyway - it fights the caret while you type. */
-		if (pathname?.startsWith("/admin")) return
+		if (isAdmin) return
 
-		const isMobile = window.innerWidth <= SMOOTH_SCROLL.mobileMaxWidth
+		const isMobile = window.innerWidth <= SMOOTH_SCROLL.mobileMaxWidth || window.matchMedia('(pointer: coarse)').matches
 		let lenis: Lenis | undefined
 		let tick: ((time: number) => void) | undefined
 
-		/* MOBILE RUNS LENIS TOO NOW. See THE TOUCH PROFILE in
-		   config/smoothScroll.ts for what that trades away. This branch is
-		   the fallback for SMOOTH_TOUCH.enabled = false, kept whole so the
-		   flag stays a real switch rather than a rewrite. */
+		/* Native touch scrolling avoids synthetic inertia competing with
+		   scrubbed animation work. Desktop wheel smoothing is unchanged. */
 		if (isMobile && !SMOOTH_TOUCH.enabled) {
 			// Passive: this listener never calls preventDefault, and saying so lets
 			// the browser scroll without waiting to find out.
@@ -74,12 +74,8 @@ export default function SmoothScrollProvider() {
 				smoothWheel: true,
 				wheelMultiplier: SMOOTH_SCROLL.wheelMultiplier,
 				touchMultiplier: SMOOTH_SCROLL.touchMultiplier,
-				/* THE ONE LINE THAT PUTS THE DESKTOP FEEL ON A PHONE.
-
-				   Deliberately off above mobileMaxWidth: a desktop has no touch
-				   to sync, and enabling it there would also smooth two-finger
-				   trackpad gestures that smoothWheel is already handling. */
-				syncTouch: isMobile,
+				/* Touch smoothing must respect the shared opt-in switch. */
+				syncTouch: isMobile && SMOOTH_TOUCH.enabled,
 				syncTouchLerp: SMOOTH_TOUCH.syncTouchLerp,
 				touchInertiaExponent: SMOOTH_TOUCH.touchInertiaExponent,
 				/* MUST STAY FALSE - gsap.ticker below is the only thing allowed to
@@ -178,7 +174,7 @@ export default function SmoothScrollProvider() {
 			lenis?.destroy()
 			delete (window as unknown as { lenis?: Lenis }).lenis
 		}
-	}, [pathname])
+	}, [isAdmin])
 
 	return null
 }

@@ -21,31 +21,11 @@
    would be silently wrong if it flipped back.
 
    ------------------------------------------------------------------
-   MOBILE SMOOTHS TOO - AND THIS REVERSES AN EARLIER DECISION.
+   NATIVE MOBILE TOUCH SCROLLING.
 
-   This section used to say Lenis was desktop-only, because `syncTouch`
-   does not REPLACE iOS momentum, it competes with it: Lenis reads the
-   touchmove, calls preventDefault, and re-animates the distance itself.
-   That is a real trade, and it was declined once already.
-
-   It is now enabled on purpose, because the brief is that a phone must
-   feel like the desktop - one weighted glide in every room rather than
-   native flick in some and eased scroll in others. The gain is that
-   consistency. The costs, all of which are real:
-
-   - RUBBER-BANDING GOES. Overscroll at the ends of the document stops
-     being elastic, because the platform never sees the gesture.
-   - THE ADDRESS BAR STOPS COLLAPSING PREDICTABLY. Mobile Safari and
-     Chrome hide the URL bar in response to native scroll, and a
-     preventDefault-ed gesture is not native scroll.
-   - THE SCRUB LAG STACKS, AND IT STACKS WORSE HERE. See the next
-     section. Phones run the same scrubbed ScrollTriggers on a fraction
-     of the GPU, so the chase that reads as weight on a desktop can read
-     as lag on a mid-range Android.
-
-   SMOOTH_TOUCH.enabled below is the single switch back. It is a flag
-   rather than a deletion for exactly that reason; try lowering
-   syncTouchLerp before reaching for it.
+   Browser-owned finger tracking and momentum avoid amplified gestures
+   and synthetic inertia competing with scroll-triggered animations.
+   Desktop wheel smoothing remains enabled.
 
    ------------------------------------------------------------------
    THE REAL CONSTRAINT: THIS SITE SCRUBS.
@@ -85,15 +65,10 @@ export const SMOOTH_SCROLL = {
      distance the OS intended and the easing supplies the feel. */
   wheelMultiplier: 1,
 
-  /* LIVE NOW. syncTouch is on at and below mobileMaxWidth, so this is
-     the distance a finger actually covers per gesture. It was chosen
-     while inert; if the page runs away from the thumb, this is the dial
-     to drop, not syncTouchLerp. */
+  /* Used only when synthetic touch smoothing is explicitly enabled. */
   touchMultiplier: 1.8,
 
-  /* At and below this width Lenis switches to its TOUCH profile
-     (SMOOTH_TOUCH) instead of being skipped entirely. Matches the mobile
-     breakpoint used across the styles. */
+  /* Native mobile breakpoint. Coarse-pointer devices also stay native. */
   mobileMaxWidth: 768,
 } as const;
 
@@ -135,7 +110,7 @@ export const isLenisPrevented = (node: HTMLElement): boolean =>
 export const SMOOTH_TOUCH = {
   /* THE SWITCH BACK. false restores native mobile scrolling - momentum,
      rubber-banding, address-bar collapse - in every room at once. */
-  enabled: true,
+  enabled: false,
 
   /* Per-frame approach rate for finger gestures, 0-1. Lenis' own default
      is 0.075. Slightly higher here because this site SCRUBS: a phone
