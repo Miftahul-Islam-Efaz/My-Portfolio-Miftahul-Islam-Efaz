@@ -12,7 +12,7 @@ import { getLenis } from '@/lib/scroll';
 import { setVaultOrigin, takeVaultOrigin, type VaultOrigin } from '@/lib/vaultOrigin';
 import { getNavSlot, setNavSlotBusy, subscribeNavSlot } from '@/lib/navSlot';
 import { onHomeRequest } from '@/lib/homeBus';
-import { SMOOTH_TOUCH, shouldSyncTouch } from '@/config/smoothScroll';
+import { SMOOTH_SCROLL, SMOOTH_EASE, SMOOTH_TOUCH, shouldSyncTouch } from '@/config/smoothScroll';
 import {
 	VAULT_HERO,
 	VAULT_WINDOW_MOTION,
@@ -248,28 +248,40 @@ export const VaultWindow: React.FC<VaultWindowProps> = ({ onClose, onCloseStart,
 		const lenis = new Lenis({
 			wrapper: scroller,
 			content: scroller.firstElementChild as HTMLElement,
-			duration: 0.9,
-			easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+			duration: SMOOTH_SCROLL.duration,
+			easing: SMOOTH_EASE,
 			orientation: 'vertical',
 			gestureOrientation: 'vertical',
 			smoothWheel: true,
-			wheelMultiplier: 0.9,
-			touchMultiplier: 1.8,
+			wheelMultiplier: SMOOTH_SCROLL.wheelMultiplier,
+			touchMultiplier: 1,
 			/* Matches the page - see shouldSyncTouch in
 			   config/smoothScroll.ts. */
 			syncTouch: shouldSyncTouch(),
 			syncTouchLerp: SMOOTH_TOUCH.syncTouchLerp,
 			touchInertiaExponent: SMOOTH_TOUCH.touchInertiaExponent,
 			overscroll: false,
+			respectReducedMotion: true,
+			prevent: node => node.classList.contains('vault-detail'),
 			/* Driven off gsap's ticker rather than its own rAF, so the window
 			   and every gsap animation on the page share one clock. */
 			autoRaf: false,
 		});
 
+		// Search/category changes synchronise both the native offset and Lenis'
+		// target, cancelling any old wheel momentum before the new set renders.
+		const showResults = (event: Event) => {
+			const target = (event as CustomEvent<HTMLElement | null>).detail;
+			if (!target) return;
+			lenis.resize();
+			lenis.scrollTo(target, { offset: -16, immediate: true });
+		};
+		scroller.addEventListener('vault:results', showResults);
 		const tick = (time: number) => lenis.raf(time * 1000);
 		gsap.ticker.add(tick);
 
 		return () => {
+			scroller.removeEventListener('vault:results', showResults);
 			gsap.ticker.remove(tick);
 			lenis.destroy();
 			if (hadPrevent) scroller.setAttribute('data-lenis-prevent', '');

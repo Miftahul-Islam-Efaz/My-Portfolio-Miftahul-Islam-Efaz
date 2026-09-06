@@ -221,7 +221,7 @@ export function isEditableTable(value: unknown): value is EditableTable {
 }
 
 /** Tables whose rows carry a sort_order the admin panel can reorder. */
-export const SORTABLE_TABLES: readonly EditableTable[] = [
+export const NEWEST_FIRST_TABLES: readonly EditableTable[] = [
   "work_projects",
   "vault_visuals",
   "vault_tools",
@@ -292,3 +292,6 @@ export type SiteIdentityRow = {
   email: string | null;
   knows_about: string[] | null; instagram_url: string | null; x_url: string | null; linkedin_url: string | null; github_url: string | null; facebook_url: string | null; whatsapp_username: string | null; craft_summary: string | null;
 };
+
+/** Gallery position is automatic; manual reorder requests are rejected. */
+export const SORTABLE_TABLES: readonly EditableTable[] = [];

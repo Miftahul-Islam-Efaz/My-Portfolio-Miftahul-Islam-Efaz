@@ -74,7 +74,8 @@ export default function MediaInspector({
 
   /* The first media field is the one on the canvas. Everything else is words,
      split only by the spec's own advanced flag. */
-  const mediaField = spec.fields.find((field) => field.type === "media");
+  const mediaFields = spec.fields.filter(field => field.type === "media" && (field.key !== "poster_url" || draft.media_type === "video"));
+  const mediaField = mediaFields[0];
   const detailFields = spec.fields.filter(
     (field) => field.type !== "media" && !field.advanced,
   );
@@ -297,7 +298,8 @@ export default function MediaInspector({
             {src && isVideo ? (
               <video
                 className="adm-mi-media"
-                src={src}
+                src={driveImage(str(draft.original_url) || src)}
+                poster={str(draft.poster_url) ? driveImage(str(draft.poster_url)) : undefined}
                 data-selected={group === "file"}
                 muted
                 loop
@@ -337,7 +339,7 @@ export default function MediaInspector({
                 data-selected={group === "details"}
                 onClick={() => openGroup("details")}
               >
-                {caption || "No words yet - click to write them"}
+                {spec.table === 'vault_visuals' || spec.table === 'vault_tools' ? <><strong>{title || 'Untitled'}</strong>{str(draft.caption) && <span>{str(draft.caption)}</span>}</> : caption || "No words yet - click to write them"}
               </figcaption>
             ) : null}
           </figure>
@@ -353,6 +355,7 @@ export default function MediaInspector({
         {/* data-lenis-prevent, or the page smooth-scroller swallows the wheel
             and this column cannot be scrolled at all. */}
         <aside className="adm-ins-panel" data-lenis-prevent>
+          {(spec.table === 'vault_visuals' || spec.table === 'vault_tools') && <p className="adm-hint adm-mi-pair">Natural proportions, no cropping. Title and caption appear below the image. Save, then refresh the Vault to see your changes.</p>}
           {isFooterPhoto ? (
             <p className="adm-hint adm-mi-pair">
               Both footer photographs must be the same picture at the same size
@@ -382,7 +385,7 @@ export default function MediaInspector({
                 {isOpen ? (
                   <div className="adm-ins-group-body">
                     {entry.id === "file" && mediaField
-                      ? renderField(mediaField)
+                      ? mediaFields.map(renderField)
                       : entry.id === "details"
                         ? detailFields.map(renderField)
                         : advancedFields.map(renderField)}

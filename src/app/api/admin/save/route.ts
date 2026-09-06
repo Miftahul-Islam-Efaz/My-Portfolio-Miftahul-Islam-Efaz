@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { isAdminRequest } from "@/lib/admin/session";
 import { adminClient } from "@/lib/supabase/clients";
-import { isEditableTable } from "@/lib/cms/types";
+import { isEditableTable, NEWEST_FIRST_TABLES } from "@/lib/cms/types";
 import { REQUIRED, TABLE_SPECS, sanitizeRow } from "@/lib/admin/columns";
 
 /**
@@ -92,6 +92,7 @@ export async function POST(request: Request) {
   let notice: string | null = null;
 
   if (
+    !NEWEST_FIRST_TABLES.includes(table) &&
     TABLE_SPECS[table].numberCols.includes("sort_order") &&
     typeof clean.sort_order === "number"
   ) {

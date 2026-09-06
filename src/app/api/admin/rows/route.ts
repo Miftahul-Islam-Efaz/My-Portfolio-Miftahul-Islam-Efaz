@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin/session";
 import { adminClient } from "@/lib/supabase/clients";
-import { isEditableTable } from "@/lib/cms/types";
+import { isEditableTable, NEWEST_FIRST_TABLES } from "@/lib/cms/types";
 
 /**
  * GET /api/admin/rows?table=work_projects
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   try {
     const db = adminClient();
     const query = db.from(table).select("*");
-    const { data, error } = await (table === "work_case_studies" ||
+    const { data, error } = await (NEWEST_FIRST_TABLES.includes(table) ? query.order("created_at", { ascending: false }).order("sort_order", { ascending: true }).order("id", { ascending: true }) : table === "work_case_studies" ||
     table === "site_images" ||
     table === "site_identity" ||
     table === "hero_video_settings"

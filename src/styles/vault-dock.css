@@ -1,0 +1,49 @@
+/* Vault controls: quiet warm focus, no input zoom or offset neon ring. */
+.vault-gallery--natural label.vg-search { transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }
+.vault-gallery--natural label.vg-search:hover { border-color: #6b665f; }
+.vault-gallery--natural label.vg-search:focus-within { outline: none; border-color: #b8ad9a; background: #1d1c19; box-shadow: 0 0 0 1px #b8ad9a; color: #f5f1e8; }
+.vault-gallery--natural label.vg-search input:focus { outline: none; box-shadow: none; background: transparent; }
+.vault-gallery--natural .vg-search svg { flex-shrink: 0; }
+.vault-gallery--natural .vg-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.vault-gallery--natural .vg-search__clear { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 40px; border: 0; border-radius: 5px; background: transparent; color: #b7b2aa; padding: 0; }
+.vault-gallery--natural .vg-search__clear:hover { color: #fff; background: #30302c; }
+.vault-gallery--natural :is(button, a, select):focus-visible { outline-color: #d7cbbb; }
+.vault-gallery.vault-gallery--natural { padding-bottom: 160px; }
+.vault-gallery--natural .vg-grid { min-height: 55vh; }
+
+/* Portalled into the Vault panel, not the scrolling/transforming gallery. */
+.vg-dock-host { position: fixed; z-index: 4; bottom: calc(24px + env(safe-area-inset-bottom, 0px) + var(--vg-keyboard, 0px)); left: 16px; right: 16px; display: flex; justify-content: center; pointer-events: none; opacity: 0; visibility: hidden; transform: translate3d(0, 24px, 0); transition: opacity 240ms ease, transform 380ms cubic-bezier(.22,1,.36,1), visibility 380ms; color: #f5f1e8; font-family: var(--font-sans), sans-serif; }
+.vg-dock-host[data-visible='true'] { opacity: 1; visibility: visible; transform: translate3d(0,0,0); }
+.vg-dock-host .vg-dock { position: relative; display: flex; align-items: center; gap: 8px; width: min(580px, 100%); padding: 8px; border: 1px solid #48443d; border-radius: 18px; background: #181817; box-shadow: 0 12px 36px #0008, 0 2px 8px #0005; pointer-events: auto; }
+.vg-dock-host .vg-tabs { flex: 0 0 auto; background: #242421; border-radius: 11px; padding: 3px; gap: 2px; }
+.vg-dock-host .vg-tabs button { min-height: 42px; font-size: 14px; padding: 8px 16px; border-radius: 8px; }
+.vg-dock-host .vg-dock__divider { height: 24px; width: 1px; background: #44413b; margin-inline: 2px; flex-shrink: 0; }
+.vg-dock-host .vg-dock__category { display: flex; position: relative; flex: 1; min-width: 0; }
+.vg-dock-host .vg-dock__category select { appearance: none; color-scheme: dark; width: 100%; min-width: 0; min-height: 44px; padding: 10px 26px 10px 8px; border: 0; border-radius: 8px; background: transparent; color: #e4ded4; font: inherit; font-size: 14px; text-overflow: ellipsis; cursor: pointer; }
+.vg-dock-host .vg-dock__category svg { position: absolute; right: 8px; top: 15px; pointer-events: none; color: #aaa49c; }
+.vg-dock-host .vg-dock__category option { background: #20201e; }
+.vg-dock-host .vg-dock__search-toggle { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 0; border-radius: 10px; background: #2c2b27; color: #e4ded4; font-size: 14px; }
+.vg-dock-host .vg-dock__search-toggle:hover, .vg-dock-host .vg-dock__search-toggle[data-active='true'] { background: #3b3730; color: #fff8ec; }
+.vg-dock-host .vg-dock__search-toggle i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #e4c79e; right: 7px; top: 7px; }
+.vg-dock-host .vg-dock__search-panel { position: absolute; bottom: calc(100% + 10px); left: 0; right: 0; padding: 12px; border: 1px solid #48443d; border-radius: 14px; background: #181817; box-shadow: 0 10px 30px #0006; animation: vg-search-in 200ms ease both; }
+.vg-dock-host .vg-dock__search-panel .vg-search { width: 100%; box-sizing: border-box; }
+.vg-dock-host .vg-dock__search-meta { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px 0; color: #aaa49c; font-size: 12px; }
+.vg-dock-host .vg-dock__search-meta button { min-height: 32px; padding: 4px 10px; border: 0; border-radius: 6px; color: #eee5d7; background: #292824; font-size: 12px; }
+@keyframes vg-search-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 560px) {
+ .vg-dock-host { left: 10px; right: 10px; bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--vg-keyboard, 0px)); }
+ .vg-dock-host .vg-dock { padding: 6px; gap: 4px; border-radius: 15px; }
+ .vg-dock-host .vg-tabs button { padding-inline: 10px; font-size: 13px; }
+ .vg-dock-host .vg-dock__category select { font-size: 16px; padding-left: 4px; }
+ .vg-dock-host .vg-dock__divider { margin-inline: 0; }
+ .vg-dock-host .vg-dock__search-toggle { width: 42px; padding: 8px; flex-shrink: 0; }
+ .vg-dock-host .vg-dock__search-toggle span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .vg-dock-host { transition: none; transform: none; }
+ .vg-dock-host .vg-dock__search-panel { animation: none; }
+ .vault-gallery--natural label.vg-search { transition: none; }
+}
+
+.vault-gallery--natural .vg-grid { min-height: calc(100svh - 160px); }
+.vault-gallery--natural .vg-empty { grid-column: 1 / -1; grid-row: span 360; }

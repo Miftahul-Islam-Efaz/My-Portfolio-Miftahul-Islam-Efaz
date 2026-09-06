@@ -102,14 +102,13 @@ export const TABLES: TableSpec[] = [
     table: "work_projects",
     tab: "Work cards",
     singular: "Project card",
-    sortable: true,
+    sortable: false,
     blurb:
-      "A card in the carousel is an image and a title - that is all it draws. The words live in the case study, so they are edited there. Order here is the order on the site; unpublish to hide one without deleting it.",
+      "Newest added first, automatically. A card in the carousel is an image and a title - that is all it draws. The words live in the case study, so they are edited there. New entries appear first in the Work gallery and carousel; unpublish to hide one without deleting it.",
     fields: [
       { key: "image_url", label: "Card image", type: "media", folder: "work", accept: "image/*", summary: true },
-      { key: "title", label: "Title", type: "text", summary: true, hint: "Printed under the card in the carousel." }, { key: "site_type", label: "Category", type: "text", summary: true, hint: "What kind of site this is - Portfolio Website, E-commerce Site, Booking Website. Printed over the cover image in the 3D gallery, in place of the title." },
+      { key: "title", label: "Title", type: "text", summary: true, hint: "Printed under the card in the carousel." }, { key: "site_type", label: "Category", type: "text", summary: true, hint: "What kind of site this is - Portfolio Website, E-commerce Site, Booking Website. Used in the Work gallery filters and printed below the image." },
       ID_FIELD,
-      { key: "sort_order", label: "Position", type: "number", hint: "Lower numbers come first. If this position is already taken, everything from there down shifts one to make room - you will be told when that happens." },
       { key: "published", label: "Published", type: "bool", summary: true },
     ],
   },
@@ -174,20 +173,21 @@ export const TABLES: TableSpec[] = [
     table: "vault_visuals", inspector: "media",
     tab: "Vault visuals",
     singular: "Visual",
-    sortable: true,
+    sortable: false,
     slugFrom: "title",
     idPrefix: "new",
     bigPreview: true,
     blurb:
-      "The gallery tiles. A tile draws three things and only three: the file, the title and the caption. The prompt is not drawn - it is copied to the visitor clipboard when they hover, so an empty prompt copies nothing.",
+      "Newest added first, automatically. Natural-ratio gallery cards: the full image, with title and caption below. Visitors can copy a saved prompt with the Copy prompt button or read it in the detail window. No crop or aspect-ratio setting is needed.",
     fields: [
       { key: "media_type", label: "Type", type: "select", options: [{ value: "image", label: "Image" }, { value: "video", label: "Video" }], summary: true, hint: "Decides what the tile does with the file below: Image draws a still, Video draws a muted loop that plays on hover." },
-      { key: "thumb_url", label: "File", type: "media", folder: "vault", accept: "image/*,video/mp4,video/webm", summary: true, hint: "One file, one URL. An mp4 or webm needs Type set to Video." },
+      { key: "thumb_url", label: "File", type: "media", folder: "vault", accept: "image/*,video/mp4,video/webm", summary: true, hint: "Gallery image or video. Its original proportions are preserved automatically. For video, set Type to Video." },
+      { key: "original_url", label: "Full-size file (optional)", type: "media", folder: "vault", accept: "image/*,video/mp4,video/webm", hint: "Used when a visitor opens the item. Leave blank to use the gallery file. Use the same image proportions as its thumbnail." },
+      { key: "poster_url", label: "Video poster (optional)", type: "media", folder: "vault", accept: "image/*", hint: "Still image shown before video playback. Images do not use this field." },
       { key: "title", label: "Title", type: "text", summary: true, hint: "Caption line one." },
       { key: "caption", label: "Caption", type: "text", hint: "Caption line two. Leave empty to print nothing." },
-      { key: "prompt", label: "Prompt", type: "textarea", hint: "Never shown. This is what hover-to-copy hands the visitor." },
-      { key: "category", label: "Category", type: "select", optionsFrom: "vault_categories", summary: true, hint: "Drives the filter chips. Manage the list in the Categories tab." },
-      { key: "sort_order", label: "Position", type: "number", hint: "Lower numbers come first. If this position is already taken, everything from there down shifts one to make room - you will be told when that happens." },
+      { key: "prompt", label: "Prompt", type: "textarea", hint: "Shown in the detail window and copied by the Copy prompt button. Leave empty to hide the card button." },
+      { key: "category", label: "Category", type: "select", optionsFrom: "vault_categories", summary: true, hint: "Used by search, desktop filters and the floating category picker. Manage labels and visibility in Categories." },
       { key: "published", label: "Published", type: "bool", summary: true },
     ],
   },
@@ -195,13 +195,12 @@ export const TABLES: TableSpec[] = [
     table: "vault_categories",
     tab: "Categories",
     singular: "Category",
-    sortable: true,
+    sortable: false,
     blurb:
-      "The filter chips above the gallery. A category with no published visuals is hidden automatically, so an empty chip never dead-ends a visitor. Deleting one un-files its visuals; it never deletes the images.",
+      "Newest added first, automatically. Labels and ordering for the gallery filters and floating picker. Empty or unpublished categories are hidden; their visuals remain visible under All. Tools use their own text categories.",
     fields: [
       ID_FIELD,
-      { key: "label", label: "Label", type: "text", summary: true, hint: "What the visitor reads on the chip." },
-      { key: "sort_order", label: "Position", type: "number", hint: "Lower numbers come first. If this position is already taken, everything from there down shifts one to make room - you will be told when that happens." },
+      { key: "label", label: "Label", type: "text", summary: true, hint: "What visitors read in the top filters, mobile picker and floating controls." },
       { key: "published", label: "Published", type: "bool", summary: true },
     ],
   },
@@ -209,26 +208,20 @@ export const TABLES: TableSpec[] = [
     table: "vault_tools", inspector: "media",
     tab: "Vault tools",
     singular: "Tool",
-    sortable: true,
+    sortable: false,
     slugFrom: "title",
     idPrefix: "new",
     bigPreview: true,
     blurb:
-      "Your hosted projects, shown as tiles beside the visuals. The tile draws the image, the title and the caption. Clicking it opens a detail window, which prints the image, the title, the category and the note - nothing else. Everything below the disclosure is unused for now.",
+      "Newest added first, automatically. The Tools collection uses natural-ratio images with titles and captions below. The detail window shows the category, note and Open the tool link. Only fields used by the current website are shown here.",
     fields: [
       { key: "image_url", label: "Tool image", type: "media", folder: "tools", accept: "image/*", summary: true },
       { key: "title", label: "Title", type: "text", summary: true, hint: "Caption line one." },
       { key: "caption", label: "Caption", type: "text", hint: "Caption line two." },
-      { key: "category", label: "Category", type: "text", summary: true, hint: "One or two words. Printed in the detail window." },
+      { key: "category", label: "Category", type: "text", summary: true, hint: "Used in Tools search, category filters and the detail window. Use the same spelling to group tools together." },
       { key: "note", label: "Note", type: "textarea", hint: "The only prose the detail window draws. What the tool is and why it exists." },
       { key: "tool_url", label: "Live URL", type: "text", summary: true, hint: "Where the visitor lands when they open the tool." },
-      { key: "sort_order", label: "Position", type: "number", hint: "Lower numbers come first. If this position is already taken, everything from there down shifts one to make room - you will be told when that happens." },
       { key: "published", label: "Published", type: "bool", summary: true },
-      { key: "tagline", label: "Tagline", type: "text", advanced: true },
-      { key: "description", label: "Description", type: "textarea", advanced: true, hint: "What it does and who it is for." },
-      { key: "features", label: "Features", type: "list", advanced: true, hint: "One per line." },
-      { key: "tech", label: "Tech", type: "list", advanced: true },
-      { key: "repo_url", label: "Repo URL", type: "text", advanced: true },
     ],
   },
   {
@@ -358,9 +351,8 @@ export function prepareRow(
         : /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)
           ? "video"
           : "image";
-    // The tile opens the full-size file when clicked; with one URL on offer,
-    // that is the same file.
-    out.original_url = url;
+    // Preserve a separate full-size asset; editing a caption must not replace it.
+    out.original_url = String(out.original_url ?? "").trim() || url;
   }
 
   return out;

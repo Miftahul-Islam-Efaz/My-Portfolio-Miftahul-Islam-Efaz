@@ -153,7 +153,7 @@ export async function getWorkProjects(): Promise<WorkProjectCardData[]> {
     .from("work_projects")
     .select("*")
     .eq("published", true)
-    .order("sort_order", { ascending: true });
+    .order("created_at", { ascending: false }).order("sort_order", { ascending: true }).order("id", { ascending: true });
   if (error || !data || data.length === 0) return [...WORK_PROJECTS];
   return (data as WorkProjectRow[]).map(toCard);
 }
@@ -310,7 +310,7 @@ export async function getVaultVisuals(): Promise<VaultVisual[]> {
     .from("vault_visuals")
     .select("*")
     .eq("published", true)
-    .order("sort_order", { ascending: true });
+    .order("created_at", { ascending: false }).order("sort_order", { ascending: true }).order("id", { ascending: true });
   if (error || !data) return [];
   return (data as VaultVisualRow[]).map((r) => ({
     id: r.id,
@@ -342,7 +342,7 @@ export async function getVaultCategories(): Promise<VaultCategory[]> {
       .from("vault_categories")
       .select("*")
       .eq("published", true)
-      .order("sort_order", { ascending: true }),
+      .order("created_at", { ascending: false }).order("sort_order", { ascending: true }).order("id", { ascending: true }),
     db.from("vault_visuals").select("category").eq("published", true),
   ]);
 
@@ -366,7 +366,7 @@ export async function getVaultTools(): Promise<VaultTool[]> {
     .from("vault_tools")
     .select("*")
     .eq("published", true)
-    .order("sort_order", { ascending: true });
+    .order("created_at", { ascending: false }).order("sort_order", { ascending: true }).order("id", { ascending: true });
   if (error || !data) return [];
   return (data as VaultToolRow[]).map((r) => ({
     id: r.id,

@@ -125,3 +125,7 @@
     max-height: 42vh;
   }
 }
+
+.adm-mi-cap strong, .adm-mi-cap span { display: block; }
+.adm-mi-cap strong { font-size: 17px; font-weight: 500; }
+.adm-mi-cap span { margin-top: 4px; font-size: 14px; }

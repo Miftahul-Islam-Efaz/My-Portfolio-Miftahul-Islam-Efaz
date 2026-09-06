@@ -1,4 +1,5 @@
 "use client";
+import { NEWEST_FIRST_TABLES } from '@/lib/cms/types';
 import { driveImage } from "@/lib/driveImage";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -513,7 +514,7 @@ export default function AdminPanel() {
     /* The save may have renumbered OTHER rows to clear a position, and the
        response only describes the row that was saved. Refetching is the
        only way the list can be trusted after that. */
-    if (spec.sortable) void load(activeTable);
+    if (spec.sortable || NEWEST_FIRST_TABLES.includes(spec.table)) void load(activeTable);
 
     flash("Saved. The site is already showing it.");
   }
