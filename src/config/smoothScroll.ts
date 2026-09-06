@@ -21,10 +21,12 @@
    would be silently wrong if it flipped back.
 
    ------------------------------------------------------------------
-   CONTROLLED MOBILE TOUCH SCROLLING.
+   NATIVE, GESTURE-DRIVEN MOBILE SCROLLING.
 
-   A restrained touch multiplier and shorter coast slow mobile swipes
-   without adding extra animation lag. Reduced motion stays native.
+   The browser owns finger tracking and velocity-based momentum. Do not
+   rescale touch distance or reanimate swipes: slow drags stay precise,
+   while fast flicks retain their natural speed. Animation timing is
+   independent of touch speed.
    Desktop wheel smoothing remains enabled.
 
    ------------------------------------------------------------------
@@ -66,7 +68,7 @@ export const SMOOTH_SCROLL = {
   wheelMultiplier: 1,
 
   /* Used only when synthetic touch smoothing is explicitly enabled. */
-  touchMultiplier: 0.8,
+  touchMultiplier: 1,
 
   /* Mobile profile breakpoint; also includes coarse-pointer devices. */
   mobileMaxWidth: 768,
@@ -110,7 +112,7 @@ export const isLenisPrevented = (node: HTMLElement): boolean =>
 export const SMOOTH_TOUCH = {
   /* THE SWITCH BACK. false restores native mobile scrolling - momentum,
      rubber-banding, address-bar collapse - in every room at once. */
-  enabled: true,
+  enabled: false,
 
   /* Per-frame approach rate for finger gestures, 0-1. Lenis' own default
      is 0.075. Slightly higher here because this site SCRUBS: a phone

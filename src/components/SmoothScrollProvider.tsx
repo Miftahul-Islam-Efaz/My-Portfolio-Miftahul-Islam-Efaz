@@ -20,8 +20,8 @@ gsap.registerPlugin(ScrollTrigger)
  * Owns smooth scrolling and the scroll-triggered reveals.
  *
  * Desktop runs Lenis driven off gsap.ticker so Lenis, GSAP and ScrollTrigger
- * all advance on one clock. Mobile uses restrained touch momentum;
- * reduced-motion users retain native scrolling.
+ * all advance on one clock. Mobile keeps native finger tracking and
+ * velocity-based momentum; animation timing never rescales gestures.
  *
  * EVERY NUMBER LIVES IN config/smoothScroll.ts, including why it is that
  * number and what it trades against. Tune there, not here.
