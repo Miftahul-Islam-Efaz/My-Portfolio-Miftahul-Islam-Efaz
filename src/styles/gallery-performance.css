@@ -1,0 +1,26 @@
+/* Explicit packing replaces tens of thousands of 1px implicit grid tracks.
+   Card placement runs on resize/content changes, never during steady scroll. */
+.vault-gallery--natural .vg-grid {
+ --vg-natural-columns:3; --vg-natural-gap:32px;
+ display:block; position:relative; overflow-anchor:none;
+}
+.vault-gallery--natural .vg-card {
+ position:absolute; left:0; top:0; min-width:0;
+ width:calc((100% - (var(--vg-natural-columns) - 1) * var(--vg-natural-gap)) / var(--vg-natural-columns));
+ contain:layout style;
+}
+.vault-gallery--natural .vg-empty { position:relative; }
+.vault-gallery--natural[data-density='compact'] .vg-grid { --vg-natural-columns:5; --vg-natural-gap:20px; }
+@media(max-width:1000px) {
+ .vault-gallery--natural .vg-grid { --vg-natural-columns:2; --vg-natural-gap:24px; }
+ .vault-gallery--natural[data-density='compact'] .vg-grid { --vg-natural-columns:3; --vg-natural-gap:18px; }
+}
+@media(max-width:560px) {
+ .vault-gallery--natural .vg-grid { --vg-natural-columns:1; --vg-natural-gap:0px; }
+ .vault-gallery--natural[data-density='compact'] .vg-grid { --vg-natural-columns:2; --vg-natural-gap:12px; }
+}
+/* The wipe only needs a mask during entry/exit, not for every scrolling frame. */
+.vault-window[data-state='open'] .vault-window__panel[data-settled='true'] { animation:none; clip-path:none; }
+.vault-window[data-state='open'] .vault-window__panel[data-settled='true'] .vault-window__plate { will-change:auto; }
+/* A matte close button avoids live backdrop sampling as images pass below it. */
+.vault-window__close { -webkit-backdrop-filter:none; backdrop-filter:none; background:var(--vw-base,#090909); }

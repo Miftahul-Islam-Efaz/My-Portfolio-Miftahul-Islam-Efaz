@@ -4,10 +4,13 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { Search, ArrowUpRight, X } from 'lucide-react';
 import { uiSoundHandlers } from '@/lib/uiSounds';
 import { driveImage } from '@/lib/driveImage';
+import { galleryImage } from '@/lib/galleryImage';
 import { galleryOriginal, galleryThumb, VAULT_GALLERY_ITEMS, VAULT_GALLERY_TABS, type VaultGalleryTab } from './vaultGalleryContent';
 import VaultItemWindow, { type VaultTile } from './VaultItemWindow';
 import '@/styles/vault-natural.css';
 import VaultGalleryDock from './VaultGalleryDock';
+import {useNaturalMasonry} from './useNaturalMasonry';
+import '@/styles/gallery-performance.css';
 import GalleryCategoryPicker from './GalleryCategoryPicker';
 import GalleryDensityButton, {useGalleryDensity} from './GalleryDensity';
 import type {WorkProjectCardData} from '@/components/work/types';
@@ -86,35 +89,7 @@ export default function VaultGallery({ projects, onProjectSelect }: {projects?: 
     return items.filter(item => (category === ALL || item.category === category) && (!needle || [item.title, item.caption, labelFor.get(item.category) ?? item.category].join(' ').toLowerCase().includes(needle)));
   }, [items, query, category, labelFor]);
 
-  // Pack natural card heights into 1px grid tracks. Batch writes on resize,
-  // image decode and font changes, never on scrolling. Keep DOM/keyboard order.
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) return;
-    let frame = 0;
-    const pending = new Map<HTMLElement, number>();
-    const observer = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        const card = entry.target.parentElement;
-        if (card) pending.set(card, Math.ceil(entry.contentRect.height));
-      }
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        pending.forEach((height, card) => {
-          const span = `span ${Math.max(1, height)}`;
-          if (card.style.gridRowEnd !== span) card.style.gridRowEnd = span;
-        });
-        pending.clear(); frame = 0;
-      });
-    });
-    grid.querySelectorAll<HTMLElement>('.vg-card__body').forEach(card => observer.observe(card));
-    // Pause previews that leave the viewport; never run a wall of videos.
-    const videoObserver = new IntersectionObserver(entries => {
-      entries.forEach(entry => { if (!entry.isIntersecting) (entry.target as HTMLVideoElement).pause(); });
-    });
-    grid.querySelectorAll('video').forEach(video => videoObserver.observe(video));
-    return () => { observer.disconnect(); videoObserver.disconnect(); cancelAnimationFrame(frame); };
-  }, [visible]);
+  useNaturalMasonry(gridRef, visible);
 
   // Browser intersection signals only; no scroll handler walks all the cards.
   useEffect(() => {
@@ -203,9 +178,9 @@ export default function VaultGallery({ projects, onProjectSelect }: {projects?: 
                   onLoadedMetadata={event => { const v = event.currentTarget; if (v.videoWidth && v.videoHeight) v.style.aspectRatio = `${v.videoWidth} / ${v.videoHeight}`; }} /> :
                   // Intrinsic ratio, not a portrait crop. Full-res loads only on open.
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={driveImage(item.thumb || item.full)} alt={item.title} referrerPolicy="no-referrer" loading="lazy" decoding="async" draggable={false} onError={event => {
+                  <img {...galleryImage(item.thumb || item.full, density === 'compact')} alt={item.title} referrerPolicy="no-referrer" loading="lazy" decoding="async" draggable={false} onError={event => {
                     const img = event.currentTarget;
-                    if (!img.dataset.retried && item.full && item.full !== item.thumb) { img.dataset.retried = 'true'; img.src = driveImage(item.full); }
+                    if (!img.dataset.retried) { img.dataset.retried = 'true'; img.removeAttribute('srcset'); img.removeAttribute('sizes'); img.src = driveImage(item.thumb || item.full); } else if (img.dataset.retried === 'true' && item.full !== item.thumb) { img.dataset.retried = 'full'; img.src = driveImage(item.full); }
                   }} />}
                 {item.mediaType === 'video' && <span className="vg-card__video">Video</span>}
               </div>

@@ -254,7 +254,7 @@ export const VaultWindow: React.FC<VaultWindowProps> = ({ onClose, onCloseStart,
 			gestureOrientation: 'vertical',
 			smoothWheel: true,
 			wheelMultiplier: SMOOTH_SCROLL.wheelMultiplier,
-			touchMultiplier: 1,
+			touchMultiplier: SMOOTH_SCROLL.touchMultiplier,
 			/* Matches the page - see shouldSyncTouch in
 			   config/smoothScroll.ts. */
 			syncTouch: shouldSyncTouch(),
@@ -344,7 +344,9 @@ export const VaultWindow: React.FC<VaultWindowProps> = ({ onClose, onCloseStart,
 
 			{/* THE WIPE SURFACE. Everything rides inside it, so nothing is
 			    visible before the mask has passed it. */}
-			<div className="vault-window__panel">
+			<div className="vault-window__panel" onAnimationEnd={event => {
+          if (event.target === event.currentTarget && event.animationName === 'vw-wipe-in') event.currentTarget.dataset.settled = 'true';
+        }}>
 				<div ref={scrollerRef} className="vault-window__scroller">
 					<div>
 						<section className="vault-window__hero">

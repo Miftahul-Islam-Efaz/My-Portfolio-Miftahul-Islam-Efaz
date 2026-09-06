@@ -53,6 +53,7 @@ export default function SmoothScrollProvider() {
 
 		const isMobile = window.innerWidth <= SMOOTH_SCROLL.mobileMaxWidth
 		let lenis: Lenis | undefined
+		let tick: ((time: number) => void) | undefined
 
 		/* MOBILE RUNS LENIS TOO NOW. See THE TOUCH PROFILE in
 		   config/smoothScroll.ts for what that trades away. This branch is
@@ -101,8 +102,8 @@ export default function SmoothScrollProvider() {
 
 			lenis.on("scroll", ScrollTrigger.update)
 
-			const raf = (time: number) => lenis?.raf(time * 1000)
-			gsap.ticker.add(raf)
+			tick = (time: number) => lenis?.raf(time * 1000)
+			gsap.ticker.add(tick)
 			gsap.ticker.lagSmoothing(0)
 
 			// The reveal loader covers the first paint, so scrolling starts locked.
@@ -173,6 +174,7 @@ export default function SmoothScrollProvider() {
 				tween.revert()
 			})
 			owned.length = 0
+			if (tick) gsap.ticker.remove(tick)
 			lenis?.destroy()
 			delete (window as unknown as { lenis?: Lenis }).lenis
 		}
