@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "test:mcp": "node scripts/test-portfolio-mcp.cjs"
+    "test:mcp": "node scripts/test-portfolio-mcp.cjs && node scripts/test-mcp-bulk.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

@@ -55,6 +55,9 @@ download-fonts.ps1
 fontdl.log
 patch-perf.ps1
 
+# Local-only MCP guide (details are served by the MCP itself via get_usage_guide)
+docs/MCP-DOC.md
+
 # OS
 .DS_Store
 Thumbs.db

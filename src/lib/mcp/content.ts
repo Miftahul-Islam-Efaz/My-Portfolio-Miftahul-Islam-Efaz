@@ -3,15 +3,15 @@ import type {SupabaseClient} from '@supabase/supabase-js';
 import {EDITABLE_TABLES,NEWEST_FIRST_TABLES,isEditableTable,type EditableTable} from '@/lib/cms/types';
 import {TABLE_SPECS,REQUIRED,sanitizeRow,youtubeIdFrom} from '@/lib/admin/columns';
 
-type Row=Record<string,unknown>;
+export type Row=Record<string,unknown>;
 export const FIXED_TYPES=new Set<string>(['site_identity','site_images','hero_video_settings']);
 const object=(v:unknown):v is Row=>!!v&&typeof v==='object'&&!Array.isArray(v);
 function canonical(v:unknown):string {if(Array.isArray(v))return '['+v.map(canonical).join(',')+']';if(object(v))return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}';return JSON.stringify(v)??'null';}
 export const revision=(row:Row)=>createHash('sha256').update(canonical(row)).digest('hex');
-function tableOf(v:unknown):EditableTable {if(!isEditableTable(v))throw Error('Unknown content type. Call list_content_types.');return v;}
-function idOf(v:unknown):string {if(typeof v!=='string'||!v.trim()||v.length>200)throw Error('An exact non-empty id is required (max 200 characters).');return v.trim();}
+export function tableOf(v:unknown):EditableTable {if(!isEditableTable(v))throw Error('Unknown content type. Call list_content_types.');return v;}
+export function idOf(v:unknown):string {if(typeof v!=='string'||!v.trim()||v.length>200)throw Error('An exact non-empty id is required (max 200 characters).');return v.trim();}
 function integer(v:unknown,fallback:number,min:number,max:number){if(v===undefined)return fallback;if(typeof v!=='number'||!Number.isInteger(v)||v<min||v>max)throw Error(`Expected an integer from ${min} to ${max}.`);return v;}
-function publicRow(table:EditableTable,row:Row){const allowed=[...TABLE_SPECS[table].cols,'created_at','updated_at'];return {...Object.fromEntries(Object.entries(row).filter(([key])=>allowed.includes(key))),_revision:revision(row)};}
+export function publicRow(table:EditableTable,row:Row){const allowed=[...TABLE_SPECS[table].cols,'created_at','updated_at'];return {...Object.fromEntries(Object.entries(row).filter(([key])=>allowed.includes(key))),_revision:revision(row)};}
 function checkJson(col:string,value:unknown){
  if(typeof value==='string'){try{value=JSON.parse(value)}catch{throw Error(`${col}: invalid JSON; existing content was not changed.`);}}
  if(value===null)return;
@@ -59,8 +59,18 @@ export function createContentService(db:SupabaseClient,invalidate:()=>void,secre
   return blockers;
  }
  function sign(payload:string){return createHmac('sha256',secret).update(payload).digest('base64url');}
- async function rows(args:Row){const table=tableOf(args.content_type),limit=integer(args.limit,50,1,100),offset=integer(args.offset,0,0,100000);const spec=TABLE_SPECS[table];let query=db.from(table).select('*',{count:'exact'});
+ async function rows(args:Row){const table=tableOf(args.content_type),limit=integer(args.limit,Array.isArray(args.ids)?args.ids.length:50,1,100),offset=integer(args.offset,0,0,100000);const spec=TABLE_SPECS[table];let query=db.from(table).select('*',{count:'exact'});
+  if(args.id!==undefined&&args.ids!==undefined)throw Error('Use id or ids, not both.');
   if(args.id!==undefined)query=query.eq('id',idOf(args.id));
+  if(args.ids!==undefined){
+   if(!Array.isArray(args.ids)||args.ids.length<1||args.ids.length>100)throw Error('ids must contain 1–100 ids.');
+   const ids=args.ids.map(idOf);if(new Set(ids).size!==ids.length)throw Error('Duplicate ids.');query=query.in('id',ids);
+  }
+  let fields:string[]|undefined;
+  if(args.fields!==undefined){
+   if(!Array.isArray(args.fields)||!args.fields.length||args.fields.some(f=>typeof f!=='string'||![...spec.cols,'created_at','updated_at','_revision'].includes(f)))throw Error('Unknown or invalid fields.');
+   fields=Array.from(new Set(['id',...args.fields as string[]]));
+  }
   if(args.published!==undefined){if(typeof args.published!=='boolean'||!spec.boolCols.includes('published'))throw Error('This type does not support the requested published filter.');query=query.eq('published',args.published);}
   if(args.category!==undefined){if(typeof args.category!=='string'||!spec.cols.includes('category'))throw Error('Invalid category filter.');query=query.eq('category',args.category);}
   if(args.search!==undefined){if(typeof args.search!=='string'||!args.search.trim()||args.search.length>200)throw Error('search must be 1–200 characters.');
@@ -71,7 +81,7 @@ export function createContentService(db:SupabaseClient,invalidate:()=>void,secre
   }
   if(NEWEST_FIRST_TABLES.includes(table))query=query.order('created_at',{ascending:false}).order('sort_order',{ascending:true});
   const {data,error,count}=await query.order('id',{ascending:true}).range(offset,offset+limit-1);if(error)throw Error(error.message);
-  const values=(data??[]) as Row[];return {content_type:table,count:values.length,total:count,offset,next_offset:count!==null&&offset+values.length<count?offset+values.length:null,rows:values.map(r=>publicRow(table,r))};
+  const values=(data??[]) as Row[];return {content_type:table,count:values.length,total:count,offset,next_offset:count!==null&&offset+values.length<count?offset+values.length:null,rows:values.map(r=>{let out:Row=publicRow(table,r);if(fields)out=Object.fromEntries(Object.entries(out).filter(([k])=>fields!.includes(k)||k==='_revision'));if(args.include_revision===false)delete out._revision;return out;})};
  }
  async function write(args:Row,mode:'upsert'|'update'|'duplicate'|'publish'|'validate'){
   const table=tableOf(args.content_type);let raw:Row;
