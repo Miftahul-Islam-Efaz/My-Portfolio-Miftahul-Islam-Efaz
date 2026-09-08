@@ -790,7 +790,7 @@ export default function AdminPanel() {
                   >
                     {thumb && !isVideo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img referrerPolicy="no-referrer" className="adm-thumb" src={driveImage(thumb)} alt="" />
+                      <img referrerPolicy="no-referrer" className="adm-thumb" src={thumb.trim() === "animated:ascii-m" ? "/favicon-ascii-m.png" : driveImage(thumb)} alt="" />
                     ) : (
                       <div className="adm-thumb" />
                     )}

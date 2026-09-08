@@ -77,10 +77,10 @@ export default function MediaField({
 
       {isBuiltin ? (
         <p className="adm-hint" style={{ marginTop: 6 }}>
-          Built-in animation - it draws itself in the browser tab once saved.
+          Static preview below. The ASCII M animates in the browser tab.
         </p>
       ) : null}
-      {value && !isBuiltin ? (
+      {value ? (
         <div className="adm-preview">
           {isVideo ? (
             <video src={driveImage(value)} muted loop playsInline autoPlay />
@@ -88,7 +88,7 @@ export default function MediaField({
             // Plain img, not next/image: these URLs are user-supplied at
             // runtime and would each need a remotePatterns entry.
             // eslint-disable-next-line @next/next/no-img-element
-            <img referrerPolicy="no-referrer" src={driveImage(value)} alt="" />
+            <img referrerPolicy="no-referrer" src={isBuiltin ? "/favicon-ascii-m.png" : driveImage(value)} alt="Favicon preview" />
           )}
         </div>
       ) : null}

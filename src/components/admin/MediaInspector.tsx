@@ -329,7 +329,7 @@ export default function MediaInspector({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 className="adm-mi-media"
-                src={driveImage(src)}
+                src={src.trim() === "animated:ascii-m" ? "/favicon-ascii-m.png" : driveImage(src)}
                 alt={caption || title}
                 referrerPolicy="no-referrer"
                 data-selected={group === "file"}
