@@ -23,6 +23,8 @@ const ALLOWED = new Set([
   "image/webp",
   "image/avif",
   "image/gif",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
   "image/svg+xml",
   "video/mp4",
   "video/webm",

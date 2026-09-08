@@ -46,6 +46,9 @@ export default function MediaField({
   }
 
   const isVideo = /\.(mp4|webm)(\?|$)/i.test(value);
+  /* The built-in animations are written as a token, not a URL - previewing
+     one as an img would just report a broken link. */
+  const isBuiltin = /^animated:[a-z0-9-]+$/i.test(value.trim());
 
   return (
     <div>
@@ -72,7 +75,12 @@ export default function MediaField({
         />
       </div>
 
-      {value ? (
+      {isBuiltin ? (
+        <p className="adm-hint" style={{ marginTop: 6 }}>
+          Built-in animation - it draws itself in the browser tab once saved.
+        </p>
+      ) : null}
+      {value && !isBuiltin ? (
         <div className="adm-preview">
           {isVideo ? (
             <video src={driveImage(value)} muted loop playsInline autoPlay />

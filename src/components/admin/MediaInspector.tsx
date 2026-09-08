@@ -112,6 +112,12 @@ export default function MediaInspector({
   const isFooterPhoto =
     spec.table === "site_images" && title.toLowerCase().includes("footer");
 
+  /* The favicon slot accepts more than images - video, animated SVG and the
+     built-in ASCII animation - so its upload control needs the wider accept
+     list and the aside needs the extra guidance. */
+  const isFaviconRow =
+    spec.table === "site_images" && str(draft.id) === "favicon";
+
   function set(key: string, value: unknown) {
     setDraft((current) => ({ ...current, [key]: value }));
     setMessage(null);
@@ -207,7 +213,15 @@ export default function MediaInspector({
 
         {field.type === "media" ? (
           <MediaField
-            field={field}
+            field={
+              isFaviconRow && field.key === "image_url"
+                ? {
+                    ...field,
+                    accept: "image/*,image/svg+xml,video/mp4,video/webm,.ico",
+                    folder: "favicon",
+                  }
+                : field
+            }
             value={str(value)}
             onChange={(next) => {
               setBroken(false);
@@ -360,6 +374,15 @@ export default function MediaInspector({
             <p className="adm-hint adm-mi-pair">
               Both footer photographs must be the same picture at the same size
               - one frosted, one sharp.
+            </p>
+          ) : null}
+
+          {isFaviconRow ? (
+            <p className="adm-hint adm-mi-pair">
+              Four kinds of favicon work here: a static image (PNG, ICO or
+              GIF), an animated SVG, a video (MP4 or WebM - the tab icon is
+              drawn from its frames), or the exact text animated:ascii-m for
+              the built-in ASCII logo animation.
             </p>
           ) : null}
 

@@ -7,6 +7,8 @@ import {
 	SITE_IDENTITY_FALLBACK,
 	type SiteIdentity,
 } from "@/lib/cms/queries"
+import { getFaviconSpec, ANIMATED_FAVICON_FALLBACK } from "@/lib/favicon"
+import AnimatedFavicon from "@/components/favicon/AnimatedFavicon"
 import SmoothScrollProvider from "@/components/SmoothScrollProvider"
 import CrawlableAbstract from "@/components/seo/CrawlableAbstract"
 import { graphFor, sameAsFrom } from "@/lib/seo/graph"
@@ -102,16 +104,10 @@ export async function generateMetadata(): Promise<Metadata> {
 	}
 
 	/* Browser-tab icon, edited in the panel under Site images -> Favicon.
-	   No fallback file: with no slot value we simply emit no icon link and
-	   the browser shows its default rather than a broken fetch. Browsers
-	   fetch the URL themselves, so unlike og:image a raw Drive URL is fine
-	   here - no proxy needed. */
-	let favicon = ""
-	try {
-		favicon = await getSiteImage("favicon", "")
-	} catch {
-		favicon = ""
-	}
+	   The slot takes four kinds of value - static image, animated SVG, video,
+	   or the built-in ASCII animation (see lib/favicon.ts). Animated kinds
+	   still emit the static PNG so crawlers and no-JS contexts get an icon. */
+	const favicon = await getFaviconSpec()
 
 	const image = absoluteOgImage(storedImage) || OG_FALLBACK
 
@@ -120,7 +116,14 @@ export async function generateMetadata(): Promise<Metadata> {
 		description: identity.metaDescription,
 		metadataBase: new URL(SITE),
 		alternates: { canonical: "/" },
-		icons: favicon ? { icon: [{ url: favicon }] } : undefined,
+		icons:
+			favicon.kind === "image"
+				? { icon: [{ url: favicon.url }] }
+				: favicon.kind === "svg"
+					? { icon: [{ url: favicon.url, type: "image/svg+xml" }] }
+					: favicon.kind === "ascii" || favicon.kind === "video"
+						? { icon: [{ url: ANIMATED_FAVICON_FALLBACK, type: "image/png" }] }
+						: undefined,
 		/* Not a ranking factor since 2009, but assistants and scrapers still
 		   read it, and it costs one line. */
 		keywords: identity.knowsAbout,
@@ -163,6 +166,7 @@ export default async function RootLayout({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
 	const identity = await identityOrFallback()
+	const favicon = await getFaviconSpec()
 
 	/* THE MACHINE-READABLE ANSWER TO "WHO IS THIS".
 
@@ -258,7 +262,13 @@ export default async function RootLayout({
 				    HomeShell instead of here: the original gated them behind the
 				    intro's pointer-events lock, and mounting them here too would
 				    render each of them twice. */}
-				<SmoothScrollProvider />
+				{favicon.kind === "ascii" || favicon.kind === "video" ? (
+				<AnimatedFavicon
+					mode={favicon.kind}
+					src={favicon.kind === "video" ? favicon.url : undefined}
+				/>
+			) : null}
+			<SmoothScrollProvider />
 				<CrawlableAbstract />
 				{children}
 				{/* NO MODAL SLOT, deliberately.
