@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logo M - Monochromatic ASCII Animation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .viewport {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: min(85vw, 85vh, 680px);
+      aspect-ratio: 1;
+    }
+    #logo-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: pointer;
+    }
+    .hud {
+      position: fixed;
+      bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      background: rgba(20, 20, 20, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 50;
+    }
+    .hud.hidden {
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
+    }
+    .btn {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      transition: background 0.15s ease;
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .phase-badge {
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 10px;
+      padding: 2px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      min-width: 140px;
+      text-align: center;
+    }
+    .scrubber {
+      width: 120px;
+      accent-color: #ffffff;
+      cursor: pointer;
+    }
+    .tagline {
+      position: fixed;
+      top: 20px;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      opacity: 0.4;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+  .hud,.tagline{display:none!important}.viewport{width:100vmin}
+</style>
+</head>
+<body>
+  <div class="tagline">fl-sibinas &bull; Letter M Construct</div>
+
+  <div class="viewport">
+    <canvas id="logo-canvas"></canvas>
+  </div>
+
+  <div class="hud" id="hud">
+    <button class="btn" id="play-btn" title="Toggle Play / Pause (Space)">▶ PAUSE</button>
+    <div class="phase-badge" id="phase-badge">INITIALIZING</div>
+    <input type="range" class="scrubber" id="scrubber" min="0" max="1000" value="0" title="Scrub Timeline" />
+    <button class="btn" id="speed-btn" title="Cycle Speed (0.5x, 1x, 2x)">1.0x</button>
+    <button class="btn" id="theme-btn" title="Toggle Theme (T)">THEME</button>
+    <button class="btn" id="fs-btn" title="Fullscreen (F)">FS</button>
+  </div>
+
+  <script>
+    (function() {
+      const RAW_POINTS = [{"id":0,"x":124,"y":150,"c":"&","col":9,"row":11,"e":1,"ny":0},{"id":1,"x":476,"y":150,"c":"&","col":36,"row":11,"e":1,"ny":0},{"id":2,"x":124,"y":163,"c":"W","col":9,"row":12,"e":1,"ny":0.042},{"id":3,"x":137,"y":163,"c":"M","col":10,"row":12,"e":1,"ny":0.042},{"id":4,"x":463,"y":163,"c":"W","col":35,"row":12,"e":1,"ny":0.042},{"id":5,"x":476,"y":163,"c":"M","col":36,"row":12,"e":1,"ny":0.042},{"id":6,"x":124,"y":176,"c":"W","col":9,"row":13,"e":1,"ny":0.083},{"id":7,"x":137,"y":176,"c":"@","col":10,"row":13,"e":0,"ny":0.083},{"id":8,"x":150,"y":176,"c":"M","col":11,"row":13,"e":1,"ny":0.083},{"id":9,"x":450,"y":176,"c":"W","col":34,"row":13,"e":1,"ny":0.083},{"id":10,"x":463,"y":176,"c":"@","col":35,"row":13,"e":0,"ny":0.083},{"id":11,"x":476,"y":176,"c":"M","col":36,"row":13,"e":1,"ny":0.083},{"id":12,"x":124,"y":189,"c":"W","col":9,"row":14,"e":1,"ny":0.125},{"id":13,"x":137,"y":189,"c":"@","col":10,"row":14,"e":0,"ny":0.125},{"id":14,"x":150,"y":189,"c":"@","col":11,"row":14,"e":0,"ny":0.125},{"id":15,"x":163,"y":189,"c":"M","col":12,"row":14,"e":1,"ny":0.125},{"id":16,"x":437,"y":189,"c":"W","col":33,"row":14,"e":1,"ny":0.125},{"id":17,"x":450,"y":189,"c":"@","col":34,"row":14,"e":0,"ny":0.125},{"id":18,"x":463,"y":189,"c":"@","col":35,"row":14,"e":0,"ny":0.125},{"id":19,"x":476,"y":189,"c":"M","col":36,"row":14,"e":1,"ny":0.125},{"id":20,"x":124,"y":202,"c":"W","col":9,"row":15,"e":1,"ny":0.166},{"id":21,"x":137,"y":202,"c":"@","col":10,"row":15,"e":0,"ny":0.166},{"id":22,"x":150,"y":202,"c":"@","col":11,"row":15,"e":0,"ny":0.166},{"id":23,"x":163,"y":202,"c":"@","col":12,"row":15,"e":0,"ny":0.166},{"id":24,"x":176,"y":202,"c":"M","col":13,"row":15,"e":1,"ny":0.166},{"id":25,"x":424,"y":202,"c":"W","col":32,"row":15,"e":1,"ny":0.166},{"id":26,"x":437,"y":202,"c":"@","col":33,"row":15,"e":0,"ny":0.166},{"id":27,"x":450,"y":202,"c":"@","col":34,"row":15,"e":0,"ny":0.166},{"id":28,"x":463,"y":202,"c":"@","col":35,"row":15,"e":0,"ny":0.166},{"id":29,"x":476,"y":202,"c":"M","col":36,"row":15,"e":1,"ny":0.166},{"id":30,"x":124,"y":215,"c":"W","col":9,"row":16,"e":1,"ny":0.208},{"id":31,"x":137,"y":215,"c":"@","col":10,"row":16,"e":0,"ny":0.208},{"id":32,"x":150,"y":215,"c":"@","col":11,"row":16,"e":0,"ny":0.208},{"id":33,"x":163,"y":215,"c":"@","col":12,"row":16,"e":0,"ny":0.208},{"id":34,"x":176,"y":215,"c":"@","col":13,"row":16,"e":0,"ny":0.208},{"id":35,"x":189,"y":215,"c":"M","col":14,"row":16,"e":1,"ny":0.208},{"id":36,"x":411,"y":215,"c":"W","col":31,"row":16,"e":1,"ny":0.208},{"id":37,"x":424,"y":215,"c":"@","col":32,"row":16,"e":0,"ny":0.208},{"id":38,"x":437,"y":215,"c":"@","col":33,"row":16,"e":0,"ny":0.208},{"id":39,"x":450,"y":215,"c":"@","col":34,"row":16,"e":0,"ny":0.208},{"id":40,"x":463,"y":215,"c":"@","col":35,"row":16,"e":0,"ny":0.208},{"id":41,"x":476,"y":215,"c":"M","col":36,"row":16,"e":1,"ny":0.208},{"id":42,"x":124,"y":228,"c":"W","col":9,"row":17,"e":1,"ny":0.249},{"id":43,"x":137,"y":228,"c":"@","col":10,"row":17,"e":0,"ny":0.249},{"id":44,"x":150,"y":228,"c":"@","col":11,"row":17,"e":0,"ny":0.249},{"id":45,"x":163,"y":228,"c":"@","col":12,"row":17,"e":0,"ny":0.249},{"id":46,"x":176,"y":228,"c":"@","col":13,"row":17,"e":0,"ny":0.249},{"id":47,"x":189,"y":228,"c":"@","col":14,"row":17,"e":0,"ny":0.249},{"id":48,"x":202,"y":228,"c":"M","col":15,"row":17,"e":1,"ny":0.249},{"id":49,"x":398,"y":228,"c":"W","col":30,"row":17,"e":1,"ny":0.249},{"id":50,"x":411,"y":228,"c":"@","col":31,"row":17,"e":0,"ny":0.249},{"id":51,"x":424,"y":228,"c":"@","col":32,"row":17,"e":0,"ny":0.249},{"id":52,"x":437,"y":228,"c":"@","col":33,"row":17,"e":0,"ny":0.249},{"id":53,"x":450,"y":228,"c":"@","col":34,"row":17,"e":0,"ny":0.249},{"id":54,"x":463,"y":228,"c":"@","col":35,"row":17,"e":0,"ny":0.249},{"id":55,"x":476,"y":228,"c":"M","col":36,"row":17,"e":1,"ny":0.249},{"id":56,"x":124,"y":241,"c":"W","col":9,"row":18,"e":1,"ny":0.291},{"id":57,"x":137,"y":241,"c":"@","col":10,"row":18,"e":0,"ny":0.291},{"id":58,"x":150,"y":241,"c":"@","col":11,"row":18,"e":0,"ny":0.291},{"id":59,"x":163,"y":241,"c":"@","col":12,"row":18,"e":0,"ny":0.291},{"id":60,"x":176,"y":241,"c":"@","col":13,"row":18,"e":0,"ny":0.291},{"id":61,"x":189,"y":241,"c":"@","col":14,"row":18,"e":0,"ny":0.291},{"id":62,"x":202,"y":241,"c":"@","col":15,"row":18,"e":0,"ny":0.291},{"id":63,"x":215,"y":241,"c":"M","col":16,"row":18,"e":1,"ny":0.291},{"id":64,"x":385,"y":241,"c":"W","col":29,"row":18,"e":1,"ny":0.291},{"id":65,"x":398,"y":241,"c":"@","col":30,"row":18,"e":0,"ny":0.291},{"id":66,"x":411,"y":241,"c":"@","col":31,"row":18,"e":0,"ny":0.291},{"id":67,"x":424,"y":241,"c":"@","col":32,"row":18,"e":0,"ny":0.291},{"id":68,"x":437,"y":241,"c":"@","col":33,"row":18,"e":0,"ny":0.291},{"id":69,"x":450,"y":241,"c":"@","col":34,"row":18,"e":0,"ny":0.291},{"id":70,"x":463,"y":241,"c":"@","col":35,"row":18,"e":0,"ny":0.291},{"id":71,"x":476,"y":241,"c":"M","col":36,"row":18,"e":1,"ny":0.291},{"id":72,"x":124,"y":254,"c":"W","col":9,"row":19,"e":1,"ny":0.332},{"id":73,"x":137,"y":254,"c":"@","col":10,"row":19,"e":0,"ny":0.332},{"id":74,"x":150,"y":254,"c":"@","col":11,"row":19,"e":0,"ny":0.332},{"id":75,"x":163,"y":254,"c":"@","col":12,"row":19,"e":0,"ny":0.332},{"id":76,"x":176,"y":254,"c":"@","col":13,"row":19,"e":0,"ny":0.332},{"id":77,"x":189,"y":254,"c":"@","col":14,"row":19,"e":0,"ny":0.332},{"id":78,"x":202,"y":254,"c":"@","col":15,"row":19,"e":0,"ny":0.332},{"id":79,"x":215,"y":254,"c":"@","col":16,"row":19,"e":0,"ny":0.332},{"id":80,"x":228,"y":254,"c":"M","col":17,"row":19,"e":1,"ny":0.332},{"id":81,"x":372,"y":254,"c":"W","col":28,"row":19,"e":1,"ny":0.332},{"id":82,"x":385,"y":254,"c":"@","col":29,"row":19,"e":0,"ny":0.332},{"id":83,"x":398,"y":254,"c":"@","col":30,"row":19,"e":0,"ny":0.332},{"id":84,"x":411,"y":254,"c":"@","col":31,"row":19,"e":0,"ny":0.332},{"id":85,"x":424,"y":254,"c":"@","col":32,"row":19,"e":0,"ny":0.332},{"id":86,"x":437,"y":254,"c":"@","col":33,"row":19,"e":0,"ny":0.332},{"id":87,"x":450,"y":254,"c":"@","col":34,"row":19,"e":0,"ny":0.332},{"id":88,"x":463,"y":254,"c":"@","col":35,"row":19,"e":0,"ny":0.332},{"id":89,"x":476,"y":254,"c":"M","col":36,"row":19,"e":1,"ny":0.332},{"id":90,"x":124,"y":267,"c":"W","col":9,"row":20,"e":1,"ny":0.374},{"id":91,"x":137,"y":267,"c":"@","col":10,"row":20,"e":0,"ny":0.374},{"id":92,"x":150,"y":267,"c":"@","col":11,"row":20,"e":0,"ny":0.374},{"id":93,"x":163,"y":267,"c":"@","col":12,"row":20,"e":0,"ny":0.374},{"id":94,"x":176,"y":267,"c":"@","col":13,"row":20,"e":0,"ny":0.374},{"id":95,"x":189,"y":267,"c":"@","col":14,"row":20,"e":0,"ny":0.374},{"id":96,"x":202,"y":267,"c":"@","col":15,"row":20,"e":0,"ny":0.374},{"id":97,"x":215,"y":267,"c":"@","col":16,"row":20,"e":0,"ny":0.374},{"id":98,"x":228,"y":267,"c":"@","col":17,"row":20,"e":0,"ny":0.374},{"id":99,"x":241,"y":267,"c":"M","col":18,"row":20,"e":1,"ny":0.374},{"id":100,"x":359,"y":267,"c":"W","col":27,"row":20,"e":1,"ny":0.374},{"id":101,"x":372,"y":267,"c":"@","col":28,"row":20,"e":0,"ny":0.374},{"id":102,"x":385,"y":267,"c":"@","col":29,"row":20,"e":0,"ny":0.374},{"id":103,"x":398,"y":267,"c":"@","col":30,"row":20,"e":0,"ny":0.374},{"id":104,"x":411,"y":267,"c":"@","col":31,"row":20,"e":0,"ny":0.374},{"id":105,"x":424,"y":267,"c":"@","col":32,"row":20,"e":0,"ny":0.374},{"id":106,"x":437,"y":267,"c":"@","col":33,"row":20,"e":0,"ny":0.374},{"id":107,"x":450,"y":267,"c":"@","col":34,"row":20,"e":0,"ny":0.374},{"id":108,"x":463,"y":267,"c":"@","col":35,"row":20,"e":0,"ny":0.374},{"id":109,"x":476,"y":267,"c":"M","col":36,"row":20,"e":1,"ny":0.374},{"id":110,"x":124,"y":280,"c":"W","col":9,"row":21,"e":1,"ny":0.415},{"id":111,"x":137,"y":280,"c":"@","col":10,"row":21,"e":0,"ny":0.415},{"id":112,"x":150,"y":280,"c":"@","col":11,"row":21,"e":0,"ny":0.415},{"id":113,"x":163,"y":280,"c":"@","col":12,"row":21,"e":0,"ny":0.415},{"id":114,"x":176,"y":280,"c":"#","col":13,"row":21,"e":1,"ny":0.415},{"id":115,"x":189,"y":280,"c":"M","col":14,"row":21,"e":1,"ny":0.415},{"id":116,"x":202,"y":280,"c":"@","col":15,"row":21,"e":0,"ny":0.415},{"id":117,"x":215,"y":280,"c":"@","col":16,"row":21,"e":0,"ny":0.415},{"id":118,"x":228,"y":280,"c":"@","col":17,"row":21,"e":0,"ny":0.415},{"id":119,"x":241,"y":280,"c":"@","col":18,"row":21,"e":0,"ny":0.415},{"id":120,"x":254,"y":280,"c":"M","col":19,"row":21,"e":1,"ny":0.415},{"id":121,"x":346,"y":280,"c":"M","col":26,"row":21,"e":1,"ny":0.415},{"id":122,"x":359,"y":280,"c":"@","col":27,"row":21,"e":0,"ny":0.415},{"id":123,"x":372,"y":280,"c":"@","col":28,"row":21,"e":0,"ny":0.415},{"id":124,"x":385,"y":280,"c":"@","col":29,"row":21,"e":0,"ny":0.415},{"id":125,"x":398,"y":280,"c":"@","col":30,"row":21,"e":0,"ny":0.415},{"id":126,"x":411,"y":280,"c":"M","col":31,"row":21,"e":1,"ny":0.415},{"id":127,"x":424,"y":280,"c":"M","col":32,"row":21,"e":1,"ny":0.415},{"id":128,"x":437,"y":280,"c":"@","col":33,"row":21,"e":0,"ny":0.415},{"id":129,"x":450,"y":280,"c":"@","col":34,"row":21,"e":0,"ny":0.415},{"id":130,"x":463,"y":280,"c":"@","col":35,"row":21,"e":0,"ny":0.415},{"id":131,"x":476,"y":280,"c":"M","col":36,"row":21,"e":1,"ny":0.415},{"id":132,"x":124,"y":293,"c":"W","col":9,"row":22,"e":1,"ny":0.457},{"id":133,"x":137,"y":293,"c":"@","col":10,"row":22,"e":0,"ny":0.457},{"id":134,"x":150,"y":293,"c":"@","col":11,"row":22,"e":0,"ny":0.457},{"id":135,"x":163,"y":293,"c":"@","col":12,"row":22,"e":1,"ny":0.457},{"id":136,"x":202,"y":293,"c":"x","col":15,"row":22,"e":1,"ny":0.457},{"id":137,"x":215,"y":293,"c":"@","col":16,"row":22,"e":0,"ny":0.457},{"id":138,"x":228,"y":293,"c":"@","col":17,"row":22,"e":0,"ny":0.457},{"id":139,"x":241,"y":293,"c":"@","col":18,"row":22,"e":0,"ny":0.457},{"id":140,"x":254,"y":293,"c":"@","col":19,"row":22,"e":0,"ny":0.457},{"id":141,"x":267,"y":293,"c":"M","col":20,"row":22,"e":1,"ny":0.457},{"id":142,"x":333,"y":293,"c":"M","col":25,"row":22,"e":1,"ny":0.457},{"id":143,"x":346,"y":293,"c":"@","col":26,"row":22,"e":0,"ny":0.457},{"id":144,"x":359,"y":293,"c":"@","col":27,"row":22,"e":0,"ny":0.457},{"id":145,"x":372,"y":293,"c":"@","col":28,"row":22,"e":0,"ny":0.457},{"id":146,"x":385,"y":293,"c":"@","col":29,"row":22,"e":0,"ny":0.457},{"id":147,"x":398,"y":293,"c":"o","col":30,"row":22,"e":1,"ny":0.457},{"id":148,"x":437,"y":293,"c":"#","col":33,"row":22,"e":1,"ny":0.457},{"id":149,"x":450,"y":293,"c":"@","col":34,"row":22,"e":0,"ny":0.457},{"id":150,"x":463,"y":293,"c":"@","col":35,"row":22,"e":0,"ny":0.457},{"id":151,"x":476,"y":293,"c":"M","col":36,"row":22,"e":1,"ny":0.457},{"id":152,"x":124,"y":307,"c":"W","col":9,"row":23,"e":1,"ny":0.502},{"id":153,"x":137,"y":307,"c":"@","col":10,"row":23,"e":0,"ny":0.502},{"id":154,"x":150,"y":307,"c":"@","col":11,"row":23,"e":0,"ny":0.502},{"id":155,"x":163,"y":307,"c":"W","col":12,"row":23,"e":1,"ny":0.502},{"id":156,"x":215,"y":307,"c":"o","col":16,"row":23,"e":1,"ny":0.502},{"id":157,"x":228,"y":307,"c":"@","col":17,"row":23,"e":0,"ny":0.502},{"id":158,"x":241,"y":307,"c":"@","col":18,"row":23,"e":0,"ny":0.502},{"id":159,"x":254,"y":307,"c":"@","col":19,"row":23,"e":0,"ny":0.502},{"id":160,"x":267,"y":307,"c":"@","col":20,"row":23,"e":0,"ny":0.502},{"id":161,"x":280,"y":307,"c":"#","col":21,"row":23,"e":1,"ny":0.502},{"id":162,"x":293,"y":307,"c":"-","col":22,"row":23,"e":1,"ny":0.502},{"id":163,"x":320,"y":307,"c":"M","col":24,"row":23,"e":1,"ny":0.502},{"id":164,"x":333,"y":307,"c":"@","col":25,"row":23,"e":0,"ny":0.502},{"id":165,"x":346,"y":307,"c":"@","col":26,"row":23,"e":0,"ny":0.502},{"id":166,"x":359,"y":307,"c":"@","col":27,"row":23,"e":0,"ny":0.502},{"id":167,"x":372,"y":307,"c":"@","col":28,"row":23,"e":0,"ny":0.502},{"id":168,"x":385,"y":307,"c":"*","col":29,"row":23,"e":1,"ny":0.502},{"id":169,"x":437,"y":307,"c":"%","col":33,"row":23,"e":1,"ny":0.502},{"id":170,"x":450,"y":307,"c":"@","col":34,"row":23,"e":0,"ny":0.502},{"id":171,"x":463,"y":307,"c":"@","col":35,"row":23,"e":0,"ny":0.502},{"id":172,"x":476,"y":307,"c":"M","col":36,"row":23,"e":1,"ny":0.502},{"id":173,"x":124,"y":320,"c":"W","col":9,"row":24,"e":1,"ny":0.543},{"id":174,"x":137,"y":320,"c":"@","col":10,"row":24,"e":0,"ny":0.543},{"id":175,"x":150,"y":320,"c":"@","col":11,"row":24,"e":0,"ny":0.543},{"id":176,"x":163,"y":320,"c":"W","col":12,"row":24,"e":1,"ny":0.543},{"id":177,"x":228,"y":320,"c":"*","col":17,"row":24,"e":1,"ny":0.543},{"id":178,"x":241,"y":320,"c":"@","col":18,"row":24,"e":0,"ny":0.543},{"id":179,"x":254,"y":320,"c":"@","col":19,"row":24,"e":0,"ny":0.543},{"id":180,"x":267,"y":320,"c":"@","col":20,"row":24,"e":0,"ny":0.543},{"id":181,"x":280,"y":320,"c":"@","col":21,"row":24,"e":0,"ny":0.543},{"id":182,"x":293,"y":320,"c":"M","col":22,"row":24,"e":0,"ny":0.543},{"id":183,"x":307,"y":320,"c":"W","col":23,"row":24,"e":1,"ny":0.543},{"id":184,"x":320,"y":320,"c":"@","col":24,"row":24,"e":0,"ny":0.543},{"id":185,"x":333,"y":320,"c":"@","col":25,"row":24,"e":0,"ny":0.543},{"id":186,"x":346,"y":320,"c":"@","col":26,"row":24,"e":0,"ny":0.543},{"id":187,"x":359,"y":320,"c":"@","col":27,"row":24,"e":0,"ny":0.543},{"id":188,"x":372,"y":320,"c":"8","col":28,"row":24,"e":1,"ny":0.543},{"id":189,"x":437,"y":320,"c":"%","col":33,"row":24,"e":1,"ny":0.543},{"id":190,"x":450,"y":320,"c":"@","col":34,"row":24,"e":0,"ny":0.543},{"id":191,"x":463,"y":320,"c":"@","col":35,"row":24,"e":0,"ny":0.543},{"id":192,"x":476,"y":320,"c":"M","col":36,"row":24,"e":1,"ny":0.543},{"id":193,"x":124,"y":333,"c":"W","col":9,"row":25,"e":1,"ny":0.585},{"id":194,"x":137,"y":333,"c":"@","col":10,"row":25,"e":0,"ny":0.585},{"id":195,"x":150,"y":333,"c":"@","col":11,"row":25,"e":0,"ny":0.585},{"id":196,"x":163,"y":333,"c":"W","col":12,"row":25,"e":1,"ny":0.585},{"id":197,"x":241,"y":333,"c":"8","col":18,"row":25,"e":1,"ny":0.585},{"id":198,"x":254,"y":333,"c":"@","col":19,"row":25,"e":0,"ny":0.585},{"id":199,"x":267,"y":333,"c":"@","col":20,"row":25,"e":0,"ny":0.585},{"id":200,"x":280,"y":333,"c":"@","col":21,"row":25,"e":0,"ny":0.585},{"id":201,"x":293,"y":333,"c":"#","col":22,"row":25,"e":0,"ny":0.585},{"id":202,"x":307,"y":333,"c":"#","col":23,"row":25,"e":0,"ny":0.585},{"id":203,"x":320,"y":333,"c":"@","col":24,"row":25,"e":0,"ny":0.585},{"id":204,"x":333,"y":333,"c":"@","col":25,"row":25,"e":0,"ny":0.585},{"id":205,"x":346,"y":333,"c":"@","col":26,"row":25,"e":0,"ny":0.585},{"id":206,"x":359,"y":333,"c":"&","col":27,"row":25,"e":1,"ny":0.585},{"id":207,"x":437,"y":333,"c":"%","col":33,"row":25,"e":1,"ny":0.585},{"id":208,"x":450,"y":333,"c":"@","col":34,"row":25,"e":0,"ny":0.585},{"id":209,"x":463,"y":333,"c":"@","col":35,"row":25,"e":0,"ny":0.585},{"id":210,"x":476,"y":333,"c":"M","col":36,"row":25,"e":1,"ny":0.585},{"id":211,"x":124,"y":346,"c":"W","col":9,"row":26,"e":1,"ny":0.626},{"id":212,"x":137,"y":346,"c":"@","col":10,"row":26,"e":0,"ny":0.626},{"id":213,"x":150,"y":346,"c":"@","col":11,"row":26,"e":0,"ny":0.626},{"id":214,"x":163,"y":346,"c":"W","col":12,"row":26,"e":1,"ny":0.626},{"id":215,"x":254,"y":346,"c":"%","col":19,"row":26,"e":1,"ny":0.626},{"id":216,"x":267,"y":346,"c":"@","col":20,"row":26,"e":0,"ny":0.626},{"id":217,"x":280,"y":346,"c":"@","col":21,"row":26,"e":0,"ny":0.626},{"id":218,"x":293,"y":346,"c":"#","col":22,"row":26,"e":0,"ny":0.626},{"id":219,"x":307,"y":346,"c":"#","col":23,"row":26,"e":0,"ny":0.626},{"id":220,"x":320,"y":346,"c":"@","col":24,"row":26,"e":0,"ny":0.626},{"id":221,"x":333,"y":346,"c":"@","col":25,"row":26,"e":0,"ny":0.626},{"id":222,"x":346,"y":346,"c":"W","col":26,"row":26,"e":1,"ny":0.626},{"id":223,"x":437,"y":346,"c":"%","col":33,"row":26,"e":1,"ny":0.626},{"id":224,"x":450,"y":346,"c":"@","col":34,"row":26,"e":0,"ny":0.626},{"id":225,"x":463,"y":346,"c":"@","col":35,"row":26,"e":0,"ny":0.626},{"id":226,"x":476,"y":346,"c":"M","col":36,"row":26,"e":1,"ny":0.626},{"id":227,"x":124,"y":359,"c":"W","col":9,"row":27,"e":1,"ny":0.668},{"id":228,"x":137,"y":359,"c":"@","col":10,"row":27,"e":0,"ny":0.668},{"id":229,"x":150,"y":359,"c":"@","col":11,"row":27,"e":0,"ny":0.668},{"id":230,"x":163,"y":359,"c":"W","col":12,"row":27,"e":1,"ny":0.668},{"id":231,"x":267,"y":359,"c":"W","col":20,"row":27,"e":1,"ny":0.668},{"id":232,"x":280,"y":359,"c":"@","col":21,"row":27,"e":0,"ny":0.668},{"id":233,"x":293,"y":359,"c":"#","col":22,"row":27,"e":0,"ny":0.668},{"id":234,"x":307,"y":359,"c":"#","col":23,"row":27,"e":0,"ny":0.668},{"id":235,"x":320,"y":359,"c":"@","col":24,"row":27,"e":0,"ny":0.668},{"id":236,"x":333,"y":359,"c":"M","col":25,"row":27,"e":1,"ny":0.668},{"id":237,"x":437,"y":359,"c":"%","col":33,"row":27,"e":1,"ny":0.668},{"id":238,"x":450,"y":359,"c":"@","col":34,"row":27,"e":0,"ny":0.668},{"id":239,"x":463,"y":359,"c":"@","col":35,"row":27,"e":0,"ny":0.668},{"id":240,"x":476,"y":359,"c":"M","col":36,"row":27,"e":1,"ny":0.668},{"id":241,"x":124,"y":372,"c":"W","col":9,"row":28,"e":1,"ny":0.709},{"id":242,"x":137,"y":372,"c":"@","col":10,"row":28,"e":0,"ny":0.709},{"id":243,"x":150,"y":372,"c":"@","col":11,"row":28,"e":0,"ny":0.709},{"id":244,"x":163,"y":372,"c":"W","col":12,"row":28,"e":1,"ny":0.709},{"id":245,"x":280,"y":372,"c":"M","col":21,"row":28,"e":1,"ny":0.709},{"id":246,"x":293,"y":372,"c":"#","col":22,"row":28,"e":0,"ny":0.709},{"id":247,"x":307,"y":372,"c":"#","col":23,"row":28,"e":0,"ny":0.709},{"id":248,"x":320,"y":372,"c":"M","col":24,"row":28,"e":1,"ny":0.709},{"id":249,"x":437,"y":372,"c":"%","col":33,"row":28,"e":1,"ny":0.709},{"id":250,"x":450,"y":372,"c":"@","col":34,"row":28,"e":0,"ny":0.709},{"id":251,"x":463,"y":372,"c":"@","col":35,"row":28,"e":0,"ny":0.709},{"id":252,"x":476,"y":372,"c":"M","col":36,"row":28,"e":1,"ny":0.709},{"id":253,"x":124,"y":385,"c":"W","col":9,"row":29,"e":1,"ny":0.751},{"id":254,"x":137,"y":385,"c":"@","col":10,"row":29,"e":0,"ny":0.751},{"id":255,"x":150,"y":385,"c":"@","col":11,"row":29,"e":0,"ny":0.751},{"id":256,"x":163,"y":385,"c":"W","col":12,"row":29,"e":1,"ny":0.751},{"id":257,"x":293,"y":385,"c":"W","col":22,"row":29,"e":1,"ny":0.751},{"id":258,"x":307,"y":385,"c":"W","col":23,"row":29,"e":1,"ny":0.751},{"id":259,"x":320,"y":385,"c":"-","col":24,"row":29,"e":1,"ny":0.751},{"id":260,"x":437,"y":385,"c":"%","col":33,"row":29,"e":1,"ny":0.751},{"id":261,"x":450,"y":385,"c":"@","col":34,"row":29,"e":0,"ny":0.751},{"id":262,"x":463,"y":385,"c":"@","col":35,"row":29,"e":0,"ny":0.751},{"id":263,"x":476,"y":385,"c":"M","col":36,"row":29,"e":1,"ny":0.751},{"id":264,"x":124,"y":398,"c":"W","col":9,"row":30,"e":1,"ny":0.792},{"id":265,"x":137,"y":398,"c":"@","col":10,"row":30,"e":0,"ny":0.792},{"id":266,"x":150,"y":398,"c":"@","col":11,"row":30,"e":0,"ny":0.792},{"id":267,"x":163,"y":398,"c":"W","col":12,"row":30,"e":1,"ny":0.792},{"id":268,"x":437,"y":398,"c":"%","col":33,"row":30,"e":1,"ny":0.792},{"id":269,"x":450,"y":398,"c":"@","col":34,"row":30,"e":0,"ny":0.792},{"id":270,"x":463,"y":398,"c":"@","col":35,"row":30,"e":0,"ny":0.792},{"id":271,"x":476,"y":398,"c":"M","col":36,"row":30,"e":1,"ny":0.792},{"id":272,"x":124,"y":411,"c":"W","col":9,"row":31,"e":1,"ny":0.834},{"id":273,"x":137,"y":411,"c":"@","col":10,"row":31,"e":0,"ny":0.834},{"id":274,"x":150,"y":411,"c":"@","col":11,"row":31,"e":0,"ny":0.834},{"id":275,"x":163,"y":411,"c":"W","col":12,"row":31,"e":1,"ny":0.834},{"id":276,"x":437,"y":411,"c":"%","col":33,"row":31,"e":1,"ny":0.834},{"id":277,"x":450,"y":411,"c":"@","col":34,"row":31,"e":0,"ny":0.834},{"id":278,"x":463,"y":411,"c":"@","col":35,"row":31,"e":0,"ny":0.834},{"id":279,"x":476,"y":411,"c":"M","col":36,"row":31,"e":1,"ny":0.834},{"id":280,"x":124,"y":424,"c":"W","col":9,"row":32,"e":1,"ny":0.875},{"id":281,"x":137,"y":424,"c":"@","col":10,"row":32,"e":0,"ny":0.875},{"id":282,"x":150,"y":424,"c":"@","col":11,"row":32,"e":0,"ny":0.875},{"id":283,"x":163,"y":424,"c":"W","col":12,"row":32,"e":1,"ny":0.875},{"id":284,"x":437,"y":424,"c":"%","col":33,"row":32,"e":1,"ny":0.875},{"id":285,"x":450,"y":424,"c":"@","col":34,"row":32,"e":0,"ny":0.875},{"id":286,"x":463,"y":424,"c":"@","col":35,"row":32,"e":0,"ny":0.875},{"id":287,"x":476,"y":424,"c":"M","col":36,"row":32,"e":1,"ny":0.875},{"id":288,"x":124,"y":437,"c":"W","col":9,"row":33,"e":1,"ny":0.917},{"id":289,"x":137,"y":437,"c":"@","col":10,"row":33,"e":0,"ny":0.917},{"id":290,"x":150,"y":437,"c":"@","col":11,"row":33,"e":0,"ny":0.917},{"id":291,"x":163,"y":437,"c":"W","col":12,"row":33,"e":1,"ny":0.917},{"id":292,"x":437,"y":437,"c":"%","col":33,"row":33,"e":1,"ny":0.917},{"id":293,"x":450,"y":437,"c":"@","col":34,"row":33,"e":0,"ny":0.917},{"id":294,"x":463,"y":437,"c":"@","col":35,"row":33,"e":0,"ny":0.917},{"id":295,"x":476,"y":437,"c":"M","col":36,"row":33,"e":1,"ny":0.917},{"id":296,"x":124,"y":450,"c":"W","col":9,"row":34,"e":1,"ny":0.958},{"id":297,"x":137,"y":450,"c":"@","col":10,"row":34,"e":0,"ny":0.958},{"id":298,"x":150,"y":450,"c":"@","col":11,"row":34,"e":0,"ny":0.958},{"id":299,"x":163,"y":450,"c":"W","col":12,"row":34,"e":1,"ny":0.958},{"id":300,"x":437,"y":450,"c":"%","col":33,"row":34,"e":1,"ny":0.958},{"id":301,"x":450,"y":450,"c":"@","col":34,"row":34,"e":0,"ny":0.958},{"id":302,"x":463,"y":450,"c":"@","col":35,"row":34,"e":0,"ny":0.958},{"id":303,"x":476,"y":450,"c":"M","col":36,"row":34,"e":1,"ny":0.958},{"id":304,"x":124,"y":463,"c":"=","col":9,"row":35,"e":1,"ny":1},{"id":305,"x":137,"y":463,"c":"+","col":10,"row":35,"e":1,"ny":1},{"id":306,"x":150,"y":463,"c":"+","col":11,"row":35,"e":1,"ny":1},{"id":307,"x":163,"y":463,"c":"=","col":12,"row":35,"e":1,"ny":1},{"id":308,"x":437,"y":463,"c":"=","col":33,"row":35,"e":1,"ny":1},{"id":309,"x":450,"y":463,"c":"+","col":34,"row":35,"e":1,"ny":1},{"id":310,"x":463,"y":463,"c":"+","col":35,"row":35,"e":1,"ny":1},{"id":311,"x":476,"y":463,"c":"=","col":36,"row":35,"e":1,"ny":1}];
+      const SETTINGS = {"theme":"dark","fontSize":390,"strokeWidth":2.5,"gridDensity":46,"charSet":"standard","cycleDuration":4.5,"flickerSpeed":1,"invertColors":false,"showScanlines":false,"showBoundingGrid":true,"glowEffect":true,"outlineStyle":"fill","animStyle":"smooth-fade"};
+      const DECODE_GLYPHS = ["#","%","&","8","M","W","0","1","/","\\","[","]","$","*","X","+","<",">"];
+      const DISSOLVE_GLYPHS = ["·",":",".","+","-","▫"," "];
+      const CHAR_SETS = {"standard":{"name":"Classic ASCII","chars":["@","#","M","W","%","&","8","*","o","x","+","=","-",":","."]},"matrix":{"name":"Binary / Matrix","chars":["M","1","0","1","0","$","%","#","&","*","+","-",":","."]},"cyber":{"name":"Cyberpunk Wire","chars":["M","[","]","{","}","<",">","/","\\","|","+","=","_","-","^"]},"blocks":{"name":"Block Shades","chars":["█","▓","▒","░","M","#","■","▫","·"]},"minimal":{"name":"Minimal Dots","chars":["M","*","+","•","·",":"]}};
+
+      const LEFT_PATH = "M 120 459 L 120 141 L 298.2 318.5 L 298.2 397.5 L 206 295 C 192 277, 166 275, 166 308 L 166 459 Z";
+      const RIGHT_PATH = "M 301.8 318.5 L 480 141 L 480 459 L 434 459 L 434 308 C 434 275, 408 277, 394 295 L 301.8 397.5 Z";
+
+      const points = RAW_POINTS.map(p => ({
+        id: p.id,
+        x: p.x,
+        y: p.y,
+        initialChar: p.c,
+        col: p.col,
+        row: p.row,
+        isEdge: Boolean(p.e),
+        normalizedY: p.ny,
+      }));
+
+      const canvas = document.getElementById('logo-canvas');
+      const ctx = canvas.getContext('2d', { alpha: false });
+      const playBtn = document.getElementById('play-btn');
+      const phaseBadge = document.getElementById('phase-badge');
+      const scrubber = document.getElementById('scrubber');
+      const speedBtn = document.getElementById('speed-btn');
+      const themeBtn = document.getElementById('theme-btn');
+      const fsBtn = document.getElementById('fs-btn');
+      const hud = document.getElementById('hud');
+
+      let currentSettings = { ...SETTINGS };
+      let isPlaying = true;
+      let playbackSpeed = 1.0;
+      let duration = currentSettings.cycleDuration || 4.5;
+      let startTime = performance.now();
+      let lastTime = startTime;
+      let progress = 0;
+      let tick = 0;
+      let isDraggingScrubber = false;
+
+      // Path2D cache
+      let pathLeft = null;
+      let pathRight = null;
+      try {
+        pathLeft = new Path2D(LEFT_PATH);
+        pathRight = new Path2D(RIGHT_PATH);
+      } catch (e) {}
+
+      function resizeCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const rect = canvas.getBoundingClientRect();
+        const size = Math.round(rect.width * dpr);
+        if (canvas.width !== size || canvas.height !== size) {
+          canvas.width = size;
+          canvas.height = size;
+        }
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      function computeFrameState(p, t, pts, conf) {
+        const style = conf.animStyle || 'smooth-fade';
+        let outOpacity = 1;
+        let asciiOpacity = 0;
+        let strokeW = conf.strokeWidth;
+        let glitch = 0;
+        let wave = 0;
+        let sweepBeamY = null;
+        let name = 'Pristine Logo';
+
+        if (style === 'continuous') {
+          outOpacity = 0;
+          asciiOpacity = 0.95;
+          name = 'Continuous ASCII';
+        } else if (style === 'smooth-fade') {
+          if (p < 0.05) {
+            outOpacity = 0;
+            asciiOpacity = 0;
+            name = 'Pure Black';
+          } else if (p < 0.28) {
+            const tLocal = (p - 0.05) / 0.23;
+            const smoothT = 0.5 - 0.5 * Math.cos(tLocal * Math.PI);
+            outOpacity = 0;
+            asciiOpacity = smoothT * 0.95;
+            name = 'SK Bringing Logo';
+          } else if (p < 0.44) {
+            const tLocal = (p - 0.28) / 0.16;
+            const smoothT = 0.5 - 0.5 * Math.cos(tLocal * Math.PI);
+            outOpacity = smoothT;
+            asciiOpacity = (1 - smoothT) * 0.95;
+            name = 'SK Disappearing';
+          } else if (p < 0.70) {
+            outOpacity = 1;
+            asciiOpacity = 0;
+            name = 'Pristine Logo';
+          } else if (p < 0.84) {
+            const tLocal = (p - 0.70) / 0.14;
+            const smoothT = 0.5 - 0.5 * Math.cos(tLocal * Math.PI);
+            outOpacity = 1 - smoothT;
+            asciiOpacity = smoothT * 0.95;
+            name = 'SK Deconstructing';
+          } else if (p < 0.95) {
+            const tLocal = (p - 0.84) / 0.11;
+            const smoothT = 0.5 - 0.5 * Math.cos(tLocal * Math.PI);
+            outOpacity = 0;
+            asciiOpacity = (1 - smoothT) * 0.95;
+            name = 'Fade Out to Black';
+          } else {
+            outOpacity = 0;
+            asciiOpacity = 0;
+            name = 'Pure Black';
+          }
+        } else if (style === 'waterfall') {
+          if (p < 0.05) {
+            outOpacity = 0;
+            asciiOpacity = 0;
+            name = 'Pure Black';
+          } else if (p < 0.28) {
+            const localT = (p - 0.05) / 0.23;
+            wave = localT;
+            sweepBeamY = 120 + localT * 350;
+            outOpacity = 0;
+            asciiOpacity = 0.95;
+            name = 'SK Waterfall';
+          } else if (p < 0.44) {
+            wave = 1.0;
+            const localT = (p - 0.28) / 0.16;
+            const smoothT = 0.5 - 0.5 * Math.cos(localT * Math.PI);
+            outOpacity = smoothT;
+            asciiOpacity = (1 - smoothT) * 0.95;
+            name = 'SK Disappearing';
+          } else if (p < 0.70) {
+            outOpacity = 1;
+            asciiOpacity = 0;
+            name = 'Pristine Logo';
+          } else if (p < 0.84) {
+            const localT = (p - 0.70) / 0.14;
+            const smoothT = 0.5 - 0.5 * Math.cos(localT * Math.PI);
+            sweepBeamY = 470 - smoothT * 350;
+            outOpacity = 1 - smoothT;
+            asciiOpacity = smoothT * 0.95;
+            wave = 1.0 - smoothT;
+            name = 'SK Deconstructing';
+          } else if (p < 0.95) {
+            const localT = (p - 0.84) / 0.11;
+            const smoothT = 0.5 - 0.5 * Math.cos(localT * Math.PI);
+            outOpacity = 0;
+            asciiOpacity = (1 - smoothT) * 0.95;
+            name = 'Fade Out to Black';
+          } else {
+            outOpacity = 0;
+            asciiOpacity = 0;
+            name = 'Pure Black';
+          }
+        } else {
+          // glitch
+          if (p < 0.05) {
+            outOpacity = 0;
+            asciiOpacity = 0;
+            name = 'Pure Black';
+          } else if (p < 0.28) {
+            const tLocal = (p - 0.05) / 0.23;
+            const smoothT = 0.5 - 0.5 * Math.cos(tLocal * Math.PI);
+            outOpacity = 0;
+            asciiOpacity = smoothT * 0.95;
+            name = 'Cyber Glitch In';
+          } else if (p < 0.44) {
+            const tLocal = (p - 0.28) / 0.16;
+            const smoothT = 0.5 - 0.5 * Math.cos(tLocal * Math.PI);
+            outOpacity = smoothT;
+            asciiOpacity = (1 - smoothT) * 0.95;
+            name = 'SK Disappearing';
+          } else if (p < 0.70) {
+            outOpacity = 1;
+            asciiOpacity = 0;
+            name = 'Pristine Logo';
+          } else if (p < 0.84) {
+            const tLocal = (p - 0.70) / 0.14;
+            const smoothT = 0.5 - 0.5 * Math.cos(tLocal * Math.PI);
+            outOpacity = 1 - smoothT;
+            asciiOpacity = smoothT * 0.95;
+            name = 'Cyber Glitch Out';
+          } else if (p < 0.95) {
+            const tLocal = (p - 0.84) / 0.11;
+            const smoothT = 0.5 - 0.5 * Math.cos(tLocal * Math.PI);
+            outOpacity = 0;
+            asciiOpacity = (1 - smoothT) * 0.95;
+            name = 'Fade Out to Black';
+          } else {
+            outOpacity = 0;
+            asciiOpacity = 0;
+            name = 'Pure Black';
+          }
+
+          const glitchActive = (p >= 0.18 && p <= 0.36) || (p >= 0.68 && p <= 0.86);
+          if (glitchActive) {
+            glitch = Math.sin(t * 3.7) * 6;
+            strokeW = conf.strokeWidth + Math.sin(t * 5) * 1.5;
+          }
+        }
+
+        const activeElements = [];
+        const charList = (CHAR_SETS[conf.charSet] || CHAR_SETS.standard).chars;
+        const len = charList.length;
+
+        if (asciiOpacity > 0.005) {
+          for (let i = 0; i < pts.length; i++) {
+            const pt = pts[i];
+            let char = pt.initialChar;
+            let pointOpacity = asciiOpacity;
+
+            if (style === 'continuous') {
+              if (conf.flickerSpeed > 0) {
+                const flickerSeed = (pt.col * 23 + pt.row * 37 + t) % 100;
+                if (flickerSeed < 16) {
+                  char = charList[(pt.id + t) % len];
+                }
+              }
+              pointOpacity = 0.95 * (pt.isEdge ? 0.95 : 1.0);
+            } else if (style === 'smooth-fade') {
+              if (p >= 0.05 && p < 0.28) {
+                const buildT = (p - 0.05) / 0.23;
+                const pointRevealT = (pt.y / 600) * 0.55 + (Math.abs(pt.x - 300) / 300) * 0.35;
+                const isSynthesizing = buildT < pointRevealT + 0.18;
+
+                if (isSynthesizing) {
+                  const decodeIdx = (pt.id * 11 + t * 2) % DECODE_GLYPHS.length;
+                  char = DECODE_GLYPHS[decodeIdx];
+                  pointOpacity = Math.min(asciiOpacity, Math.max(0.1, (buildT - pointRevealT + 0.18) / 0.18));
+                } else if (conf.flickerSpeed > 0 && (pt.id + t) % 9 === 0) {
+                  char = charList[(pt.id + t) % len];
+                }
+              } else if (p >= 0.84 && p < 0.95) {
+                const fadeProgress = (p - 0.84) / 0.11;
+                const pointFadeThreshold = (1 - (pt.y / 600)) * 0.4 + (Math.abs(pt.x - 300) / 300) * 0.4;
+                if (fadeProgress > pointFadeThreshold) {
+                  const dissolveIdx = (pt.id * 7 + t) % DISSOLVE_GLYPHS.length;
+                  char = DISSOLVE_GLYPHS[dissolveIdx];
+                  pointOpacity = Math.max(0, asciiOpacity * (1 - (fadeProgress - pointFadeThreshold) / 0.3));
+                }
+              } else if (conf.flickerSpeed > 0) {
+                const flickerSeed = (pt.col * 23 + pt.row * 37 + t) % 100;
+                if (flickerSeed < 16) {
+                  char = charList[(pt.id + t) % len];
+                }
+              }
+            } else if (style === 'waterfall') {
+              if (p >= 0.05 && p < 0.28) {
+                const normY = pt.normalizedY || ((pt.y - 141) / 318);
+                const distFromWave = normY - wave;
+                if (distFromWave > 0.06) continue;
+                if (distFromWave >= -0.10 && distFromWave <= 0.06) {
+                  char = DECODE_GLYPHS[(pt.id * 7 + t * 3) % DECODE_GLYPHS.length];
+                } else if (conf.flickerSpeed > 0 && (pt.id + t) % 11 === 0) {
+                  char = charList[(pt.id * 3) % len];
+                }
+              } else if (p >= 0.70 && p < 0.84) {
+                const normY = pt.normalizedY || ((pt.y - 141) / 318);
+                if (normY < wave - 0.05) continue;
+                if (Math.abs(normY - wave) <= 0.08) {
+                  char = DECODE_GLYPHS[(pt.id * 7 + t * 3) % DECODE_GLYPHS.length];
+                }
+              } else if (p >= 0.84 && p < 0.95) {
+                char = DISSOLVE_GLYPHS[(pt.id + t) % DISSOLVE_GLYPHS.length];
+              }
+            } else {
+              // glitch
+              if (p >= 0.18 && p <= 0.36 && (pt.id + t) % 7 === 0) {
+                char = DECODE_GLYPHS[(pt.id * 3 + t) % DECODE_GLYPHS.length];
+              } else if (conf.flickerSpeed > 0 && (pt.col * 19 + pt.row * 29 + t) % 100 < 20) {
+                char = charList[(pt.id + t) % len];
+              }
+            }
+
+            if (pointOpacity > 0.01) {
+              activeElements.push({ x: pt.x, y: pt.y, char, opacity: pointOpacity });
+            }
+          }
+        }
+
+        return {
+          outlineOpacity: outOpacity,
+          activeElements,
+          phaseName: name,
+          strokeWidth: strokeW,
+          glitchOffset: glitch,
+          sweepBeamY,
+        };
+      }
+
+      function drawVectorM(context, conf, frameData) {
+        if (frameData.outlineOpacity <= 0.01) return;
+        context.save();
+        if (frameData.glitchOffset !== 0) {
+          context.translate(frameData.glitchOffset, 0);
+        }
+        context.globalAlpha = frameData.outlineOpacity;
+        const fg = conf.theme === 'dark' ? '#ffffff' : '#000000';
+
+        if (conf.outlineStyle !== 'stroke') {
+          context.fillStyle = fg;
+          if (pathLeft && pathRight) {
+            context.fill(pathLeft);
+            context.fill(pathRight);
+          } else {
+            drawFallbackM(context);
+            context.fill();
+          }
+        }
+
+        context.strokeStyle = fg;
+        context.lineWidth = frameData.strokeWidth;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        if (pathLeft && pathRight) {
+          context.stroke(pathLeft);
+          context.stroke(pathRight);
+        } else {
+          drawFallbackM(context);
+          context.stroke();
+        }
+        context.restore();
+      }
+
+      function drawFallbackM(context) {
+        context.beginPath();
+        context.moveTo(120, 459);
+        context.lineTo(120, 141);
+        context.lineTo(298.2, 318.5);
+        context.lineTo(298.2, 397.5);
+        context.lineTo(206, 295);
+        context.bezierCurveTo(192, 277, 166, 275, 166, 308);
+        context.lineTo(166, 459);
+        context.closePath();
+
+        context.moveTo(301.8, 318.5);
+        context.lineTo(480, 141);
+        context.lineTo(480, 459);
+        context.lineTo(434, 459);
+        context.lineTo(434, 308);
+        context.bezierCurveTo(434, 275, 408, 277, 394, 295);
+        context.lineTo(301.8, 397.5);
+        context.closePath();
+      }
+
+      function renderFrame(p, t) {
+        const isDarkTheme = currentSettings.theme === 'dark';
+        const bg = isDarkTheme ? '#000000' : '#ffffff';
+        const fg = isDarkTheme ? '#ffffff' : '#000000';
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = canvas.width / dpr;
+        const h = canvas.height / dpr;
+
+        ctx.save();
+        ctx.scale(dpr, dpr);
+
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
+
+        const baseSize = 600;
+        const scale = Math.min(w, h) / baseSize;
+        const offX = (w - baseSize * scale) / 2;
+        const offY = (h - baseSize * scale) / 2;
+
+        ctx.translate(offX, offY);
+        ctx.scale(scale, scale);
+
+        const frameData = computeFrameState(p, t, points, currentSettings);
+
+        // Update UI badge
+        phaseBadge.textContent = frameData.phaseName;
+
+        // 1. Grid
+        if (currentSettings.showBoundingGrid) {
+          ctx.strokeStyle = fg;
+          ctx.globalAlpha = 0.06;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 6]);
+          ctx.strokeRect(100, 100, 400, 400);
+          ctx.beginPath();
+          ctx.moveTo(300, 80);
+          ctx.lineTo(300, 520);
+          ctx.moveTo(80, 300);
+          ctx.lineTo(520, 300);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+        }
+
+        // 2. ASCII Elements
+        if (frameData.activeElements.length > 0) {
+          const fontSize = Math.max(10, Math.round(baseSize / (currentSettings.gridDensity || 46)));
+          ctx.font = 'bold ' + fontSize + 'px "JetBrains Mono", "SF Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = fg;
+
+          if (currentSettings.glowEffect) {
+            ctx.shadowColor = isDarkTheme ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.35)';
+            ctx.shadowBlur = 8;
+          } else {
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+          }
+
+          for (let i = 0; i < frameData.activeElements.length; i++) {
+            const el = frameData.activeElements[i];
+            ctx.globalAlpha = el.opacity;
+            ctx.fillText(el.char, el.x, el.y);
+          }
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+        }
+
+        // 3. Vector Outline
+        drawVectorM(ctx, currentSettings, frameData);
+
+        // 4. Laser Scanline Beam
+        if (frameData.sweepBeamY !== null && currentSettings.showScanlines) {
+          ctx.save();
+          ctx.strokeStyle = fg;
+          ctx.globalAlpha = 0.35;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.moveTo(60, frameData.sweepBeamY);
+          ctx.lineTo(540, frameData.sweepBeamY);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 5. Terminal Scanline
+        if (currentSettings.showScanlines) {
+          ctx.save();
+          ctx.strokeStyle = fg;
+          ctx.globalAlpha = 0.08;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([3, 6]);
+          const scanY = (t * 4) % baseSize;
+          ctx.beginPath();
+          ctx.moveTo(0, scanY);
+          ctx.lineTo(baseSize, scanY);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      function loop(timestamp) {
+        if (isPlaying && !isDraggingScrubber) {
+          const delta = (timestamp - lastTime) / 1000;
+          lastTime = timestamp;
+          const cycleSec = duration / playbackSpeed;
+          progress = (progress + (delta / cycleSec)) % 1.0;
+          tick = Math.floor(progress * cycleSec * 60);
+          scrubber.value = Math.round(progress * 1000);
+        } else {
+          lastTime = timestamp;
+        }
+
+        renderFrame(progress, tick);
+        requestAnimationFrame(loop);
+      }
+
+      window.renderLogoFrame = renderFrame;
+      if (location.search.includes("still")) renderFrame(0.55,0); else if (!location.search.includes("favicon")) requestAnimationFrame(loop);
+
+      // Controls listeners
+      function togglePlay() {
+        isPlaying = !isPlaying;
+        playBtn.textContent = isPlaying ? '▶ PAUSE' : '❚❚ PLAY';
+      }
+
+      playBtn.addEventListener('click', togglePlay);
+      canvas.addEventListener('click', togglePlay);
+
+      scrubber.addEventListener('input', (e) => {
+        isDraggingScrubber = true;
+        progress = Number(e.target.value) / 1000;
+        tick = Math.floor(progress * duration * 60);
+        renderFrame(progress, tick);
+      });
+
+      scrubber.addEventListener('change', () => {
+        isDraggingScrubber = false;
+      });
+
+      speedBtn.addEventListener('click', () => {
+        if (playbackSpeed === 1.0) playbackSpeed = 2.0;
+        else if (playbackSpeed === 2.0) playbackSpeed = 0.5;
+        else playbackSpeed = 1.0;
+        speedBtn.textContent = playbackSpeed + 'x';
+      });
+
+      themeBtn.addEventListener('click', () => {
+        currentSettings.theme = currentSettings.theme === 'dark' ? 'light' : 'dark';
+        const isD = currentSettings.theme === 'dark';
+        document.body.style.backgroundColor = isD ? '#000000' : '#ffffff';
+        document.body.style.color = isD ? '#ffffff' : '#000000';
+        hud.style.background = isD ? 'rgba(20, 20, 20, 0.85)' : 'rgba(245, 245, 245, 0.85)';
+        hud.style.borderColor = isD ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
+      });
+
+      fsBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          togglePlay();
+        } else if (e.code === 'KeyF') {
+          fsBtn.click();
+        } else if (e.code === 'KeyT') {
+          themeBtn.click();
+        } else if (e.code === 'KeyH') {
+          hud.classList.toggle('hidden');
+        } else if (e.code === 'KeyR') {
+          progress = 0;
+          tick = 0;
+          scrubber.value = 0;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

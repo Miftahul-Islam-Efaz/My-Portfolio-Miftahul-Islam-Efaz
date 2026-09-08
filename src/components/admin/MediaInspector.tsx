@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import MediaField from "./MediaField";
 import { prepareRow, type Field, type TableSpec } from "./fields";
+import LogoAnimationPreview from "@/components/favicon/LogoAnimationPreview";
 import { driveImage } from "@/lib/driveImage";
 
 import "@/styles/case-study-editor.css";
@@ -309,7 +310,9 @@ export default function MediaInspector({
       <div className="adm-ins-body">
         <div className="adm-ins-canvas" data-lenis-prevent>
           <figure className="adm-mi-stage">
-            {src && isVideo ? (
+            {isFaviconRow && src.trim() === "animated:ascii-m" ? (
+              <LogoAnimationPreview />
+            ) : src && isVideo ? (
               <video
                 className="adm-mi-media"
                 src={driveImage(str(draft.original_url) || src)}

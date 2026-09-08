@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Field } from "./fields";
+import LogoAnimationPreview from "@/components/favicon/LogoAnimationPreview";
 import { driveImage } from "@/lib/driveImage";
 
 /**
@@ -77,12 +78,12 @@ export default function MediaField({
 
       {isBuiltin ? (
         <p className="adm-hint" style={{ marginTop: 6 }}>
-          Static preview below. The ASCII M animates in the browser tab.
+          Live preview of the original 4.5-second ASCII M loop.
         </p>
       ) : null}
       {value ? (
         <div className="adm-preview">
-          {isVideo ? (
+          {isBuiltin ? <LogoAnimationPreview /> : isVideo ? (
             <video src={driveImage(value)} muted loop playsInline autoPlay />
           ) : (
             // Plain img, not next/image: these URLs are user-supplied at
